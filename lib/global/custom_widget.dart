@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:more_pic/data/menu_data.dart';
 
 class CustomWidget {
+  static customScaffold(BuildContext context,
+      {required Widget body, Widget? drawer}) {
+    return Scaffold(body: body, drawer: customDrawer(context, menuData));
+  }
+
   static customSubMenuItemBtn({
     Key? key,
     void Function(bool)? onHover,
@@ -82,7 +88,7 @@ class CustomWidget {
   }
 
   //Drawer 위젯
-  Widget customDrawer(
+  static Widget customDrawer(
       BuildContext context, List<Map<String, dynamic>> menuData) {
     return Drawer(
       backgroundColor: Colors.white,
