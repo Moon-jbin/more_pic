@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/data/menu_data.dart';
 import 'package:more_pic/global/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
+import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
 import 'package:more_pic/utils/routing/navigation_service.dart';
 import 'package:more_pic/utils/routing/router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:more_pic/utils/routing/router_name.dart';
 
 void main() {
   runApp(
-    ProviderScope(
-      child: const MyApp(),
+    const ProviderScope(
+      child: MyApp(),
     ),
   );
 }
@@ -20,7 +23,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'MORE PIC',
+      title: '모어픽 | 본질에 집중한 미니멀 쇼핑',
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white,
         fontFamily: 'NotoSansKR',
@@ -31,333 +34,235 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MorePicWebService extends StatelessWidget {
+// 💡 [2] 메인 웹 서비스 컴포넌트 (HookConsumerWidget으로 변경)
+class MorePicWebService extends HookConsumerWidget {
   const MorePicWebService({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isMobile = screenWidth < 900;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scrollController = useScrollController();
+    final showButton = useState(false);
+    final isScrolled = useState(false);
+    final isHovered = useState(false);
+
+    final bool mobileMode = isMobile(context);
+
+    // 스크롤 리스너: Top 버튼 및 헤더 그림자 제어
+    useEffect(() {
+      void listener() {
+        if (scrollController.hasClients) {
+          // 150px 이상 내려가면 Top 버튼 표시
+          if (scrollController.offset > 150) {
+            if (!showButton.value) showButton.value = true;
+          } else {
+            if (showButton.value) showButton.value = false;
+          }
+
+          // 1px이라도 내려가면 헤더 그림자 켜기
+          if (scrollController.offset > 0) {
+            if (!isScrolled.value) isScrolled.value = true;
+          } else {
+            if (isScrolled.value) isScrolled.value = false;
+          }
+        }
+      }
+
+      scrollController.addListener(listener);
+      return () => scrollController.removeListener(listener);
+    }, [scrollController]);
+
+    // 반응형 헤더 실측 높이 설정 (디바이스별 최적화)
+    final double headerHeight = mobileMode ? 70 : 120;
 
     return Scaffold(
-      // 모바일용 사이드 메뉴 (Drawer)
-      drawer: isMobile
-          ? Drawer(
-              backgroundColor: Colors.white,
-              child: Column(
-                children: [
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'MORE PIC',
-                            style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                fontStyle: FontStyle.italic),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.black),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      backgroundColor: Colors.white,
+      drawer: mobileMode ? CustomWidget.customDrawer(context, menuData) : null,
+
+      // 💡 단일 통합 스크롤 시스템 가동
+      body: CustomScrollView(
+        controller: scrollController,
+        slivers: [
+          // 📌 [구조 1]: 스크롤 시 위로 밀려나 사라지는 최상단 안내 배너
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 30),
+              width: double.infinity,
+              color: const Color(0xFFD4CBE5),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: const Text(
+                '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+              ),
+            ),
+          ),
+
+          // 📌 [구조 2]: ⭐ 질문하신 Row 영역을 품은 상단 고정(Floating) 헤더 섹션
+          SliverPersistentHeader(
+            pinned: true, // 👈 상단 고정 활성화!
+            delegate: SliverHeaderDelegate(
+              height: headerHeight,
+              isScrolled: isScrolled.value,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: mobileMode ? 16 : 40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🔥 [유저 요청 영역]: 모바일 메뉴 버튼 + 로고 + 검색 바 레이아웃
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        CustomWidget.buildTopMenu('회원가입'),
-                        CustomWidget.buildDivider(),
-                        CustomWidget.buildTopMenu('로그인'),
-                        CustomWidget.buildDivider(),
-                        CustomWidget.buildTopMenu('주문조회'),
-                        CustomWidget.buildDivider(),
-                        CustomWidget.buildTopMenu('최근본상품'),
+                        if (mobileMode)
+                          Builder(
+                            builder: (context) => IconButton(
+                              icon: const Icon(Icons.menu,
+                                  color: Colors.black, size: 28),
+                              onPressed: () =>
+                                  Scaffold.of(context).openDrawer(),
+                            ),
+                          ),
+                        CustomWidget.customLogo(context,
+                            fontSize: 38, letterSpacing: 1.5),
+                        if (mobileMode)
+                          IconButton(
+                              icon: const Icon(Icons.search,
+                                  color: Colors.black, size: 26),
+                              onPressed: () {}),
                       ],
                     ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: menuData
-                          .map((menu) => CustomWidget.buildDrawerMenu(menu))
-                          .toList(),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : null,
-      // 💡 해결 포인트: LayoutBuilder와 ConstrainedBox 조합으로 무한 스크롤과 Sticky 푸터를 동시 만족시킵니다.
-      body: LayoutBuilder(
-        builder: (context, viewportConstraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                // 브라우저 화면 창의 현재 높이를 최소 높이로 강제 확보합니다.
-                minHeight: viewportConstraints.maxHeight,
-              ),
-              child: Container(
-                // 외부 배경색이나 구조 보정용
-                color: Colors.white,
-                child: Column(
-                  // 세로축 분할을 spaceBetween 대신 MainAxisSize.max + 정렬 구조로 변경하여 오버플로우를 차단합니다.
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // [1] 최상단 연보라색 배너
-                    Container(
-                      width: double.infinity,
-                      color: const Color(0xFFD4CBE5),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: const Text(
-                        '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14),
-                      ),
-                    ),
-
-                    // [2] 메인 본문 레이아웃 그룹
-                    Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // 데스크톱 모드일 때만 하단에 카테고리와 우측 검색창 추가 배치
+                    if (!mobileMode) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const SizedBox(height: 15),
-
-                          // 우측 상단 유틸리티 메뉴
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              CustomWidget.buildTopMenu('회원가입'),
-                              CustomWidget.buildDivider(),
-                              CustomWidget.buildTopMenu('로그인'),
-                              CustomWidget.buildDivider(),
-                              CustomWidget.buildTopMenu('주문조회'),
-                              CustomWidget.buildDivider(),
-                              CustomWidget.buildTopMenu('최근본상품'),
-                              CustomWidget.buildDivider(),
-                              Row(
-                                children: [
-                                  CustomWidget.buildTopMenu('고객센터'),
-                                  const Icon(Icons.keyboard_arrow_down,
-                                      size: 14, color: Colors.grey),
-                                ],
-                              ),
-                            ],
+                            children: menuData.map((menu) {
+                              return DesktopHoverMenu(
+                                title: menu['title'],
+                                items: menu['children'] ?? [],
+                              );
+                            }).toList(),
                           ),
-                          const SizedBox(height: 20),
-
-                          // 로고 및 카테고리 네비게이션 영역
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: Row(
-                                  children: [
-                                    if (isMobile)
-                                      Builder(
-                                        builder: (context) => IconButton(
-                                          icon: const Icon(Icons.menu,
-                                              color: Colors.black, size: 28),
-                                          onPressed: () =>
-                                              Scaffold.of(context).openDrawer(),
-                                        ),
-                                      ),
-                                    const Text(
-                                      'MORE PIC',
-                                      style: TextStyle(
-                                          fontSize: 38,
-                                          fontWeight: FontWeight.w900,
-                                          fontStyle: FontStyle.italic,
-                                          letterSpacing: 1.5),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  if (!isMobile)
-                                    Row(
-                                      children: menuData.map((menu) {
-                                        return DesktopHoverMenu(
-                                          title: menu['title'],
-                                          items: menu['children'] ?? [],
-                                        );
-                                      }).toList(),
-                                    )
-                                  else
-                                    const SizedBox.shrink(),
-                                  Row(
-                                    children: [
-                                      IconButton(
-                                          icon: const Icon(Icons.search,
-                                              color: Colors.black, size: 26),
-                                          onPressed: () {}),
-                                      const SizedBox(width: 5),
-                                      IconButton(
-                                          icon: const Icon(Icons.person_outline,
-                                              color: Colors.black, size: 26),
-                                          onPressed: () {}),
-                                      const SizedBox(width: 5),
-                                      IconButton(
-                                          icon: const Icon(
-                                              Icons.local_mall_outlined,
-                                              color: Colors.black,
-                                              size: 26),
-                                          onPressed: () {}),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: isMobile ? 40 : 80),
-
-                          // 💡 Dynamic Router Body 주입부
-                          // screenBody,
-
-                          SizedBox(height: isMobile ? 60 : 100),
+                          IconButton(
+                              icon: const Icon(Icons.search,
+                                  color: Colors.black, size: 26),
+                              onPressed: () {}),
                         ],
                       ),
-                    ),
-
-                    // 💡 [핵심 최적화]: SingleChildScrollView 계열 내부에서 에러를 유발하는 Spacer() 대신
-                    // 빈 공간이 있을 때만 늘어나 푸터를 아래로 밀어내주는 고정형 확장 패딩 역할을 합니다.
-                    const SizedBox(height: 40),
-
-                    // [3] 하단 푸터 (Footer) 영역
-                    Container(
-                      width: double.infinity,
-                      color: const Color(0xFFF5F6FA),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 20 : 50, vertical: 40),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('MORE PIC',
-                              style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  fontStyle: FontStyle.italic)),
-                          const SizedBox(height: 30),
-                          Wrap(
-                            spacing: 20,
-                            runSpacing: 10,
-                            children: [
-                              CustomWidget.buildFooterMenu('회사소개'),
-                              CustomWidget.buildFooterMenu('이용약관'),
-                              CustomWidget.buildFooterMenu('개인정보처리방침',
-                                  isBold: true),
-                              CustomWidget.buildFooterMenu('이용안내'),
-                            ],
-                          ),
-                          const SizedBox(height: 30),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              if (constraints.maxWidth < 700) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CustomWidget.buildFooterSectionTitle(
-                                        '쇼핑몰 기본정보'),
-                                    const SizedBox(height: 10),
-                                    CustomWidget.buildInfoWrap(),
-                                    const SizedBox(height: 30),
-                                    CustomWidget.buildFooterSectionTitle(
-                                        '고객센터 정보'),
-                                    const SizedBox(height: 10),
-                                    CustomWidget.buildCustomerInfoContent(),
-                                    const SizedBox(height: 30),
-                                    CustomWidget.buildFooterSectionTitle(
-                                        '결제정보'),
-                                    const SizedBox(height: 10),
-                                    CustomWidget.buildPaymentInfoContent(),
-                                  ],
-                                );
-                              } else {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      flex: 4,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          CustomWidget.buildFooterSectionTitle(
-                                              '쇼핑몰 기본정보'),
-                                          const SizedBox(height: 15),
-                                          CustomWidget.buildInfoWrap(),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          CustomWidget.buildFooterSectionTitle(
-                                              '고객센터 정보'),
-                                          const SizedBox(height: 15),
-                                          CustomWidget
-                                              .buildCustomerInfoContent(),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    Expanded(
-                                      flex: 3,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          CustomWidget.buildFooterSectionTitle(
-                                              '결제정보'),
-                                          const SizedBox(height: 15),
-                                          CustomWidget
-                                              .buildPaymentInfoContent(),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                    ]
                   ],
                 ),
               ),
             ),
-          );
-        },
+          ),
+          // 📌 [구조 3]: 본문 콘텐츠 및 푸터 영역 통합 (Null 에러가 절대 나지 않는 바닥 고정)
+          // 💡 SliverFillRemaining을 완전히 제거하고, SliverToBoxAdapter + LayoutBuilder 조합으로 구현합니다.
+          SliverToBoxAdapter(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 상단 가이드 배너와 고정 헤더의 대략적인 높이를 제외한 화면의 실제 최소 남은 높이를 구합니다.
+                // 배너 + 헤더 높이가 모바일은 약 110px, 데스크톱은 약 160px이므로 이를 빼줍니다.
+                final double minContentHeight =
+                    MediaQuery.of(context).size.height -
+                        (mobileMode ? 110 : 160);
+
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: minContentHeight > 0
+                        ? minContentHeight
+                        : 0, // 👈 화면 최소 높이 강제 확보
+                  ),
+                  child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween, // 👈 본문과 푸터를 양 끝으로 밀착
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 1. 메인 본문 콘텐츠 배치 구역
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: mobileMode ? 16 : 40),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: mobileMode ? 40 : 80),
+
+                            const Text('TEST'), // 👈 실제 메인 화면 위젯 구역
+
+                            SizedBox(height: mobileMode ? 60 : 100),
+                          ],
+                        ),
+                      ),
+
+                      // 2. 하단 푸터 (Footer) 영역
+                      CustomWidget.customFooter(context, isMobile: mobileMode),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+
+      // 💡 카테고리 스크린들과 오차 없이 100% 동기화된 프리미엄 흑백 반전 Top 버튼
+      floatingActionButton: AnimatedOpacity(
+        duration: const Duration(milliseconds: 300),
+        opacity: showButton.value ? 1.0 : 0.0,
+        child: showButton.value
+            ? MouseRegion(
+                cursor: SystemMouseCursors.click,
+                onEnter: (_) => isHovered.value = true,
+                onExit: (_) => isHovered.value = false,
+                child: GestureDetector(
+                  onTap: () {
+                    if (scrollController.hasClients) {
+                      scrollController.animateTo(
+                        0,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOutCubic,
+                      );
+                    }
+                  },
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 200),
+                    scale: isHovered.value ? 1.08 : 1.0,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isHovered.value ? Colors.black87 : Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFEEEEEE),
+                          width: 1.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black
+                                .withOpacity(isHovered.value ? 0.28 : 0.16),
+                            blurRadius: isHovered.value ? 16 : 10,
+                            offset: isHovered.value
+                                ? const Offset(0, 6)
+                                : const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.arrow_upward_rounded,
+                        size: 18,
+                        color: isHovered.value ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : const SizedBox.shrink(),
       ),
     );
   }
@@ -504,7 +409,13 @@ class _DesktopHoverMenuState extends State<DesktopHoverMenu> {
       return Padding(
         padding: const EdgeInsets.only(right: 25),
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            if (widget.title == '내복') {
+              NavigationService().routerGo(context, InnerRoute);
+            } else if (widget.title == 'SALE') {
+              NavigationService().routerGo(context, SaleRoute);
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
