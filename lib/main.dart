@@ -198,7 +198,6 @@ class MorePicWebService extends HookConsumerWidget {
                             ],
                           ),
                         ),
-                        
 
                         // 2. 하단 푸터 (Footer) 영역
                         CustomWidget.customFooter(context,
@@ -293,13 +292,13 @@ class _DesktopHoverMenuState extends State<DesktopHoverMenu> {
       // 하위 리스트가 없는 경우 일반 버튼
       menuWidget = MenuItemButton(
         onPressed: () {
-          print('${item['path']}');
+          // print('${item['path']}');
           NavigationService().routerGo(context, item['path'] ?? '/');
         },
         style: TextButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2)),
         child: Text(
           item['title'],
           style: const TextStyle(
@@ -316,10 +315,10 @@ class _DesktopHoverMenuState extends State<DesktopHoverMenu> {
           padding: WidgetStatePropertyAll(EdgeInsets.zero),
         ),
         style: TextButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          iconColor: Colors.grey.shade400,
-        ),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            iconColor: Colors.grey.shade400,
+            overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2)),
         // 자식 노드가 펼쳐지는 오버레이 영역에도 상위 호버 스택 이벤트를 연동시킵니다.
         menuChildren: [
           MouseRegion(
