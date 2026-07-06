@@ -20,8 +20,9 @@ samples, guidance on mobile development, and a full API reference.
 
 ## 코드 수정 후 빌드 방법
 1. flutter build web --release --base-href "/more_pic/"
-2. git add docs/
-3. git commit -m "Update: 최신 변경사항 반영 빌드"
-4. git push origin main
+2. xcopy build\web docs /E /I /H /Y
+3. git add .
+4. git commit -m "Update: 웹사이트 최신 변경사항 반영"
+5. git push origin main
 
 
