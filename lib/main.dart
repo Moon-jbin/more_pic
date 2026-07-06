@@ -43,7 +43,6 @@ class MorePicWebService extends HookConsumerWidget {
     final scrollController = useScrollController();
     final showButton = useState(false);
     final isScrolled = useState(false);
-    final isHovered = useState(false);
 
     final bool mobileMode = isMobile(context);
 
@@ -75,196 +74,147 @@ class MorePicWebService extends HookConsumerWidget {
     final double headerHeight = mobileMode ? 70 : 120;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      drawer: mobileMode ? CustomWidget.customDrawer(context, menuData) : null,
+        backgroundColor: Colors.white,
+        drawer:
+            mobileMode ? CustomWidget.customDrawer(context, menuData) : null,
 
-      // 💡 단일 통합 스크롤 시스템 가동
-      body: CustomScrollView(
-        controller: scrollController,
-        slivers: [
-          // 📌 [구조 1]: 스크롤 시 위로 밀려나 사라지는 최상단 안내 배너
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 30),
-              width: double.infinity,
-              color: const Color(0xFFD4CBE5),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: const Text(
-                '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14),
+        // 💡 단일 통합 스크롤 시스템 가동
+        body: CustomScrollView(
+          controller: scrollController,
+          slivers: [
+            // 📌 [구조 1]: 스크롤 시 위로 밀려나 사라지는 최상단 안내 배너
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 30),
+                width: double.infinity,
+                color: const Color(0xFFD4CBE5),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: const Text(
+                  '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14),
+                ),
               ),
             ),
-          ),
 
-          // 📌 [구조 2]: ⭐ 질문하신 Row 영역을 품은 상단 고정(Floating) 헤더 섹션
-          SliverPersistentHeader(
-            pinned: true, // 👈 상단 고정 활성화!
-            delegate: SliverHeaderDelegate(
-              height: headerHeight,
-              isScrolled: isScrolled.value,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: mobileMode ? 16 : 40),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 🔥 [유저 요청 영역]: 모바일 메뉴 버튼 + 로고 + 검색 바 레이아웃
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (mobileMode)
-                          Builder(
-                            builder: (context) => IconButton(
-                              icon: const Icon(Icons.menu,
-                                  color: Colors.black, size: 28),
-                              onPressed: () =>
-                                  Scaffold.of(context).openDrawer(),
-                            ),
-                          ),
-                        CustomWidget.customLogo(context,
-                            fontSize: 38, letterSpacing: 1.5),
-                        if (mobileMode)
-                          IconButton(
-                              icon: const Icon(Icons.search,
-                                  color: Colors.black, size: 26),
-                              onPressed: () {}),
-                      ],
-                    ),
-                    // 데스크톱 모드일 때만 하단에 카테고리와 우측 검색창 추가 배치
-                    if (!mobileMode) ...[
-                      const SizedBox(height: 10),
+            // 📌 [구조 2]: ⭐ 질문하신 Row 영역을 품은 상단 고정(Floating) 헤더 섹션
+            SliverPersistentHeader(
+              pinned: true, // 👈 상단 고정 활성화!
+              delegate: SliverHeaderDelegate(
+                height: headerHeight,
+                isScrolled: isScrolled.value,
+                child: Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: mobileMode ? 16 : 40),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 🔥 [유저 요청 영역]: 모바일 메뉴 버튼 + 로고 + 검색 바 레이아웃
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: menuData.map((menu) {
-                              return DesktopHoverMenu(
-                                title: menu['title'],
-                                items: menu['children'] ?? [],
-                              );
-                            }).toList(),
-                          ),
-                          IconButton(
-                              icon: const Icon(Icons.search,
-                                  color: Colors.black, size: 26),
-                              onPressed: () {}),
+                          if (mobileMode)
+                            Builder(
+                              builder: (context) => IconButton(
+                                icon: const Icon(Icons.menu,
+                                    color: Colors.black, size: 28),
+                                onPressed: () =>
+                                    Scaffold.of(context).openDrawer(),
+                              ),
+                            ),
+                          CustomWidget.customLogo(context,
+                              fontSize: 38, letterSpacing: 1.5),
+                          if (mobileMode)
+                            IconButton(
+                                icon: const Icon(Icons.search,
+                                    color: Colors.black, size: 26),
+                                onPressed: () {}),
                         ],
                       ),
-                    ]
-                  ],
+                      // 데스크톱 모드일 때만 하단에 카테고리와 우측 검색창 추가 배치
+                      if (!mobileMode) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: menuData.map((menu) {
+                                return DesktopHoverMenu(
+                                  title: menu['title'],
+                                  items: menu['children'] ?? [],
+                                );
+                              }).toList(),
+                            ),
+                            IconButton(
+                                icon: const Icon(Icons.search,
+                                    color: Colors.black, size: 26),
+                                onPressed: () {}),
+                          ],
+                        ),
+                      ]
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // 📌 [구조 3]: 본문 콘텐츠 및 푸터 영역 통합 (Null 에러가 절대 나지 않는 바닥 고정)
-          // 💡 SliverFillRemaining을 완전히 제거하고, SliverToBoxAdapter + LayoutBuilder 조합으로 구현합니다.
-          SliverToBoxAdapter(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // 상단 가이드 배너와 고정 헤더의 대략적인 높이를 제외한 화면의 실제 최소 남은 높이를 구합니다.
-                // 배너 + 헤더 높이가 모바일은 약 110px, 데스크톱은 약 160px이므로 이를 빼줍니다.
-                final double minContentHeight =
-                    MediaQuery.of(context).size.height -
-                        (mobileMode ? 110 : 160);
+            // 📌 [구조 3]: 본문 콘텐츠 및 푸터 영역 통합 (Null 에러가 절대 나지 않는 바닥 고정)
+            // 💡 SliverFillRemaining을 완전히 제거하고, SliverToBoxAdapter + LayoutBuilder 조합으로 구현합니다.
+            SliverToBoxAdapter(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // 상단 가이드 배너와 고정 헤더의 대략적인 높이를 제외한 화면의 실제 최소 남은 높이를 구합니다.
+                  // 배너 + 헤더 높이가 모바일은 약 110px, 데스크톱은 약 160px이므로 이를 빼줍니다.
+                  final double minContentHeight =
+                      MediaQuery.of(context).size.height -
+                          (mobileMode ? 110 : 190);
 
-                return ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: minContentHeight > 0
-                        ? minContentHeight
-                        : 0, // 👈 화면 최소 높이 강제 확보
-                  ),
-                  child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween, // 👈 본문과 푸터를 양 끝으로 밀착
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // 1. 메인 본문 콘텐츠 배치 구역
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: mobileMode ? 16 : 40),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: mobileMode ? 40 : 80),
-
-                            const Text('TEST'), // 👈 실제 메인 화면 위젯 구역
-
-                            SizedBox(height: mobileMode ? 60 : 100),
-                          ],
-                        ),
-                      ),
-
-                      // 2. 하단 푸터 (Footer) 영역
-                      CustomWidget.customFooter(context, isMobile: mobileMode),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-
-      // 💡 카테고리 스크린들과 오차 없이 100% 동기화된 프리미엄 흑백 반전 Top 버튼
-      floatingActionButton: AnimatedOpacity(
-        duration: const Duration(milliseconds: 300),
-        opacity: showButton.value ? 1.0 : 0.0,
-        child: showButton.value
-            ? MouseRegion(
-                cursor: SystemMouseCursors.click,
-                onEnter: (_) => isHovered.value = true,
-                onExit: (_) => isHovered.value = false,
-                child: GestureDetector(
-                  onTap: () {
-                    if (scrollController.hasClients) {
-                      scrollController.animateTo(
-                        0,
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeInOutCubic,
-                      );
-                    }
-                  },
-                  child: AnimatedScale(
-                    duration: const Duration(milliseconds: 200),
-                    scale: isHovered.value ? 1.08 : 1.0,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isHovered.value ? Colors.black87 : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFEEEEEE),
-                          width: 1.0,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black
-                                .withOpacity(isHovered.value ? 0.28 : 0.16),
-                            blurRadius: isHovered.value ? 16 : 10,
-                            offset: isHovered.value
-                                ? const Offset(0, 6)
-                                : const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.arrow_upward_rounded,
-                        size: 18,
-                        color: isHovered.value ? Colors.white : Colors.black87,
-                      ),
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: minContentHeight > 0
+                          ? minContentHeight
+                          : 0, // 👈 화면 최소 높이 강제 확보
                     ),
-                  ),
-                ),
-              )
-            : const SizedBox.shrink(),
-      ),
-    );
+                    child: Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween, // 👈 본문과 푸터를 양 끝으로 밀착
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 1. 메인 본문 콘텐츠 배치 구역
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: mobileMode ? 16 : 40),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: mobileMode ? 40 : 80),
+
+                              const Text('TEST'), // 👈 실제 메인 화면 위젯 구역
+
+                              SizedBox(height: mobileMode ? 60 : 100),
+                            ],
+                          ),
+                        ),
+                        
+
+                        // 2. 하단 푸터 (Footer) 영역
+                        CustomWidget.customFooter(context,
+                            isMobile: mobileMode),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+
+        // 💡 카테고리 스크린들과 오차 없이 100% 동기화된 프리미엄 흑백 반전 Top 버튼
+        floatingActionButton: CustomWidget.customFloatingBtn(
+            showButton: showButton, scrollController: scrollController));
   }
 }
 
