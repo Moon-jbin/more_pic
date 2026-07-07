@@ -14,12 +14,13 @@ class NavigationService {
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   void routerGo(BuildContext context, String routeName,
-      {Map<String, dynamic> queryParams = const {}}) { 
+      {Map<String, dynamic> queryParams = const {}}) {
     // clearHomeData(ref);
     context.goNamed(routeName, queryParams: queryParams);
   }
 
-  void routerReplace(BuildContext context, String routeName) {
-    context.replaceNamed(routeName);
+  void routerReplace(BuildContext context, String routeName,
+      {Map<String, dynamic> queryParams = const {}}) {
+    context.replaceNamed(routeName, queryParams: queryParams);
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/data/menu_data.dart';
+import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
+import 'package:more_pic/model/product_item.dart';
+import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
 import 'package:more_pic/utils/routing/navigation_service.dart';
 import 'package:more_pic/utils/routing/router_name.dart';
@@ -11,8 +14,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 class CustomScaffold extends HookConsumerWidget {
   final Widget Function(BuildContext context, ScrollController scrollController)
       bodyBuilder;
+  final List<ProductItem> itemData;
 
-  const CustomScaffold({super.key, required this.bodyBuilder});
+  const CustomScaffold(
+      {super.key, required this.bodyBuilder, required this.itemData});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,74 +48,87 @@ class CustomScaffold extends HookConsumerWidget {
     }, [scrollController]);
 
     return Scaffold(
-        drawer: CustomWidget.customDrawer(context, menuData),
+        drawer: CustomWidget.customDrawer(context, ref, menuData),
 
         // 💡 [핵심 변경]: 공통 CustomScrollView를 여기서 선언하여 전체 스크롤을 하나로 제어합니다.
-        body: CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            // 📌 섹션 A: 스크롤하면 위로 올라가서 자연스럽게 사라지는 최상단 배너 영역
-            SliverToBoxAdapter(
-              child: Container(
-                width: double.infinity,
-                color: const Color(0xFFD4CBE5),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: const Text(
-                  '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14),
-                ),
-              ),
-            ),
-
-            // 📌 섹션 B: 스크롤을 아무리 내려도 화면 최상단에 고정(Sticky)되는 내비게이션 헤더 영역
-            SliverPersistentHeader(
-              pinned: true, // 상단 고정 트루!
-              delegate: SliverHeaderDelegate(
-                isScrolled: isScrolled.value,
-                height: isMobile(context) ? 70 : 110, // 헤더 컴포넌트 실측 높이에 맞게 조정하세요
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Builder(
-                        builder: (context) => IconButton(
-                          icon: const Icon(Icons.menu,
-                              color: Colors.black, size: 28),
-                          onPressed: () => Scaffold.of(context).openDrawer(),
-                        ),
-                      ),
-                      CustomWidget.customLogo(context,
-                          fontSize: 24, letterSpacing: 1.5),
-                      SizedBox(width: isMobile(context) ? 40 : 0)
-                    ],
+        body: Stack(
+          children: [
+            CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                // 📌 섹션 A: 스크롤하면 위로 올라가서 자연스럽게 사라지는 최상단 배너 영역
+                SliverToBoxAdapter(
+                  child: Container(
+                    width: double.infinity,
+                    color: const Color(0xFFD4CBE5),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: const Text(
+                      '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            // 📌 섹션 C: 각 화면에서 던져주는 알맹이(ProductListPage 등)가 들어오는 동적 영역
-            SliverToBoxAdapter(
-              child: bodyBuilder(context, scrollController),
+                // 📌 섹션 B: 스크롤을 아무리 내려도 화면 최상단에 고정(Sticky)되는 내비게이션 헤더 영역
+                SliverPersistentHeader(
+                  pinned: true, // 상단 고정 트루!
+                  delegate: SliverHeaderDelegate(
+                    isScrolled: isScrolled.value,
+                    height:
+                        isMobile(context) ? 70 : 110, // 헤더 컴포넌트 실측 높이에 맞게 조정하세요
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Builder(
+                            builder: (context) => IconButton(
+                              icon: const Icon(Icons.menu,
+                                  color: Colors.black, size: 28),
+                              onPressed: () =>
+                                  Scaffold.of(context).openDrawer(),
+                            ),
+                          ),
+                          CustomWidget.customLogo(context, ref,
+                              fontSize: 24, letterSpacing: 1.5),
+                          // SizedBox(width: isMobile(context) ? 40 : 0)
+                          IconButton(
+                            icon: const Icon(Icons.search, color: Colors.black),
+                            onPressed: () {
+                              ref.read(searchBarOpenProvider.notifier).open();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 📌 섹션 C: 각 화면에서 던져주는 알맹이(ProductListPage 등)가 들어오는 동적 영역
+                SliverToBoxAdapter(
+                  child: bodyBuilder(context, scrollController),
+                ),
+              ],
             ),
+            SlidingSearchBar(currentScreenItems: itemData)
           ],
         ),
 
         // 💡 [두 번째 디자인]: 존재감이 확실해진 흑백 반전 딥 섀도우 Top 버튼
         floatingActionButton: CustomWidget.customFloatingBtn(
-            showButton: showButton,
-            scrollController: scrollController));
+            showButton: showButton, scrollController: scrollController));
   }
 }
 
 class CustomWidget {
-  static Widget customLogo(BuildContext context,
+  static Widget customLogo(BuildContext context, WidgetRef ref,
       {double fontSize = 22, double? letterSpacing, bool isDrawer = false}) {
+    final searchContentRead = ref.read(searchContentProvider.notifier);
     String imgPath = 'images/more_pic_logo.png';
 
     return InkWell(
@@ -119,6 +137,7 @@ class CustomWidget {
       splashColor: Colors.transparent,
       onTap: () {
         NavigationService().routerGo(context, MainRoute);
+        searchContentRead.initState();
       },
       child: Image.asset(
           width: isMobile(context) || isDrawer ? 120 : 240, imgPath),
@@ -215,8 +234,8 @@ class CustomWidget {
   }
 
   //Drawer 위젯
-  static Widget customDrawer(
-      BuildContext context, List<Map<String, dynamic>> menuData) {
+  static Widget customDrawer(BuildContext context, WidgetRef ref,
+      List<Map<String, dynamic>> menuData) {
     return Drawer(
       backgroundColor: Colors.white,
       child: Column(
@@ -227,7 +246,7 @@ class CustomWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  customLogo(context, isDrawer: true),
+                  customLogo(context, ref, isDrawer: true),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.black),
                     onPressed: () => Navigator.pop(context),
@@ -257,7 +276,7 @@ class CustomWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: menuData
-                  .map((menu) => buildDrawerMenu(context, menu))
+                  .map((menu) => buildDrawerMenu(context, ref, menu))
                   .toList(),
             ),
           ),
@@ -287,7 +306,8 @@ class CustomWidget {
           fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black));
 
   static Widget buildDrawerMenu(
-      BuildContext context, Map<String, dynamic> menu) {
+      BuildContext context, WidgetRef ref, Map<String, dynamic> menu) {
+    final searchContentRead = ref.read(searchContentProvider.notifier);
     if (menu['children'] == null || (menu['children'] as List).isEmpty) {
       return ListTile(
           title: Text(menu['title'],
@@ -295,6 +315,7 @@ class CustomWidget {
           dense: true,
           onTap: () {
             NavigationService().routerGo(context, menu['path'] ?? '/');
+            searchContentRead.initState();
           });
     }
     return ExpansionTile(
@@ -305,7 +326,7 @@ class CustomWidget {
       collapsedShape: const Border(),
       childrenPadding: const EdgeInsets.only(left: 16.0),
       children: (menu['children'] as List)
-          .map<Widget>((child) => buildDrawerMenu(context, child))
+          .map<Widget>((child) => buildDrawerMenu(context, ref, child))
           .toList(),
     );
   }
@@ -388,7 +409,8 @@ class CustomWidget {
   }
 
   ///푸터 위젯
-  static Widget customFooter(BuildContext context, {required bool isMobile}) {
+  static Widget customFooter(BuildContext context, WidgetRef ref,
+      {required bool isMobile}) {
     return // [3] 하단 푸터 (Footer) 영역
         Container(
       width: double.infinity,
@@ -398,7 +420,7 @@ class CustomWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CustomWidget.customLogo(context, fontSize: 28),
+          CustomWidget.customLogo(context, ref, fontSize: 28),
           const SizedBox(height: 30),
           Wrap(
             spacing: 20,

@@ -1,11 +1,13 @@
 // 2. 상품 목록 페이지 (HookConsumerWidget + useState 기반)
 import 'package:flutter/material.dart';
 import 'package:more_pic/global/component/product_card.dart';
-import 'package:more_pic/global/custom_widget.dart';
+import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/model/product_item.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:more_pic/model/search_content.dart';
+import 'package:more_pic/provider/search_provider.dart';
 
 class ProductListPage extends HookConsumerWidget {
   final List<ProductItem> itemData;
@@ -16,23 +18,103 @@ class ProductListPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final searchListenerRead = ref.read(searchListenerProvider.notifier);
+    final searchListenerWatch = ref.watch(searchListenerProvider);
+    final globalSearchWatch = ref.watch(globalSearchProvider);
+    final globalSearchRead = ref.read(globalSearchProvider.notifier);
+    final searchContentRead = ref.read(searchContentProvider.notifier);
+    final searchContentWatch = ref.watch(searchContentProvider);
+
     // 💡 [Hooks 핵심]: 기존의 State 변수 대신 useState 훅으로 현재 페이지 관리
-    final currentPage = useState(1);
+    final currentPage = useState(searchContentWatch.page);
     int itemsPerPage = 8; // 한 페이지당 보여줄 상품 개수
 
     // 전체 샘플 데이터 (총 24개)
 
     // 전체 페이지 수 계산
-    final int totalPages = (itemData.length / itemsPerPage).ceil();
+    // int totalPages = (itemData.length / itemsPerPage).ceil();
+    ValueNotifier<int> totalPages =
+        useState((itemData.length / itemsPerPage).ceil());
 
     // 💡 currentPage.value를 사용하여 현재 페이지 데이터 슬라이싱
-    final int startIndex = (currentPage.value - 1) * itemsPerPage;
-    int endIndex = startIndex + itemsPerPage;
-    if (endIndex > itemData.length) {
-      endIndex = itemData.length;
-    }
-    final List<ProductItem> currentProducts =
-        itemData.sublist(startIndex, endIndex);
+    // final int startIndex = (currentPage.value - 1) * itemsPerPage;
+    ValueNotifier<int> startIndex =
+        useState((currentPage.value - 1) * itemsPerPage);
+    // int endIndex = startIndex + itemsPerPage;
+    // if (endIndex > itemData.length) {
+    //   endIndex = itemData.length;
+    // }
+    ValueNotifier<int> endIndex = useState(startIndex.value + itemsPerPage);
+
+    // final List<ProductItem> currentProducts =
+    //     itemData.sublist(startIndex, endIndex);
+    ValueNotifier<List<ProductItem>> currentProducts =
+        useState(itemData.sublist(startIndex.value, endIndex.value));
+
+    ValueNotifier<bool> showPagenation = useState(true);
+    ValueNotifier<bool> isLoading = useState(false);
+
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (endIndex.value > itemData.length) {
+          endIndex.value = itemData.length;
+        }
+        // currentProducts.value =
+        //     itemData.sublist(startIndex.value, endIndex.value);
+
+        // globalSearchRead.allProductsFn(currentProducts.value);
+        if (searchContentWatch.searchContent.isNotEmpty) {
+          showPagenation.value = false;
+          isLoading.value = true;
+          await Future.delayed(const Duration(milliseconds: 100));
+          isLoading.value = false;
+          globalSearchRead.filterProducts(
+              query: searchContentWatch.searchContent, targetList: itemData);
+        } else {
+          currentProducts.value =
+              itemData.sublist(startIndex.value, endIndex.value);
+
+          globalSearchRead.allProductsFn(currentProducts.value);
+        }
+      });
+
+      return;
+    }, []);
+
+    useEffect(() {
+      // 1. 바뀐 페이지 번호에 맞춰 인덱스 값을 새로 계산합니다.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        startIndex.value = (searchContentWatch.page - 1) * itemsPerPage;
+
+        int calcEndIndex = startIndex.value + itemsPerPage;
+        if (calcEndIndex > itemData.length) {
+          calcEndIndex = itemData.length;
+        }
+        endIndex.value = calcEndIndex;
+
+        // 2. 최종 출력할 상품 리스트 상자(value)를 새 데이터 분할본으로 교체합니다.
+        currentProducts.value =
+            itemData.sublist(startIndex.value, endIndex.value);
+        globalSearchRead.allProductsFn(currentProducts.value);
+      });
+
+      return null;
+    }, [currentPage.value]);
+
+    ///```
+    /// 리스너
+    ///```
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (searchListenerWatch == 1) {
+          showPagenation.value = false;
+        }
+
+        // 리스너 중복 구동 차단
+        searchListenerRead.stopListener();
+      });
+      return null;
+    }, [searchListenerWatch]);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -55,6 +137,7 @@ class ProductListPage extends HookConsumerWidget {
             itemWidth / (itemWidth + textContainerHeight);
 
         return Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -88,25 +171,26 @@ class ProductListPage extends HookConsumerWidget {
                   ),
 
                   // [상품 그리드 섹션]
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: currentProducts.length,
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 400,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 35,
-                      childAspectRatio: childAspectRatio,
+                  if (!isLoading.value)
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: globalSearchWatch.length,
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 400,
+                        crossAxisSpacing: 20,
+                        mainAxisSpacing: 35,
+                        childAspectRatio: childAspectRatio,
+                      ),
+                      itemBuilder: (context, index) {
+                        return ProductCard(product: globalSearchWatch[index]);
+                      },
                     ),
-                    itemBuilder: (context, index) {
-                      return ProductCard(product: currentProducts[index]);
-                    },
-                  ),
 
                   const SizedBox(height: 60),
 
                   // [하단 페이지네이션 내비게이터 바]
-                  if (totalPages > 1)
+                  if (totalPages.value > 1 && showPagenation.value)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -117,14 +201,20 @@ class ProductListPage extends HookConsumerWidget {
                               ? Colors.black87
                               : Colors.grey.shade300,
                           onPressed: currentPage.value > 1
-                              ? () => currentPage.value-- // 💡 값 감소
+                              ? () {
+                                  currentPage.value--; // 💡 값 감소
+                                  searchContentRead.setState(SearchContent(
+                                      searchContent:
+                                          searchContentWatch.searchContent,
+                                      page: currentPage.value));
+                                }
                               : null,
                         ),
                         const SizedBox(width: 10),
 
                         // 페이지 번호 리스트
                         Row(
-                          children: List.generate(totalPages, (index) {
+                          children: List.generate(totalPages.value, (index) {
                             final int pageNum = index + 1;
                             final bool isSelected =
                                 currentPage.value == pageNum;
@@ -133,6 +223,10 @@ class ProductListPage extends HookConsumerWidget {
                               onTap: () {
                                 currentPage.value =
                                     pageNum; // 💡 상태 변경 및 UI 자동 리빌드
+                                searchContentRead.setState(SearchContent(
+                                    searchContent:
+                                        searchContentWatch.searchContent,
+                                    page: currentPage.value));
                               },
                               borderRadius: BorderRadius.circular(4),
                               child: Container(
@@ -167,11 +261,17 @@ class ProductListPage extends HookConsumerWidget {
                         // 다음 페이지 버튼
                         IconButton(
                           icon: const Icon(Icons.chevron_right, size: 20),
-                          color: currentPage.value < totalPages
+                          color: currentPage.value < totalPages.value
                               ? Colors.black87
                               : Colors.grey.shade300,
-                          onPressed: currentPage.value < totalPages
-                              ? () => currentPage.value++ // 💡 값 증가
+                          onPressed: currentPage.value < totalPages.value
+                              ? () {
+                                  currentPage.value++; // 💡 값 증가
+                                  searchContentRead.setState(SearchContent(
+                                      searchContent:
+                                          searchContentWatch.searchContent,
+                                      page: currentPage.value));
+                                }
                               : null,
                         ),
                       ],
@@ -179,11 +279,10 @@ class ProductListPage extends HookConsumerWidget {
                 ],
               ),
             ),
-            // const SizedBox(height: 20),
             const SizedBox(height: 40),
 
             // [3] 하단 푸터 (Footer) 영역
-            CustomWidget.customFooter(context, isMobile: isMobile(context))
+            CustomWidget.customFooter(context, ref, isMobile: isMobile(context))
           ],
         );
       },
