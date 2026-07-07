@@ -15,6 +15,8 @@ class SlidingSearchBar extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchListenerRead = ref.read(searchListenerProvider.notifier);
     final searchContentRead = ref.read(searchContentProvider.notifier);
+
+    FocusNode _focusNode = useFocusNode();
     // 💡 [Riverpod]: 검색창 오픈 상태 감시
     final isOpen = ref.watch(searchBarOpenProvider);
 
@@ -30,6 +32,7 @@ class SlidingSearchBar extends HookConsumerWidget {
     useEffect(() {
       if (isOpen) {
         animationController.forward();
+        _focusNode.requestFocus();
       } else {
         animationController.reverse();
       }
@@ -97,6 +100,8 @@ class SlidingSearchBar extends HookConsumerWidget {
 
                     // ✍️ 두 번째 사진과 일치하는 미니멀 밑줄형 검색창
                     TextField(
+                      focusNode: _focusNode,
+                      autofocus: true,
                       controller: textController,
                       style: const TextStyle(fontSize: 18),
                       textAlign: TextAlign.center, // 글자를 가운데서부터 입력
@@ -130,9 +135,8 @@ class SlidingSearchBar extends HookConsumerWidget {
                         searchContentRead.setState(
                             SearchContent(searchContent: query, page: 1));
                         searchListenerRead.workListener(1);
-                      },
-                      onChanged: (value) {
-                        // 💡 [핵심 연동]: 검색창이 속한 페이지의 데이터만 인자로 쏙 넣어줍니다!
+                        textController.clear();
+                        ref.read(searchBarOpenProvider.notifier).close();
                       },
                     ),
                   ],
