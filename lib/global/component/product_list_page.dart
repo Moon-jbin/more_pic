@@ -42,7 +42,7 @@ class ProductListPage extends HookConsumerWidget {
 
     // 💡 [초기화 함수]: 검색 상태를 완전 제거하고 초기 1페이지 데이터로 대청소합니다.
     void resetToAllProducts() {
-      searchContentRead.setState(SearchContent(searchContent: '', page: 1));
+      searchContentRead.setState(const SearchContent(searchContent: '', page: 1));
       currentPage.value = 1;
       startIndex.value = 0;
       endIndex.value =
