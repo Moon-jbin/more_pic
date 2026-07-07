@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/data/menu_data.dart';
@@ -282,32 +283,142 @@ class _DesktopHoverMenuState extends State<DesktopHoverMenu> {
   }
 
   // N단 카테고리 트리를 재귀적으로 생성하며 모든 자식 위젯에 호버 이벤트를 전파하는 빌더
+  // Widget _buildMenuChild(Map<String, dynamic> item) {
+  //   final List? children = item['children'];
+  //   final bool hasChildren = children != null && children.isNotEmpty;
+
+  //   Widget menuWidget;
+
+  //   if (!hasChildren) {
+  //     // 하위 리스트가 없는 경우 일반 버튼
+  //     menuWidget = MenuItemButton(
+  //       onPressed: () {
+  //         // print('${item['path']}');
+  //         NavigationService().routerGo(context, item['path'] ?? '/');
+  //       },
+  //       style: TextButton.styleFrom(
+  //           alignment: Alignment.centerLeft,
+  //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  //           overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2)),
+  //       child: Text(
+  //         item['title'],
+  //         style: const TextStyle(
+  //             fontSize: 13, fontWeight: FontWeight.w400, color: Colors.black87),
+  //       ),
+  //     );
+  //   } else {
+  //     // 하위 리스트가 더 있는 경우 서브 확장 버튼
+  //     menuWidget = SubmenuButton(
+  //       menuStyle: const MenuStyle(
+  //         backgroundColor: WidgetStatePropertyAll(Colors.white),
+  //         surfaceTintColor: WidgetStatePropertyAll(Colors.white),
+  //         elevation: WidgetStatePropertyAll(3),
+  //         padding: WidgetStatePropertyAll(EdgeInsets.zero),
+  //       ),
+  //       style: TextButton.styleFrom(
+  //           alignment: Alignment.centerLeft,
+  //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  //           iconColor: Colors.grey.shade400,
+  //           overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2)),
+  //       // 자식 노드가 펼쳐지는 오버레이 영역에도 상위 호버 스택 이벤트를 연동시킵니다.
+  //       menuChildren: [
+  //         MouseRegion(
+  //           onEnter: (_) => _incrementHover(),
+  //           onExit: (_) => _decrementHover(),
+  //           child: IntrinsicWidth(
+  //             child: Column(
+  //               mainAxisSize: MainAxisSize.min,
+  //               crossAxisAlignment: CrossAxisAlignment.stretch,
+  //               children: children
+  //                   .map<Widget>((child) => _buildMenuChild(child))
+  //                   .toList(),
+  //             ),
+  //           ),
+  //         )
+  //       ],
+  //       child: Text(
+  //         item['title'],
+  //         style: const TextStyle(
+  //             fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black),
+  //       ),
+  //     );
+  //   }
+
+  //   // 각 아이템 버튼들의 감지 영역을 스택에 누적시킵니다.
+  //   return MouseRegion(
+  //     onEnter: (_) => _incrementHover(),
+  //     onExit: (_) => _decrementHover(),
+  //     child: menuWidget,
+  //   );
+  // }
   Widget _buildMenuChild(Map<String, dynamic> item) {
     final List? children = item['children'];
     final bool hasChildren = children != null && children.isNotEmpty;
 
-    Widget menuWidget;
+    // 💡 현재 환경이 모바일/태블릿 터치 환경인지 체크 (Android, iOS 등)
+    final bool isTouchDevice = kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android);
 
     if (!hasChildren) {
-      // 하위 리스트가 없는 경우 일반 버튼
-      menuWidget = MenuItemButton(
-        onPressed: () {
-          // print('${item['path']}');
-          NavigationService().routerGo(context, item['path'] ?? '/');
-        },
-        style: TextButton.styleFrom(
+      // 하위 리스트가 없는 경우 일반 버튼 (기존 동일)
+      return MouseRegion(
+        onEnter: (_) => _incrementHover(),
+        onExit: (_) => _decrementHover(),
+        child: MenuItemButton(
+          onPressed: () {
+            NavigationService().routerGo(context, item['path'] ?? '/');
+          },
+          style: TextButton.styleFrom(
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2)),
-        child: Text(
-          item['title'],
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w400, color: Colors.black87),
+            overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2),
+          ),
+          child: Text(item['title'],
+              style: const TextStyle(fontSize: 13, color: Colors.black87)),
         ),
       );
-    } else {
-      // 하위 리스트가 더 있는 경우 서브 확장 버튼
-      menuWidget = SubmenuButton(
+    }
+
+    // 💡 자식이 있고 + 태블릿/모바일 터치 기기일 때: PopupMenuButton으로 안전하게 터치 대응
+    if (isTouchDevice) {
+      return PopupMenuButton<String>(
+        tooltip: item['title'],
+        offset: const Offset(120, 0), // 서브메뉴가 옆으로 뜨도록 위치 조절
+        style: TextButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        onSelected: (path) {
+          NavigationService().routerGo(context, path);
+        },
+        itemBuilder: (BuildContext context) {
+          return children.map<PopupMenuEntry<String>>((child) {
+            return PopupMenuItem<String>(
+              value: child['path'] ?? '/',
+              child: Text(child['title'], style: const TextStyle(fontSize: 13)),
+            );
+          }).toList();
+        },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(item['title'],
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black)),
+            Icon(Icons.chevron_right, size: 16, color: Colors.grey.shade400),
+          ],
+        ),
+      );
+    }
+
+    // 💡 자식이 있고 + PC 마우스 환경일 때: 기존의 SubmenuButton 뼈대 그대로 유지
+    return MouseRegion(
+      onEnter: (_) => _incrementHover(),
+      onExit: (_) => _decrementHover(),
+      child: SubmenuButton(
         menuStyle: const MenuStyle(
           backgroundColor: WidgetStatePropertyAll(Colors.white),
           surfaceTintColor: WidgetStatePropertyAll(Colors.white),
@@ -315,11 +426,11 @@ class _DesktopHoverMenuState extends State<DesktopHoverMenu> {
           padding: WidgetStatePropertyAll(EdgeInsets.zero),
         ),
         style: TextButton.styleFrom(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            iconColor: Colors.grey.shade400,
-            overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2)),
-        // 자식 노드가 펼쳐지는 오버레이 영역에도 상위 호버 스택 이벤트를 연동시킵니다.
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          iconColor: Colors.grey.shade400,
+          overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2),
+        ),
         menuChildren: [
           MouseRegion(
             onEnter: (_) => _incrementHover(),
@@ -335,19 +446,12 @@ class _DesktopHoverMenuState extends State<DesktopHoverMenu> {
             ),
           )
         ],
-        child: Text(
-          item['title'],
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black),
-        ),
-      );
-    }
-
-    // 각 아이템 버튼들의 감지 영역을 스택에 누적시킵니다.
-    return MouseRegion(
-      onEnter: (_) => _incrementHover(),
-      onExit: (_) => _decrementHover(),
-      child: menuWidget,
+        child: Text(item['title'],
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.black)),
+      ),
     );
   }
 
