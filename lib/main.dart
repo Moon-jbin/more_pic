@@ -1,19 +1,32 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/data/menu_data.dart';
+import 'package:more_pic/firebase_options.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
+import 'package:more_pic/utils/dialog/dlg_function.dart';
 import 'package:more_pic/utils/routing/navigation_service.dart';
 import 'package:more_pic/utils/routing/router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/utils/routing/router_name.dart';
 
-void main() {
+void main() async {
+  // 💡 [핵심] 웹 환경일 때 구글 서버와 연결할 비밀통로(키셋)를 명시해 줍니다.
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } else {
+    // 안드로이드 / iOS 모바일 환경일 때의 기본 초기화
+    await Firebase.initializeApp();
+  }
+
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -79,8 +92,9 @@ class MorePicWebService extends HookConsumerWidget {
 
     return Scaffold(
         backgroundColor: Colors.white,
-        drawer:
-            mobileMode ? CustomWidget.customDrawer(context,ref,  menuData) : null,
+        drawer: mobileMode
+            ? CustomWidget.customDrawer(context, ref, menuData)
+            : null,
 
         // 💡 단일 통합 스크롤 시스템 가동
         body: CustomScrollView(
@@ -93,13 +107,24 @@ class MorePicWebService extends HookConsumerWidget {
                 width: double.infinity,
                 color: const Color(0xFFD4CBE5),
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: const Text(
-                  '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                        onPressed: () {
+                          showProductUploadDlgFn(context);
+                        },
+                        icon: Icon(Icons.add_a_photo)),
+                    const Text(
+                      '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                    ),
+                    SizedBox()
+                  ],
                 ),
               ),
             ),
@@ -130,7 +155,7 @@ class MorePicWebService extends HookConsumerWidget {
                                     Scaffold.of(context).openDrawer(),
                               ),
                             ),
-                          CustomWidget.customLogo(context,ref,
+                          CustomWidget.customLogo(context, ref,
                               fontSize: 38, letterSpacing: 1.5),
                           if (mobileMode)
                             IconButton(
@@ -204,7 +229,7 @@ class MorePicWebService extends HookConsumerWidget {
                         ),
 
                         // 2. 하단 푸터 (Footer) 영역
-                        CustomWidget.customFooter(context,ref,
+                        CustomWidget.customFooter(context, ref,
                             isMobile: mobileMode),
                       ],
                     ),

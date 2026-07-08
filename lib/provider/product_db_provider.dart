@@ -1,0 +1,55 @@
+import 'dart:async';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:image_picker/image_picker.dart'; // 💡 File 대신 XFile 규격을 쓰기 위해 추가
+import 'package:more_pic/db/product_repository.dart';
+import 'package:more_pic/model/product_item.dart';
+
+// 💡 Family 패턴을 사용해 카테고리 문자열('inner', 'sale' 등)별로 각각 독자적인 비동기 상자를 관리합니다.
+class ProductDatabaseNotifier extends AutoDisposeFamilyAsyncNotifier<List<ProductItem>, String> {
+  
+  @override
+  FutureOr<List<ProductItem>> build(String arg) {
+    // 이 카테고리 창고가 열리면 자동으로 파이어베이스 DB를 호출해서 데이터를 수신합니다.
+    return ref.read(productRepositoryProvider).fetchProductsByCategory(arg);
+  }
+
+  /// ✨ [수정] 상품 추가 액션: 웹 브라우저 호환을 위해 파일 타입을 XFile 규격으로 변경했습니다.
+  Future<void> uploadProduct({
+    required String name,
+    required int price,
+    required String size,
+    required XFile mainImageFile,          // 💡 XFile로 변경
+    required List<XFile> detailImageFiles, // 💡 List<XFile>로 변경
+  }) async {
+    state = const AsyncValue.loading(); // UI에 먼저 로딩 스피너 돌리기
+    state = await AsyncValue.guard(() async {
+      // 💡 고도화된 리포지토리의 XFile 기반 통합 업로드 함수를 호출합니다.
+      await ref.read(productRepositoryProvider).uploadFullProduct(
+        name: name,
+        price: price,
+        category: arg, // 현재 패밀리 카테고리 문자열('inner' 등)이 자동으로 들어갑니다.
+        size: size,
+        mainImageFile: mainImageFile,
+        detailImageFiles: detailImageFiles,
+      );
+      
+      ref.invalidateSelf(); // 상자를 새로고침하여 파이어베이스 최신 목록으로 화면 갱신!
+      return future;
+    });
+  }
+
+  /// 🗑️ 상품 삭제 액션
+  Future<void> deleteProduct(String productId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(productRepositoryProvider).deleteProductFromDB(productId);
+      ref.invalidateSelf(); // 삭제 반영 후 상자 새로고침!
+      return future;
+    });
+  }
+}
+
+// 🌐 동적 패밀리 비동기 프로바이더 오픈
+final productDBProvider = AsyncNotifierProvider.family.autoDispose<ProductDatabaseNotifier, List<ProductItem>, String>(() {
+  return ProductDatabaseNotifier();
+});

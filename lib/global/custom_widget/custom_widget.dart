@@ -4,6 +4,8 @@ import 'package:more_pic/data/menu_data.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/model/product_item.dart';
+import 'package:more_pic/provider/global_provider.dart';
+import 'package:more_pic/provider/product_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
 import 'package:more_pic/utils/routing/navigation_service.dart';
@@ -15,15 +17,23 @@ class CustomScaffold extends HookConsumerWidget {
   final Widget Function(BuildContext context, ScrollController scrollController)
       bodyBuilder;
   final List<ProductItem> itemData;
+  final String category;
 
   const CustomScaffold(
-      {super.key, required this.bodyBuilder, required this.itemData});
+      {super.key,
+      required this.bodyBuilder,
+      required this.itemData,
+      required this.category});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scrollController = useScrollController();
     final showButton = useState(false);
     final isScrolled = useState(false);
+
+    final allProducts = ref.watch(productManagementProvider);
+    final FilterProducts =
+        allProducts.where((item) => item.categoryName == category).toList();
 
     useEffect(() {
       void listener() {
@@ -115,7 +125,7 @@ class CustomScaffold extends HookConsumerWidget {
                 ),
               ],
             ),
-            SlidingSearchBar(currentScreenItems: itemData)
+            SlidingSearchBar(currentScreenItems: FilterProducts)
           ],
         ),
 
@@ -557,5 +567,67 @@ class CustomWidget {
             )
           : const SizedBox.shrink(),
     );
+  }
+
+  ///```
+  /// Dialog custom Form
+  /// width, height만 조절 하여 Form 생성 (가로, 세로 스크롤 가능)
+  ///```
+  static Widget dialogCustomForm(
+      {double width = 500, double height = 500, required Widget child}) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Container(
+        decoration: BoxDecoration(
+            color: Colors.white,
+            border:
+                Border.all(width: 0.3, color: Colors.black.withOpacity(0.5))),
+        width: width,
+        height: height,
+        child: SingleChildScrollView(child: child),
+      ),
+    );
+  }
+
+  ///```
+  /// Dialog Title Widget
+  /// @param {String} title - 다이얼로그 제목
+  /// @param {bool} isShowOtherBtn - 또 다른 아이콘 보일지 여부
+  /// @param {VoidCallback?} otherBtnOnPressed - 또 다른 아이콘버튼 onPressed
+  /// @param {Icon} otherIcon - 또 다른 아이콘 위젯 [기본값 : Icons.close]
+  ///```
+  static customDialogTitle(BuildContext context, WidgetRef ref,
+      {required String title,
+      bool isShowOtherBtn = false,
+      bool isShowCloseBtn = false,
+      VoidCallback? otherBtnOnPressed,
+      VoidCallback? onClosePressed,
+      Icon otherIcon = const Icon(Icons.close, color: Colors.white)}) {
+    final globalFunctionRead = ref.read(globalProviderFunction.notifier);
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        height: 40,
+        color: Colors.red,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: const TextStyle(color: Colors.white)),
+            Row(
+              children: [
+                isShowOtherBtn
+                    ? IconButton(onPressed: otherBtnOnPressed, icon: otherIcon)
+                    : Container(),
+                isShowCloseBtn
+                    ? IconButton(
+                        onPressed: onClosePressed ??
+                            () {
+                              globalFunctionRead.dialogCloseFn(context);
+                            },
+                        icon: const Icon(Icons.close, color: Colors.white))
+                    : Container()
+              ],
+            )
+          ],
+        ));
   }
 }

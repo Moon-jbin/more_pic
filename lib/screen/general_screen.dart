@@ -40,10 +40,12 @@ class NewbornClothesScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: newBornClothesProducts,
+        category: 'newbornClothes', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: newBornClothesProducts,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'newbornClothes');
         });
   }
 }
@@ -58,10 +60,12 @@ class NewbornSocksScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: newBornSocksProducts,
+        category: 'newbornSocks', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: newBornSocksProducts,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'newbornSocks');
         });
   }
 }
@@ -77,10 +81,12 @@ class BabyOuterJumperJacketScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: babyOuterJumperJacketData,
+        category: 'babyOuterJumperJacket', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: babyOuterJumperJacketData,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'babyOuterJumperJacket');
         });
   }
 }
@@ -95,10 +101,12 @@ class BabyOuterCardiganCroppedScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: babyOuterCardiganCroppedData,
+        category: 'babyOuterCardiganCropped', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: babyOuterCardiganCroppedData,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'babyOuterCardiganCropped');
         });
   }
 }
@@ -113,10 +121,12 @@ class BabyOuterCardiganGraphicTeesScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: babyOuterCardiganGrapichTeesData,
+        category: 'babyOuterCardiganGraphicTees', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: babyOuterCardiganGrapichTeesData,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'babyOuterCardiganGraphicTees');
         });
   }
 }
@@ -131,10 +141,12 @@ class BabyOuterVestScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: babyOuterVestData,
+        category: 'babyOuterVest', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
             itemData: babyOuterVestData,
             scrollController: scrollController,
+            category: 'babyOuterVest',
           );
         });
   }
@@ -150,9 +162,12 @@ class BabyTopScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: babyTopData,
+        category: 'babyTop', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: babyTopData, scrollController: scrollController);
+              itemData: babyTopData,
+              scrollController: scrollController,
+              category: 'babyTop');
         });
   }
 }
@@ -167,9 +182,12 @@ class BabyBottomScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: babyBottomData,
+        category: 'babyBottom', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: babyBottomData, scrollController: scrollController);
+              itemData: babyBottomData,
+              scrollController: scrollController,
+              category: 'babyBottom');
         });
   }
 }
@@ -184,9 +202,12 @@ class BabySetDressScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: babySetDressData,
+        category: 'babySetDress', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: babySetDressData, scrollController: scrollController);
+              itemData: babySetDressData,
+              scrollController: scrollController,
+              category: 'babySetDress');
         });
   }
 }
@@ -202,10 +223,12 @@ class KidsOuterJumperJacketScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: kidsOuterJumperJacketData,
+        category: 'kidsOuterJumperJacket', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: kidsOuterJumperJacketData,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'kidsOuterJumperJacket');
         });
   }
 }
@@ -220,10 +243,12 @@ class KidsOuterCardiganCroppedScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: kidsOuterCardiganCroppedData,
+        category: 'kidsOuterCardiganCropped', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: kidsOuterCardiganCroppedData,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'kidsOuterCardiganCropped');
         });
   }
 }
@@ -238,10 +263,12 @@ class KidsOuterCardiganGraphicTeesScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: kidsOuterCardiganGrapichTeesData,
+        category: 'kidsOuterCardiganGraphicTees', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
               itemData: kidsOuterCardiganGrapichTeesData,
-              scrollController: scrollController);
+              scrollController: scrollController,
+              category: 'kidsOuterCardiganGraphicTees');
         });
   }
 }
@@ -256,9 +283,12 @@ class KidsOuterVestScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: kidsOuterVestData,
+        category: 'kidsOuterVest', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: kidsOuterVestData, scrollController: scrollController);
+              itemData: kidsOuterVestData,
+              scrollController: scrollController,
+              category: 'kidsOuterVest');
         });
   }
 }
@@ -273,9 +303,12 @@ class KidsTopScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: kidsTopData,
+        category: 'kidsTop', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: kidsTopData, scrollController: scrollController);
+              itemData: kidsTopData,
+              scrollController: scrollController,
+              category: 'kidsTop');
         });
   }
 }
@@ -290,9 +323,12 @@ class KidsBottomScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: kidsBottomData,
+        category: 'kidsBottom', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: kidsBottomData, scrollController: scrollController);
+              itemData: kidsBottomData,
+              scrollController: scrollController,
+              category: 'kidsBottom');
         });
   }
 }
@@ -307,9 +343,12 @@ class KidsSetDressScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: kidsSetDressData,
+        category: 'kidsSetDress', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: kidsSetDressData, scrollController: scrollController);
+              itemData: kidsSetDressData,
+              scrollController: scrollController,
+              category: 'kidsSetDress');
         });
   }
 }
@@ -325,9 +364,12 @@ class InnerScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: innerData,
+        category: 'inner', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: innerData, scrollController: scrollController);
+              itemData: innerData,
+              scrollController: scrollController,
+              category: 'inner');
         });
   }
 }
@@ -343,9 +385,12 @@ class AccSocksBabyScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: accSocksBabyData,
+        category: 'accSocksBaby', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: accSocksBabyData, scrollController: scrollController);
+              itemData: accSocksBabyData,
+              scrollController: scrollController,
+              category: 'accSocksBaby');
         });
   }
 }
@@ -360,9 +405,12 @@ class AccSocksKidsScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: accSocksKidsData,
+        category: 'accSocksKids', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: accSocksKidsData, scrollController: scrollController);
+              itemData: accSocksKidsData,
+              scrollController: scrollController,
+              category: 'accSocksKids');
         });
   }
 }
@@ -377,9 +425,12 @@ class AccHatsBeaniesScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: accHatsBeaniesData,
+        category: 'accHatsBeanies', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: accHatsBeaniesData, scrollController: scrollController);
+              itemData: accHatsBeaniesData,
+              scrollController: scrollController,
+              category: 'accHatsBeanies');
         });
   }
 }
@@ -394,9 +445,12 @@ class AccHairAccScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: accHairAccData,
+        category: 'accHairAcc', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: accHairAccData, scrollController: scrollController);
+              itemData: accHairAccData,
+              scrollController: scrollController,
+              category: 'accHairAcc');
         });
   }
 }
@@ -411,9 +465,12 @@ class AccOtherScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: accOtherData,
+        category: 'accOther', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: accOtherData, scrollController: scrollController);
+              itemData: accOtherData,
+              scrollController: scrollController,
+              category: 'accOther');
         });
   }
 }
@@ -429,9 +486,12 @@ class SeasonSummerScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: seasonSummerData,
+        category: 'seasonSummer', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: seasonSummerData, scrollController: scrollController);
+              itemData: seasonSummerData,
+              scrollController: scrollController,
+              category: 'seasonSummer');
         });
   }
 }
@@ -446,9 +506,12 @@ class SeasonWinterScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: seasonWinterData,
+        category: 'seasonWinter', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: seasonWinterData, scrollController: scrollController);
+              itemData: seasonWinterData,
+              scrollController: scrollController,
+              category: 'seasonWinter');
         });
   }
 }
@@ -463,9 +526,12 @@ class SeasonHolidaysScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: seasonHolidaysData,
+        category: 'seasonHolidays', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: seasonHolidaysData, scrollController: scrollController);
+              itemData: seasonHolidaysData,
+              scrollController: scrollController,
+              category: 'seasonHolidays');
         });
   }
 }
@@ -481,9 +547,12 @@ class SaleScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return CustomScaffold(
         itemData: saleData,
+        category: 'sale', // 👈 CustomScaffold 추가
         bodyBuilder: (context, scrollController) {
           return ProductListPage(
-              itemData: saleData, scrollController: scrollController);
+              itemData: saleData,
+              scrollController: scrollController,
+              category: 'sale');
         });
   }
 }

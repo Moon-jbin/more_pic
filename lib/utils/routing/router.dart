@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:more_pic/main.dart';
 import 'package:more_pic/screen/general_screen.dart'; // 각 스크린이 정의되어 있다고 가정
+import 'package:more_pic/screen/product_detail_screen.dart';
 import 'package:more_pic/utils/routing/router_name.dart';
 
 final GoRouter router = GoRouter(
@@ -228,6 +229,22 @@ final GoRouter router = GoRouter(
       path: SaleRoute,
       pageBuilder: (BuildContext context, GoRouterState state) {
         return const NoTransitionPage(child: SaleScreen());
+      },
+    ),
+
+    // ===========================================
+    // 아이템 상세 페이지
+    //============================================
+    GoRoute(
+      // 💡 주소창에 :category와 :id 라는 구멍 두 개를 뚫어놓습니다.
+      path: '/product/:category/:id',
+      name: 'productDetail',
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        String category = state.params['category'] ?? '';
+        String productId = (state.params['id'] ?? '-1');
+        return NoTransitionPage(
+            child:
+                ProductDetailScreen(category: category, productId: productId));
       },
     ),
   ],

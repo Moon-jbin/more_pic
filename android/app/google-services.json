@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "770986243442",
+    "project_id": "more-pic",
+    "storage_bucket": "more-pic.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:770986243442:android:3843deefeda80ecaf919eb",
+        "android_client_info": {
+          "package_name": "com.example.more_pic"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9WKU65Qdj5WvA_33ooxXqJXrU0efJKtw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
