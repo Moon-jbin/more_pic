@@ -18,12 +18,15 @@ class CustomScaffold extends HookConsumerWidget {
       bodyBuilder;
   final List<ProductItem> itemData;
   final String category;
+  final bool showSearchIcon; // 💡 [핵심 추가] 검색 아이콘 노출 여부 플래그
 
-  const CustomScaffold(
-      {super.key,
-      required this.bodyBuilder,
-      required this.itemData,
-      required this.category});
+  const CustomScaffold({
+    super.key,
+    required this.bodyBuilder,
+    required this.itemData,
+    required this.category,
+    this.showSearchIcon = true,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -107,12 +110,16 @@ class CustomScaffold extends HookConsumerWidget {
                           CustomWidget.customLogo(context, ref,
                               fontSize: 24, letterSpacing: 1.5),
                           // SizedBox(width: isMobile(context) ? 40 : 0)
-                          IconButton(
-                            icon: const Icon(Icons.search, color: Colors.black),
-                            onPressed: () {
-                              ref.read(searchBarOpenProvider.notifier).open();
-                            },
-                          ),
+                          if (showSearchIcon)
+                            IconButton(
+                              icon:
+                                  const Icon(Icons.search, color: Colors.black),
+                              onPressed: () {
+                                ref.read(searchBarOpenProvider.notifier).open();
+                              },
+                            )
+                          else
+                            const SizedBox(width: 40),
                         ],
                       ),
                     ),
@@ -607,7 +614,7 @@ class CustomWidget {
     return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         height: 40,
-        color: Colors.red,
+        color: Colors.deepPurple[100],
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
