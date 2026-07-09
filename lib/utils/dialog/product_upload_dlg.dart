@@ -129,7 +129,7 @@ Future<List<XFile>> sliceLongImage(
     print('\n---------------- 📍 [${index + 1}번째 조각 연산 시작] ----------------');
     print('현재 절삭 시작점(Y축): $currentY px');
 
-    double percent = (currentY / originalHeight).clamp(0.1, 0.95);
+    double percent = (currentY / originalHeight).clamp(0.1, 0.85);
     onProgress(percent, "상세 페이지 [${index + 1}번째 조각] 여백 분석 중...");
 
     int searchLimitY = (currentY + maxSliceHeight).clamp(0, originalHeight);
