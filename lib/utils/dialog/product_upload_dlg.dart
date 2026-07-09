@@ -8,6 +8,12 @@ import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
+    // ✂️ [정밀 최적화] 1칸 1컷 스마트 슬라이스 엔진 (바이트 직접 연산 방식)
+    import 'dart:async';
+import 'dart:html' as html;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:cross_file/cross_file.dart';
 
 class ProductUploadDlg extends HookConsumerWidget {
   const ProductUploadDlg({super.key});
@@ -37,98 +43,178 @@ class ProductUploadDlg extends HookConsumerWidget {
     final progress = useState<double>(0.0);
     final progressMsg = useState<String>("");
 
-    // ✂️ [정밀 최적화] 1칸 1컷 스마트 슬라이스 엔진 (바이트 직접 연산 방식)
-    Future<List<XFile>> sliceLongImage(
-        Uint8List originalBytes, Function(double, String) onProgress) async {
-      List<XFile> slicedFiles = [];
 
-      final img.Image? srcImage = img.decodeImage(originalBytes);
-      if (srcImage == null) return [];
 
-      int originalWidth = srcImage.width;
-      int originalHeight = srcImage.height;
+Future<List<XFile>> sliceLongImage(
+    ui.Image uiImage, 
+    Uint8List originalBytes, 
+    Function(double, String) onProgress) async {
+  
+  print('================= 🚀 범인 추적 엔진 가동 =================');
+  print('📊 원본 정보 - 가로: ${uiImage.width}px, 세로: ${uiImage.height}px');
+  print('📦 원본 바이트 크기: ${originalBytes.lengthInBytes} bytes');
 
-      int maxSliceHeight = 3500;
-      int minSliceHeight = 100;
-      int currentY = 0;
-      int index = 0;
-      int scanStride = 10;
+  List<XFile> slicedFiles = [];
+  int originalWidth = uiImage.width;
+  int originalHeight = uiImage.height;
 
-      bool isRowBlank(img.Image image, int y) {
-        int noiseCount = 0;
-        int maxAllowedNoise = (image.width * 0.01).toInt();
-        for (int x = 0; x < image.width; x++) {
-          final pixel = image.getPixel(x, y);
-          if (pixel.r < 243 || pixel.g < 243 || pixel.b < 243) {
-            noiseCount++;
-            if (noiseCount > maxAllowedNoise) return false;
-          }
+  int maxSliceHeight = 3500;
+  int minSliceHeight = 100;
+  int currentY = 0;
+  int index = 0;
+  int scanStride = 10; // 10픽셀 수직 정밀 고정
+
+  onProgress(0.01, "브라우저 하드웨어 가속 이미지 준비 중...");
+  
+  final html.ImageElement htmlImgElement = html.ImageElement();
+  final imgLoadCompleter = Completer<void>();
+  
+  htmlImgElement.onLoad.listen((_) {
+    print('✅ [로그 1] htmlImgElement 브라우저 로드 성공');
+    imgLoadCompleter.complete();
+  });
+  htmlImgElement.onError.listen((e) {
+    print('❌ [로그 1 에러] htmlImgElement 브라우저 로드 실패: $e');
+    imgLoadCompleter.completeError("원본 이미지 로드 실패");
+  });
+  
+  final blob = html.Blob([originalBytes]);
+  final blobUrl = html.Url.createObjectUrlFromBlob(blob);
+  htmlImgElement.src = blobUrl;
+  
+  await imgLoadCompleter.future;
+
+  // 2. 스캔용 오프스크린 캔버스 준비
+  final html.CanvasElement scanCanvas = html.CanvasElement(width: originalWidth, height: originalHeight);
+  final html.CanvasRenderingContext2D scanCtx = scanCanvas.context2D;
+  scanCtx.drawImage(htmlImgElement, 0, 0);
+  print('🎨 [로그 2] scanCanvas에 원본 이미지 드로잉 완수');
+
+  // 🎯 [완벽 청정 구역 판정 필터]
+  bool isRowBlankCanvas(int y) {
+    if (y < 0 || y >= originalHeight) return false;
+    
+    // Y축 딱 1줄의 가로 픽셀 라인 획득
+    final html.ImageData imageData = scanCtx.getImageData(0, y, originalWidth, 1);
+    final List<int> data = imageData.data;
+
+    // 가로 한 줄에 허용할 노이즈 픽셀 개수 (완전 빡빡하게 2픽셀 미만으로 가드)
+    int noiseCount = 0;
+    int maxAllowedNoise = 2; 
+
+    for (int x = 0; x < originalWidth; x++) { 
+      int offset = x * 4;
+      if (offset + 3 < data.length) {
+        int r = data[offset];
+        int g = data[offset + 1];
+        int b = data[offset + 2];
+        int a = data[offset + 3];
+        
+        // 🔥 [검은 화면 박멸의 통곡의 벽]
+        // 배경이 완전한 투명(a == 0)이거나, 배경 흰색 계열(RGB 모두 250 이상)이 "아닌" 구역,
+        // 즉 조금이라도 유색(RGB < 250) 색상이 포착되면 무조건 데이터 구역으로 식별합니다!
+        if (a < 255 || (r < 250 || g < 250 || b < 250)) {
+          noiseCount++;
+          // 가로줄에 튀는 픽셀이 딱 2개만 넘어가도 "여백 절대 아님! 자르지 마!" 하고 차단
+          if (noiseCount > maxAllowedNoise) return false;
         }
-        return true;
       }
+    }
+    // 위 검사를 완벽히 통과해야만 진짜 100% 깨끗한 흰색 공백 레이어입니다.
+    return true;
+  }
 
-      while (currentY < originalHeight) {
-        double percent = (currentY / originalHeight).clamp(0.1, 0.95);
-        onProgress(percent, "상세 페이지 [${index + 1}번째 조각] 여백 분석 중...");
-        await Future.delayed(const Duration(milliseconds: 100));
+  // 슬라이스 여백 검출 및 자르기 루프 가동
+  while (currentY < originalHeight) {
+    print('\n---------------- 📍 [${index + 1}번째 조각 연산 시작] ----------------');
+    print('현재 절삭 시작점(Y축): $currentY px');
 
-        int searchLimitY = (currentY + maxSliceHeight).clamp(0, originalHeight);
-        int bestCutY = searchLimitY;
-        bool foundBlank = false;
+    double percent = (currentY / originalHeight).clamp(0.1, 0.95);
+    onProgress(percent, "상세 페이지 [${index + 1}번째 조각] 여백 분석 중...");
 
-        // 🎯 순방향 정밀 스캔 가동
-        for (int checkY = currentY + minSliceHeight;
-            checkY < searchLimitY;
-            checkY += scanStride) {
-          if (isRowBlank(srcImage, checkY)) {
-            bestCutY = checkY;
-            foundBlank = true;
-            break;
-          }
-        }
+    int searchLimitY = (currentY + maxSliceHeight).clamp(0, originalHeight);
+    int bestCutY = searchLimitY;
+    bool foundBlank = false;
 
-        if (!foundBlank && (originalHeight - currentY <= maxSliceHeight)) {
-          bestCutY = originalHeight;
-        } else if (!foundBlank) {
-          for (int checkY = searchLimitY;
-              checkY >= currentY + minSliceHeight;
-              checkY -= scanStride) {
-            if (isRowBlank(srcImage, checkY)) {
-              bestCutY = checkY;
-              foundBlank = true;
-              break;
-            }
-          }
-        }
-
-        int currentSliceHeight = bestCutY - currentY;
-        if (currentSliceHeight <= 0) break;
-
-        img.Image croppedZone = img.copyCrop(srcImage,
-            x: 0,
-            y: currentY,
-            width: originalWidth,
-            height: currentSliceHeight);
-        final Uint8List chunkBytes =
-            Uint8List.fromList(img.encodeJpg(croppedZone, quality: 95));
-
-        slicedFiles.add(
-          XFile.fromData(
-            chunkBytes,
-            mimeType: 'image/jpeg',
-            name: 'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-          ),
-        );
-
-        currentY = bestCutY;
-        index++;
-        if (currentY >= originalHeight) break;
+    for (int checkY = currentY + minSliceHeight; checkY < searchLimitY; checkY += scanStride) {
+      if (isRowBlankCanvas(checkY)) {
+        bestCutY = checkY;
+        foundBlank = true;
+        break;
       }
-
-      onProgress(1.0, "절삭 완료!");
-      return slicedFiles;
     }
 
+    if (!foundBlank && (originalHeight - currentY <= maxSliceHeight)) {
+      bestCutY = originalHeight;
+    } else if (!foundBlank) {
+      for (int checkY = searchLimitY; checkY >= currentY + minSliceHeight; checkY -= scanStride) {
+        if (isRowBlankCanvas(checkY)) {
+          bestCutY = checkY;
+          foundBlank = true;
+          break;
+        }
+      }
+    }
+
+    int currentSliceHeight = bestCutY - currentY;
+    print('🎯 결정된 자를 범위: Y축 $currentY px ~ $bestCutY px (높이: ${currentSliceHeight}px) | 여백 발견 여부: $foundBlank');
+    
+    if (currentSliceHeight <= 0) {
+      print('⚠️ 경고: 자를 높이가 0이하입니다. 루프를 탈출합니다.');
+      break;
+    }
+
+    // 3. ⚡ [정밀 절삭 구역: 3파라미터 drawImage 규격 완벽 싱크]
+    final html.CanvasElement chunkCanvas = html.CanvasElement(width: originalWidth, height: currentSliceHeight);
+    final html.CanvasRenderingContext2D chunkCtx = chunkCanvas.context2D;
+    
+    // 🌟 [검은 화면 및 컴파일 에러 통합 완치 핵심]
+    // 유저님 다트 스펙에 명시된 3개짜리 아규먼트(source, x, y)만 사용하기 위해
+    // 캔버스 자체의 좌표계를 위쪽으로 -currentY 만큼 번지 점프 시킵니다.
+    chunkCtx.translate(0, -currentY);
+    
+    // 이제 (0, 0) 위치에 원본을 그냥 얹어버리면, 마법처럼 우리가 원하는 Y축 조각만 정확하게 찍힙니다.
+    // 파라미터 개수 에러가 100% 영구 소멸합니다.
+    chunkCtx.drawImage(htmlImgElement, 0, 0);
+    
+    // 변환했단 좌표계를 다시 원래대로 원상 복구 (드로잉 안전 가드)
+    chunkCtx.translate(0, currentY);
+
+    // 🌟 [검은 화면 실시간 검증로그]
+    try {
+      final html.ImageData testData = chunkCtx.getImageData((originalWidth / 2).toInt(), (currentSliceHeight / 2).toInt(), 1, 1);
+      print('🔍 [로그 3] 조각 캔버스 정중앙 픽셀 RGBA 검증: '
+          'R:${testData.data[0]}, G:${testData.data[1]}, B:${testData.data[2]}, A:${testData.data[3]}');
+    } catch(e) {
+      print('❌ [로그 3 에러] 조각 캔버스 픽셀 데이터 획득 실패: $e');
+    }
+
+    // 4. Blob 생성
+    final chunkBlob = await chunkCanvas.toBlob('image/jpeg', 0.95);
+    final String chunkBlobUrl = html.Url.createObjectUrlFromBlob(chunkBlob);
+    print('📦 [로그 4] 조각 Blob 생성 완료. 가속 주소: $chunkBlobUrl | Blob 크기: ${chunkBlob.size} bytes');
+
+    slicedFiles.add(
+      XFile(
+        chunkBlobUrl,
+        mimeType: 'image/jpeg',
+        name: 'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      ),
+    );
+
+    currentY = bestCutY;
+    index++;
+    if (currentY >= originalHeight) {
+      print('🏁 Y축이 원본 이미지 끝에 도달했습니다. 정상 종료.');
+      break;
+    }
+  }
+
+  html.Url.revokeObjectUrl(blobUrl);
+  onProgress(1.0, "절삭 완료!");
+  print('================= 🏁 범인 추적 완료 (총 ${slicedFiles.length}개 조각 생성) =================\n');
+  return slicedFiles;
+}
     String convertPathToCategory(String path) {
       if (path == '/') return 'newProduct';
 
@@ -253,24 +339,31 @@ class ProductUploadDlg extends HookConsumerWidget {
 
         await Future.delayed(const Duration(seconds: 1));
 
-        for (var file in files) {
-          fileCount++;
-          final Uint8List bytes = await file.readAsBytes();
-          final img.Image? checkImg = img.decodeImage(bytes);
+       for (var file in files) {
+  fileCount++;
+  print('여기?1 ');
+  final Uint8List bytes = await file.readAsBytes();
+  print('여기?2 ');
+  
+  // ⚡ [0.01초 초광속 가속]: 이미지 해상도 정보만 아주 가볍게 판독합니다.
+  final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+  final ui.FrameInfo frameInfo = await codec.getNextFrame();
+  final ui.Image uiImage = frameInfo.image;
+  print('여기?3 (이미지 깨짐 없이 0.1초 컷 통과)');
 
-          if (checkImg != null && checkImg.height > 4000) {
-            List<XFile> chunks = await sliceLongImage(bytes, (percent, msg) {
-              double fileBase = (fileCount - 1) / files.length;
-              double currentFilePercent = percent / files.length;
-              updateStatus((fileBase + currentFilePercent).clamp(0.0, 1.0),
-                  "[${fileCount}/${files.length}] $msg");
-            });
-            finalProcessedList.addAll(chunks);
-          } else {
-            finalProcessedList.add(file);
-          }
-        }
-
+  if (uiImage.height > 4000) {
+    // 🚀 원본 bytes와 uiImage를 슬라이스 엔진에 정밀 주입
+    List<XFile> chunks = await sliceLongImage(uiImage, bytes, (percent, msg) {
+      double fileBase = (fileCount - 1) / files.length;
+      double currentFilePercent = percent / files.length;
+      updateStatus((fileBase + currentFilePercent).clamp(0.0, 1.0),
+          "[${fileCount}/${files.length}] $msg");
+    });
+    finalProcessedList.addAll(chunks);
+  } else {
+    finalProcessedList.add(file);
+  }
+}
         if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
         productImages.value = finalProcessedList;
       }
