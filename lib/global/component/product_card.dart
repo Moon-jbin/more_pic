@@ -40,9 +40,9 @@ class ProductCard extends HookConsumerWidget {
                           '/product/${product.categoryName}/${product.id}');
                     },
                     // 💡 구글 스토리지에 저장된 실제 이미지 주소가 있다면 뿌려줍니다.
-                    child: (product.image.isNotEmpty)
+                    child: (product.images.isNotEmpty)
                         ? CachedNetworkImage(
-                            imageUrl: product.image,
+                            imageUrl: product.images.first,
                             fit: BoxFit.cover,
                             // 처음 열릴 때나 로딩 중일 때 깜빡임 없는 플레이스홀더 처리
                             placeholder: (context, url) => Container(

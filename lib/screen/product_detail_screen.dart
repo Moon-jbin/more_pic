@@ -1,9 +1,7 @@
-
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:more_pic/global/custom_widget/custom_widget.dart'; // 💡 CustomWidget 임포트 확인
+import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/model/product_item.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 
@@ -17,14 +15,12 @@ class ProductDetailScreen extends HookConsumerWidget {
     required this.productId,
   });
 
-  // 💡 웹/모바일 반응형 판단을 위한 헬퍼 함수
   bool _isMobile(BuildContext context) {
     return MediaQuery.of(context).size.width < 768;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 리버팟 AsyncValue 상자 안전하게 해체
     final productListAsync = ref.watch(productDBProvider(category));
     final productList = productListAsync.value ?? <ProductItem>[];
 
@@ -35,8 +31,7 @@ class ProductDetailScreen extends HookConsumerWidget {
         name: '상품을 로딩 중이거나 존재하지 않습니다.',
         size: '',
         price: 0,
-        image: '',
-        detailImages: [],
+        images: [], // 통합 images 배열
         categoryName: category,
       ),
     );
@@ -49,16 +44,13 @@ class ProductDetailScreen extends HookConsumerWidget {
       );
     }
 
-    // ⭕ [구조 변경] CustomScaffold를 최상단 뼈대로 채택합니다.
-    // (기존 스크린들과 규격을 맞추기 위해 bodyBuilder 스택을 활용합니다.)
     return CustomScaffold(
       itemData: productList,
       category: category,
       showSearchIcon: false,
       bodyBuilder: (context, scrollController) {
         return SingleChildScrollView(
-          controller:
-              scrollController, // 💡 CustomScaffold의 스크롤 컨트롤러를 바인딩하여 싱크를 맞춥니다.
+          physics: const ClampingScrollPhysics(),
           child: Column(
             children: [
               Center(
@@ -69,7 +61,7 @@ class ProductDetailScreen extends HookConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1️⃣ [대표 이미지 메인 프레임 구역]
+                      // 1️⃣ [대표 이미지 메인 프레임 구역] - images[0]을 띄웁니다.
                       AspectRatio(
                         aspectRatio: 1 / 1,
                         child: Container(
@@ -81,7 +73,9 @@ class ProductDetailScreen extends HookConsumerWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: CachedNetworkImage(
-                              imageUrl: product.image,
+                              imageUrl: product.images.isNotEmpty
+                                  ? product.images[0]
+                                  : '',
                               fit: BoxFit.cover,
                               placeholder: (c, u) => const Center(
                                   child: CircularProgressIndicator(
@@ -143,19 +137,22 @@ class ProductDetailScreen extends HookConsumerWidget {
                       ),
                       const SizedBox(height: 32),
 
-                      // 3️⃣ [상세 사진 리스트]
-                      if (product.detailImages.isNotEmpty)
+                      // 3️⃣ [상세 사진 리스트] - 대표 이미지 1장을 제외한 2번째 조각부터 렌더링 ⚡
+                      if (product.images.length >
+                          1) // ⭕ (정정됨) 1장보다 많을 때 리스트 가동!
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: product.detailImages.length,
+                          itemCount:
+                              product.images.length - 1, // ⚡ 대표 1장을 뺀 갯수만큼 빌드
                           itemBuilder: (context, index) {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(2),
                                 child: CachedNetworkImage(
-                                  imageUrl: product.detailImages[index],
+                                  imageUrl: product.images[
+                                      index + 1], // ⚡ index + 1로 다음 상세 조각 추적!
                                   fit: BoxFit.contain,
                                   width: double.infinity,
                                   placeholder: (c, u) => const Center(
@@ -185,8 +182,6 @@ class ProductDetailScreen extends HookConsumerWidget {
                   ),
                 ),
               ),
-
-              // 💡 [요청 반영] 상세 정보 하단에 공용 푸터를 자연스럽게 도킹합니다.
               CustomWidget.customFooter(
                 context,
                 ref,
@@ -199,7 +194,6 @@ class ProductDetailScreen extends HookConsumerWidget {
     );
   }
 
-  // 가독성 옵션들이 추가된 다목적 인포 헬퍼 위젯
   Widget _buildInfoRow(
     String label,
     String value, {

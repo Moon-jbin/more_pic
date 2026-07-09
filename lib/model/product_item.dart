@@ -2,18 +2,16 @@ class ProductItem {
   final String id;
   final String name;
   final int price;
-  final String image;
   final String categoryName;
-  final List<String> detailImages;
+  final List<String> images;
   final String size;
 
   ProductItem({
     required this.id,
     required this.name,
     required this.price,
-    required this.image,
+    required this.images,
     required this.categoryName,
-    required this.detailImages,
     required this.size,
   });
 
@@ -23,8 +21,7 @@ class ProductItem {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       price: json['price'] ?? 0,
-      image: json['image'] ?? '',
-      detailImages: List<String>.from(json['detailImages'] ?? []),
+      images: List<String>.from(json['images'] ?? []),
       categoryName: json['categoryName'] ?? '',
       size: json['size'] ?? '',
     );
@@ -35,10 +32,9 @@ class ProductItem {
     return {
       'name': name,
       'price': price,
-      'image': image,
-      'detailImages': detailImages,
-      'categoryName': categoryName,
+      'images': images,
       'size': size,
+      "categoryName": categoryName
     };
   }
 }
