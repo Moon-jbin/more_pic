@@ -83,6 +83,7 @@ class ProductDetailScreen extends HookConsumerWidget {
                               placeholder: (c, u) => const Center(
                                   child: CircularProgressIndicator(
                                       strokeWidth: 2)),
+                              filterQuality: FilterQuality.high,
                               errorWidget: (c, u, e) => const Center(
                                   child: Icon(Icons.broken_image, size: 40)),
                             ),
@@ -175,6 +176,7 @@ class ProductDetailScreen extends HookConsumerWidget {
                                       index + 1], // ⚡ index + 1로 다음 상세 조각 추적!
                                   fit: BoxFit.contain,
                                   width: double.infinity,
+                                  filterQuality: FilterQuality.high,
                                   placeholder: (c, u) => const Center(
                                     child: Padding(
                                       padding: EdgeInsets.all(40),

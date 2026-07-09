@@ -62,6 +62,7 @@ class ProductCard extends HookConsumerWidget {
                               child: Icon(Icons.broken_image_outlined,
                                   color: Colors.grey, size: 28),
                             ),
+                            filterQuality: FilterQuality.high,
                           )
                         : const Center(
                             child: Icon(Icons.image_outlined,
