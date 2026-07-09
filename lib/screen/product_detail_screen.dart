@@ -27,13 +27,14 @@ class ProductDetailScreen extends HookConsumerWidget {
     final product = productList.firstWhere(
       (item) => item.id.toString() == productId,
       orElse: () => ProductItem(
-        id: "-1",
-        name: '상품을 로딩 중이거나 존재하지 않습니다.',
-        size: '',
-        price: 0,
-        images: [], // 통합 images 배열
-        categoryName: category,
-      ),
+          id: "-1",
+          name: '상품을 로딩 중이거나 존재하지 않습니다.',
+          size: '-',
+          price: 0,
+          images: [], // 통합 images 배열
+          categoryName: category,
+          productDetail: "-",
+          color: "-"),
     );
 
     if (productListAsync.isLoading) {

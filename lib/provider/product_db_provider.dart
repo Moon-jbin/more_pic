@@ -18,6 +18,8 @@ class ProductDatabaseNotifier
     required String name,
     required int price,
     required String size,
+    required String productDetail,
+    required String color,
     required List<XFile> imageFiles,
     required Function(double, String) onProgress, // 👈 UI로부터 진행률 콜백을 넘겨받습니다!
   }) async {
@@ -29,6 +31,9 @@ class ProductDatabaseNotifier
             price: price,
             category: arg, // 현재 패밀리 카테고리 문자열('inner' 등)이 자동으로 들어갑니다.
             size: size,
+            productDetail: productDetail,
+            color : color,
+
             imageFiles: imageFiles,
             onProgress: onProgress, // 👈 리포지토리로 완벽하게 토스! 🎯
           );

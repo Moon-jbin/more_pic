@@ -177,6 +177,8 @@ class ProductRepository {
     required int price,
     required String category,
     required String size,
+    required String productDetail,
+    required String color,
     required List<XFile> imageFiles,
     required Function(double, String) onProgress, // 👈 실시간 프로그레스 콜백 함수 추가!
   }) async {
@@ -207,6 +209,8 @@ class ProductRepository {
         'size': size,
         'categoryName': category,
         'images': uploadedUrls,
+        'productDetail':productDetail,
+        'color':color
       });
       
       // 3️⃣ 100% 완전 임무 완료 통보

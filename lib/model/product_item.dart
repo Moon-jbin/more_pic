@@ -5,6 +5,8 @@ class ProductItem {
   final String categoryName;
   final List<String> images;
   final String size;
+  final String productDetail;
+  final String color;
 
   ProductItem({
     required this.id,
@@ -13,6 +15,8 @@ class ProductItem {
     required this.images,
     required this.categoryName,
     required this.size,
+    required this.productDetail,
+    required this.color,
   });
 
   // 📥 DB에서 긁어온 Map 데이터를 플러터 객체로 변환
@@ -24,6 +28,8 @@ class ProductItem {
       images: List<String>.from(json['images'] ?? []),
       categoryName: json['categoryName'] ?? '',
       size: json['size'] ?? '',
+      productDetail: json['productDetail'] ?? '',
+      color: json['color'] ?? '',
     );
   }
 
@@ -34,7 +40,9 @@ class ProductItem {
       'price': price,
       'images': images,
       'size': size,
-      "categoryName": categoryName
+      "categoryName": categoryName,
+      "productDetail": productDetail,
+      "color": color
     };
   }
 }
