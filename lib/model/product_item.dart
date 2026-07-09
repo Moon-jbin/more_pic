@@ -7,6 +7,8 @@ class ProductItem {
   final String size;
   final String productDetail;
   final String color;
+  final String shippingType;   // 예: '국내배송' 또는 '해외배송'
+  final String shippingMethod; // 예: 'CJ대한통운 기본배송' 등
 
   ProductItem({
     required this.id,
@@ -17,6 +19,8 @@ class ProductItem {
     required this.size,
     required this.productDetail,
     required this.color,
+    required this.shippingType,
+    required this.shippingMethod,
   });
 
   // 📥 DB에서 긁어온 Map 데이터를 플러터 객체로 변환
@@ -30,6 +34,8 @@ class ProductItem {
       size: json['size'] ?? '',
       productDetail: json['productDetail'] ?? '',
       color: json['color'] ?? '',
+      shippingType: json['shippingType'] ?? '국내배송', 
+      shippingMethod: json['shippingMethod'] ?? '',
     );
   }
 
@@ -40,9 +46,11 @@ class ProductItem {
       'price': price,
       'images': images,
       'size': size,
-      "categoryName": categoryName,
-      "productDetail": productDetail,
-      "color": color
+      'categoryName': categoryName,
+      'productDetail': productDetail,
+      'color': color,
+      'shippingType': shippingType,
+      'shippingMethod': shippingMethod,
     };
   }
 }

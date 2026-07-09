@@ -34,7 +34,9 @@ class ProductDetailScreen extends HookConsumerWidget {
           images: [], // 통합 images 배열
           categoryName: category,
           productDetail: "-",
-          color: "-"),
+          color: "-",
+          shippingType: '국내배송',
+          shippingMethod: '-'),
     );
 
     if (productListAsync.isLoading) {
@@ -103,13 +105,30 @@ class ProductDetailScreen extends HookConsumerWidget {
                                 isBold: true,
                                 verticalPadding: 18),
                             _buildInfoRow(
+                                '상품요약정보',
+                                product.productDetail.isEmpty
+                                    ? ''
+                                    : product.productDetail),
+                            _buildInfoRow(
                                 '사이즈',
                                 product.size.isEmpty
                                     ? '기본 프리사이즈'
                                     : product.size),
-                            _buildInfoRow('소비자가', '${product.price}원',
-                                isLineThrough: true,
-                                color: Colors.grey.shade400),
+                            _buildInfoRow('색상',
+                                product.color.isEmpty ? '' : product.color),
+                            //국내,해외배송,
+                            _buildInfoRow(
+                                '국내·해외배송',
+                                product.shippingType.isEmpty
+                                    ? '국내배송'
+                                    : product.shippingType),
+                            //배송방법
+                            _buildInfoRow(
+                                '배송방법',
+                                product.shippingMethod.isEmpty
+                                    ? ''
+                                    : product.shippingMethod),
+
                             _buildInfoRow('판매가', '${product.price}원',
                                 fontSize: 15,
                                 isBold: true,

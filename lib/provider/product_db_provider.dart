@@ -20,6 +20,9 @@ class ProductDatabaseNotifier
     required String size,
     required String productDetail,
     required String color,
+    required String sh,
+    required String shippingType,
+    required String shippingMethod,
     required List<XFile> imageFiles,
     required Function(double, String) onProgress, // 👈 UI로부터 진행률 콜백을 넘겨받습니다!
   }) async {
@@ -33,7 +36,8 @@ class ProductDatabaseNotifier
             size: size,
             productDetail: productDetail,
             color : color,
-
+            shippingMethod: shippingMethod,
+            shippingType: shippingType,
             imageFiles: imageFiles,
             onProgress: onProgress, // 👈 리포지토리로 완벽하게 토스! 🎯
           );
