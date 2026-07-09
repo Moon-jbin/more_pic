@@ -16,9 +16,17 @@ class ProductRepository {
 
   Future<List<ProductItem>> fetchProductsByCategory(String category) async {
     try {
-      final querySnapshot = await _productsCollection
-          .where('categoryName', isEqualTo: category)
-          .get();
+      Query query = _productsCollection;
+
+      if (category != 'all') {
+        query = query.where('categoryName', isEqualTo: category);
+      }
+
+      // 🚀 [문서 ID 기준 최신순 정렬]: p_1783578587184 처럼 숫자가 큰 최신 문서가 0번 인덱스로 오도록 역순(descending) 정렬합니다!
+      query = query.orderBy(FieldPath.documentId, descending: true);
+
+      final querySnapshot = await query.get();
+
       return querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         return ProductItem.fromJson({'id': doc.id, ...data});
@@ -27,6 +35,34 @@ class ProductRepository {
       throw Exception('Firebase DB 로드 실패: $e');
     }
   }
+  // Future<List<ProductItem>> fetchProductsByCategory(String category) async {
+  //   try {
+  //     Query query = _productsCollection;
+
+  //     // 카테고리가 'all'이 아닐 때만 필터링
+  //     if (category != 'all') {
+  //       query = query.where('categoryName', isEqualTo: category);
+  //     }
+
+  //     // ❌ 에러를 뿜던 서버 정렬(orderBy) 코드는 과감히 지우거나 주석 처리합니다!
+  //     // query = query.orderBy(FieldPath.documentId, descending: true);
+
+  //     final querySnapshot = await query.get();
+
+  //     // 파이어베이스에서 일단 데이터를 다 긁어옵니다.
+  //     final products = querySnapshot.docs.map((doc) {
+  //       final data = doc.data() as Map<String, dynamic>;
+  //       return ProductItem.fromJson({'id': doc.id, ...data});
+  //     }).toList();
+
+  //     // ⭕ [Dart 쾌속 정렬]: 받아온 상품 리스트를 앱 내부에서 문서 ID(id) 역순으로 정렬해 버립니다!
+  //     products.sort((a, b) => b.id.compareTo(a.id));
+
+  //     return products;
+  //   } catch (e) {
+  //     throw Exception('Firebase DB 로드 실패: $e');
+  //   }
+  // }
 
 // ⭕ [아래 코드로 완전히 교체해 주세요!]
   Future<String> _uploadImageToStorage(
@@ -171,7 +207,7 @@ class ProductRepository {
   // }
 
   /// 🚀 [진화형] 대표/상세 구분 없이 하나의 이미지 리스트만 순서대로 받아 업로드
-/// 🚀 [최종 진화형] 구글 스토리지 업로드 진행률 콜백이 탑재된 서버 전송 함수
+  /// 🚀 [최종 진화형] 구글 스토리지 업로드 진행률 콜백이 탑재된 서버 전송 함수
   Future<void> uploadFullProduct({
     required String name,
     required int price,
@@ -189,15 +225,17 @@ class ProductRepository {
       final String productId = 'p_${DateTime.now().millisecondsSinceEpoch}';
 
       List<String> uploadedUrls = [];
-      
+
       // 1️⃣ 조각난 이미지들을 순서대로 구글 서버에 업로드
       for (int i = 0; i < imageFiles.length; i++) {
         // 📊 UI단 팝업창에 진행률 배달 (예: 14장 중 3장 완료 시 21% 완료 마크)
         double percent = (i / imageFiles.length).clamp(0.0, 0.95);
-        onProgress(percent, "구글 스토리지로 [${i + 1}/${imageFiles.length}] 이미지 전송 중... 🚀");
+        onProgress(
+            percent, "구글 스토리지로 [${i + 1}/${imageFiles.length}] 이미지 전송 중... 🚀");
 
         final Uint8List bytes = await imageFiles[i].readAsBytes();
-        String url = await _uploadImageToStorage(bytes, productId, 'img_$i.jpg');
+        String url =
+            await _uploadImageToStorage(bytes, productId, 'img_$i.jpg');
         uploadedUrls.add(url);
       }
 
@@ -211,13 +249,12 @@ class ProductRepository {
         'size': size,
         'categoryName': category,
         'images': uploadedUrls,
-        'productDetail':productDetail,
-        'color':color,
+        'productDetail': productDetail,
+        'color': color,
         'shippingType': shippingType,
         'shippingMethod': shippingMethod
-
       });
-      
+
       // 3️⃣ 100% 완전 임무 완료 통보
       onProgress(1.0, "상품 진열 완료! 🎉");
       print("🎉 Firestore DB 최종 안착 성공!!!");
@@ -226,6 +263,7 @@ class ProductRepository {
       throw Exception('상품 등록 프로세스 실패: $e');
     }
   }
+
   Future<void> deleteProductFromDB(String productId) async {
     try {
       await _productsCollection.doc(productId).delete();

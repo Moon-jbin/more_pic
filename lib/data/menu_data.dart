@@ -4,10 +4,6 @@
 // 1. 공용 다단계 카테고리 데이터 구조 정의 (ACC, SEASON 데이터 추가 완료)
 final List<Map<String, dynamic>> menuData = [
   {
-    'title': '신상품',
-    'path': '/',
-  },
-  {
     'title': '신생아~3M',
     'children': [
       {'title': '옷', 'path': '/newborn/clothes'},

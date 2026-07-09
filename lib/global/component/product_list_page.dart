@@ -226,7 +226,7 @@ class ProductListPage extends HookConsumerWidget {
                           const Center(
                             child: Padding(
                               padding: EdgeInsets.symmetric(vertical: 100),
-                              child: Text('등록된 상품이 없습니다. 신상을 업로드해 보세요! 🛍️',
+                              child: Text('등록된 상품이 없습니다.',
                                   style: TextStyle(
                                       color: Colors.grey, fontSize: 15)),
                             ),

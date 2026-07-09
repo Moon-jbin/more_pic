@@ -57,21 +57,17 @@ class PasswordCheckDlg extends HookConsumerWidget {
     }
 
     return CustomWidget.dialogCustomForm(
+      height: 200,
       child: Column(
         children: [
-          CustomWidget.customDialogTitle(
-            context,
-            ref,
-            title: '관리자 인증',
-            isShowCloseBtn: true, // 💡 취소 버튼이 없을 수 있으므로 닫기 X 버튼 활성화 권장
-          ),
+          CustomWidget.customDialogTitle(context, ref,
+              title: '관리자 인증', isShowCloseBtn: true),
           Container(
             padding: const EdgeInsets.all(10),
             child: Column(
               children: [
                 TextField(
                   controller: passwordController,
-                  // obscureText: true,
                   decoration: const InputDecoration(
                     labelText: '관리자 패스워드 입력',
                     border: OutlineInputBorder(),

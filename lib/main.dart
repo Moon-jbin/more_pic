@@ -5,11 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/data/menu_data.dart';
+import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/firebase_options.dart';
 import 'package:more_pic/global/component/product_card.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
+import 'package:more_pic/provider/product_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart'; // 💡 상품 프로바이더 임포트
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
@@ -69,7 +71,7 @@ class MorePicWebService extends HookConsumerWidget {
 
     // 📊 메인 홈화면에 보여줄 신상품 카테고리 데이터 실시간 로드 (예시로 'all' 또는 대표 카테고리 지정 가능)
     // 카테고리별 분기처리를 위해 기본 메인 노출 데이터를 구독합니다.
-    final productListAsync = ref.watch(productDBProvider('newProduct'));
+    final productListAsync = ref.watch(productDBProvider('all'));
     // final products = productListAsync.value ?? [];
 
     useEffect(() {
@@ -266,15 +268,18 @@ class MorePicWebService extends HookConsumerWidget {
                   ),
                 ),
               ),
-              error: (err, stack) => SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 100),
-                    child: Text('❌ 상품 로드 오류: $err',
-                        style: const TextStyle(color: Colors.red)),
+              error: (err, stack) {
+                print("err=> ${err}");
+                return SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 100),
+                      child: Text('❌ 상품 로드 오류: $err',
+                          style: const TextStyle(color: Colors.red)),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
               data: (items) {
                 // 💡 [버그 박멸] 파이어베이스에서 실시간으로 긁어온 알맹이인 'items'가 텅 비었는지 체크합니다.
                 if (items.isEmpty) {
@@ -301,12 +306,36 @@ class MorePicWebService extends HookConsumerWidget {
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        // ⭐⭐⭐ [핵심 수정]: 무덤에 가있던 'products' 대신 실시간 스트림 알맹이인 'items[index]'를 전격 매핑합니다!
                         final product = items[index];
-                        // 도매처 통이미지의 0번 조각 주소를 썸네일로 가동
-                        return ProductCard(product: product);
+
+                        return ProductCard(
+                          product: product,
+                          onDelete: () async {
+                            // 1. 🔥 [핵심 타격]: 엉뚱한 프로바이더 대신 실제 해당 상품이 속한 파이어베이스 노티파이어를 직접 호출해 삭제합니다!
+                            await ref
+                                .read(productDBProvider(product.categoryName)
+                                    .notifier)
+                                .deleteProduct(product.id);
+
+                            // 2. ⚡ [전체보기 무효화]: 메인 화면이 째려보고 있는 'all' 창고를 즉시 리프레시 시킵니다.
+                            ref.invalidate(productDBProvider('all'));
+
+                            // 3. ⚡ [카테고리 무효화]: 해당 상품의 개별 카테고리 창고도 동기화 폭파시킵니다.
+                            ref.invalidate(
+                                productDBProvider(product.categoryName));
+
+                            // 4. 🎉 깔끔하게 연타 버그 방어선 치우고 스낵바 전송
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('🎉 상품 진열이 정상적으로 철수되었습니다.')),
+                              );
+                            }
+                          },
+                        );
                       },
-                      childCount: items.length, // ⭐ 이것도 items.length로 싱크 맞춤!
+                      childCount: items.length,
                     ),
                   ),
                 );
