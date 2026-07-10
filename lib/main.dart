@@ -5,13 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/data/menu_data.dart';
-import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/firebase_options.dart';
 import 'package:more_pic/global/component/product_card.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
-import 'package:more_pic/provider/product_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart'; // 💡 상품 프로바이더 임포트
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
@@ -20,343 +18,6 @@ import 'package:more_pic/utils/routing/navigation_service.dart';
 import 'package:more_pic/utils/routing/router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/utils/routing/router_name.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } else {
-    await Firebase.initializeApp();
-  }
-
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: '모어픽 | 본질에 집중한 미니멀 쇼핑',
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'NotoSansKR',
-      ),
-      debugShowCheckedModeBanner: false,
-      routerConfig: router,
-    );
-  }
-}
-
-// 💡 메인 웹 서비스 컴포넌트 (신상품 나열 레이아웃 장착)
-class MorePicWebService extends HookConsumerWidget {
-  const MorePicWebService({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final adminSettingsWatch = ref.watch(adminSettingsProvider);
-    final adminSettingsRead = ref.read(adminSettingsProvider.notifier);
-    final scrollController = useScrollController();
-    final showButton = useState(false);
-    final isScrolled = useState(false);
-
-    final bool mobileMode = isMobile(context);
-
-    // 📊 메인 홈화면에 보여줄 신상품 카테고리 데이터 실시간 로드 (예시로 'all' 또는 대표 카테고리 지정 가능)
-    // 카테고리별 분기처리를 위해 기본 메인 노출 데이터를 구독합니다.
-    final productListAsync = ref.watch(productDBProvider('all'));
-    // final products = productListAsync.value ?? [];
-
-    useEffect(() {
-      void listener() {
-        if (scrollController.hasClients) {
-          if (scrollController.offset > 150) {
-            if (!showButton.value) showButton.value = true;
-          } else {
-            if (showButton.value) showButton.value = false;
-          }
-
-          if (scrollController.offset > 0) {
-            if (!isScrolled.value) isScrolled.value = true;
-          } else {
-            if (isScrolled.value) isScrolled.value = false;
-          }
-        }
-      }
-
-      scrollController.addListener(listener);
-      return () => scrollController.removeListener(listener);
-    }, [scrollController]);
-
-    final double headerHeight = mobileMode ? 70 : 120;
-
-    // 💡 디바이스 너비에 따라 한 줄에 몇 개의 아이템을 배치할지 격자 갯수 동적 계산
-    double screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount = 4; // PC 모니터 기본 4열
-    if (screenWidth < 600) {
-      crossAxisCount = 2; // 모바일 2열 기본 국룰
-    } else if (screenWidth < 1100) {
-      crossAxisCount = 3; // 태블릿 3열
-    }
-
-    return Scaffold(
-        backgroundColor: Colors.white,
-        drawer: mobileMode
-            ? CustomWidget.customDrawer(context, ref, menuData)
-            : null,
-        body: CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            // 📌 [구조 1]: 상단 안내 배너
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 30),
-                width: double.infinity,
-                color: const Color(0xFFD4CBE5),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // ⭐⭐⭐ [핵심 연동 파트] ⭐⭐⭐
-                          if (adminSettingsWatch) ...[
-                            // 1. 관리자 인증 성공 시에만 업로드 버튼 활성화!
-                            IconButton(
-                              onPressed: () => showProductUploadDlgFn(context),
-                              icon: const Icon(Icons.add_a_photo,
-                                  color: Colors.black),
-                              tooltip: '상품 업로드',
-                            ),
-                            // 편집 모드를 수동으로 끌 수 있는 동크 탈출 버튼
-                            IconButton(
-                              onPressed: () => adminSettingsRead.initState(),
-                              icon: const Icon(Icons.lock_open,
-                                  color: Colors.red),
-                              tooltip: '편집 모드 종료',
-                            ),
-                          ] else ...[
-                            // 2. 인증이 안 되었을 때는 비밀번호 입력 팝업을 띄우는 자물쇠 버튼 노출
-                            IconButton(
-                              onPressed: () => showPasswordCheckDialog(context),
-                              icon:
-                                  const Icon(Icons.lock, color: Colors.black87),
-                              tooltip: '관리자 편집모드 진입',
-                            ),
-                          ]
-                        ]),
-
-                    // IconButton(
-                    //     onPressed: () => showProductUploadDlgFn(context),
-                    //     icon:
-                    //         const Icon(Icons.add_a_photo, color: Colors.black)),
-                    const Text(
-                      '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
-                    ),
-                    const SizedBox(width: 48) // 좌측 아이콘 버튼과의 균형을 위한 빈 공간 마진
-                  ],
-                ),
-              ),
-            ),
-
-            // 📌 [구조 2]: 상단 고정(Floating) 헤더 섹션
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: SliverHeaderDelegate(
-                height: headerHeight,
-                isScrolled: isScrolled.value,
-                child: Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: mobileMode ? 16 : 40),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (mobileMode)
-                            Builder(
-                              builder: (context) => IconButton(
-                                icon: const Icon(Icons.menu,
-                                    color: Colors.black, size: 28),
-                                onPressed: () =>
-                                    Scaffold.of(context).openDrawer(),
-                              ),
-                            ),
-                          CustomWidget.customLogo(context, ref,
-                              fontSize: 38, letterSpacing: 1.5),
-                          if (mobileMode)
-                            IconButton(
-                                icon: const Icon(Icons.search,
-                                    color: Colors.black, size: 26),
-                                onPressed: () {}),
-                        ],
-                      ),
-                      if (!mobileMode) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: menuData.map((menu) {
-                                return DesktopHoverMenu(
-                                  title: menu['title'],
-                                  items: menu['children'] ?? [],
-                                );
-                              }).toList(),
-                            ),
-                            IconButton(
-                                icon: const Icon(Icons.search,
-                                    color: Colors.black, size: 26),
-                                onPressed: () {}),
-                          ],
-                        ),
-                      ]
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // 📌 [구조 3]: NEW ARRIVALS 타이틀 바 섹션
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                    mobileMode ? 16 : 40, 40, mobileMode ? 16 : 40, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'NEW ARRIVALS',
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                          color: Colors.black),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                        width: 45,
-                        height: 3,
-                        color: const Color(0xFF4A6FA5)), // 정갈한 시그니처 미니멀 언더바
-                  ],
-                ),
-              ),
-            ),
-
-            // 📌 [구조 4]: 비동기 리버팟 스트림 연동 신상품 격자 리스트 구역
-            productListAsync.when(
-              loading: () => const SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 100),
-                    child: CircularProgressIndicator(color: Color(0xFF4A6FA5)),
-                  ),
-                ),
-              ),
-              error: (err, stack) {
-                print("err=> ${err}");
-                return SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 100),
-                      child: Text('❌ 상품 로드 오류: $err',
-                          style: const TextStyle(color: Colors.red)),
-                    ),
-                  ),
-                );
-              },
-              data: (items) {
-                // 💡 [버그 박멸] 파이어베이스에서 실시간으로 긁어온 알맹이인 'items'가 텅 비었는지 체크합니다.
-                if (items.isEmpty) {
-                  return const SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 120),
-                        child: Text('신상 상품이 존재하지 않습니다.',
-                            style: TextStyle(color: Colors.grey, fontSize: 14)),
-                      ),
-                    ),
-                  );
-                }
-
-                return SliverPadding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: mobileMode ? 16 : 40, vertical: 10),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 30,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.68,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final product = items[index];
-
-                        return ProductCard(
-                          product: product,
-                          onDelete: () async {
-                            // 1. 🔥 [핵심 타격]: 엉뚱한 프로바이더 대신 실제 해당 상품이 속한 파이어베이스 노티파이어를 직접 호출해 삭제합니다!
-                            await ref
-                                .read(productDBProvider(product.categoryName)
-                                    .notifier)
-                                .deleteProduct(product.id);
-
-                            // 2. ⚡ [전체보기 무효화]: 메인 화면이 째려보고 있는 'all' 창고를 즉시 리프레시 시킵니다.
-                            ref.invalidate(productDBProvider('all'));
-
-                            // 3. ⚡ [카테고리 무효화]: 해당 상품의 개별 카테고리 창고도 동기화 폭파시킵니다.
-                            ref.invalidate(
-                                productDBProvider(product.categoryName));
-
-                            // 4. 🎉 깔끔하게 연타 버그 방어선 치우고 스낵바 전송
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).clearSnackBars();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('🎉 상품 진열이 정상적으로 철수되었습니다.')),
-                              );
-                            }
-                          },
-                        );
-                      },
-                      childCount: items.length,
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            // 📌 [구조 5]: 바닥 고정 푸터 통합 바인딩
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  // SizedBox(height: mobileMode ? 60 : 10),
-                  CustomWidget.customFooter(context, ref, isMobile: mobileMode),
-                ],
-              ),
-            ),
-          ],
-        ),
-        floatingActionButton: CustomWidget.customFloatingBtn(
-            showButton: showButton, scrollController: scrollController));
-  }
-}
 
 // [DesktopHoverMenu 및 이하 하위 호버 위젯 로직 변동 없이 기존과 완전히 동일]
 MenuController? _globalActiveController;
@@ -710,5 +371,359 @@ class _SubHoverMenuState extends State<SubHoverMenu> {
         ),
       ),
     );
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
+
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: '모어픽 | 본질에 집중한 미니멀 쇼핑',
+      theme: ThemeData(
+        scaffoldBackgroundColor: Colors.white,
+        fontFamily: 'NotoSansKR',
+      ),
+      debugShowCheckedModeBanner: false,
+      routerConfig: router,
+    );
+  }
+}
+
+// 💡 메인 웹 서비스 컴포넌트 (신상품 나열 레이아웃 장착)
+class MorePicWebService extends HookConsumerWidget {
+  const MorePicWebService({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final adminSettingsWatch = ref.watch(adminSettingsProvider);
+    final adminSettingsRead = ref.read(adminSettingsProvider.notifier);
+    final scrollController = useScrollController();
+    final showButton = useState(false);
+    final isScrolled = useState(false);
+
+    final bool mobileMode = isMobile(context);
+
+    // 📊 메인 홈화면에 보여줄 신상품 카테고리 데이터 실시간 로드
+    // (현재 메인은 'all' 분류를 관장하므로 고정 주입)
+    const String currentCategory = 'all';
+
+    useEffect(() {
+      void listener() {
+        if (scrollController.hasClients) {
+          // 1. 위로 가기 버튼 처리
+          if (scrollController.offset > 150) {
+            if (!showButton.value) showButton.value = true;
+          } else {
+            if (showButton.value) showButton.value = false;
+          }
+
+          // 2. 스크롤 섀도우/헤더 감축 가드 처리
+          if (scrollController.offset > 0) {
+            if (!isScrolled.value) isScrolled.value = true;
+          } else {
+            if (isScrolled.value) isScrolled.value = false;
+          }
+
+          // 🔥🔥🔥 [무한 스크롤 바닥 감지 엔진 도킹] ⭐⭐⭐
+          // 사용자의 현재 스크롤 위치가 맨 최하단 길이에서 200px 대역 안으로 진입했는지 실시간 서칭
+          if (scrollController.position.pixels >=
+              scrollController.position.maxScrollExtent - 200) {
+            // 물리적인 센서가 바닥에 충돌했으므로, 10개 끊어 읽기 노티파이어의 fetchNextPage를 딸깍 실행!
+            ref
+                .read(paginatedProductProvider(currentCategory).notifier)
+                .fetchNextPage();
+          }
+        }
+      }
+
+      scrollController.addListener(listener);
+      return () => scrollController.removeListener(listener);
+    }, [scrollController]); // 디펜던시 스크롤 유지
+
+    final double headerHeight = mobileMode ? 70 : 120;
+
+    // 💡 디바이스 너비에 따라 한 줄에 몇 개의 아이템을 배치할지 격자 갯수 동적 계산
+    double screenWidth = MediaQuery.of(context).size.width;
+    int crossAxisCount = 4; // PC 모니터 기본 4열
+    if (screenWidth < 600) {
+      crossAxisCount = 3; // 모바일 2열 기본 국룰
+    } else if (screenWidth < 1100) {
+      crossAxisCount = 3; // 태블릿 3열
+    }
+
+    return Scaffold(
+        backgroundColor: Colors.white,
+        drawer: mobileMode
+            ? CustomWidget.customDrawer(context, ref, menuData)
+            : null,
+        body: CustomScrollView(
+          controller: scrollController, // 🌟 물리 센서와 캔버스 스크롤뷰 완벽 밀착 바인딩!
+          slivers: [
+            // 📌 [구조 1]: 상단 안내 배너
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 30),
+                width: double.infinity,
+                color: const Color(0xFFD4CBE5),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (adminSettingsWatch) ...[
+                            IconButton(
+                              onPressed: () => showProductUploadDlgFn(context),
+                              icon: const Icon(Icons.add_a_photo,
+                                  color: Colors.black),
+                              tooltip: '상품 업로드',
+                            ),
+                            IconButton(
+                              onPressed: () => adminSettingsRead.initState(),
+                              icon: const Icon(Icons.lock_open,
+                                  color: Colors.red),
+                              tooltip: '편집 모드 종료',
+                            ),
+                          ] else ...[
+                            IconButton(
+                              onPressed: () => showPasswordCheckDialog(context),
+                              icon:
+                                  const Icon(Icons.lock, color: Colors.black87),
+                              tooltip: '관리자 편집모드 진입',
+                            ),
+                          ]
+                        ]),
+                    const Text(
+                      '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                    ),
+                    const SizedBox(width: 48)
+                  ],
+                ),
+              ),
+            ),
+
+            // 📌 [구조 2]: 상단 고정(Floating) 헤더 섹션
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: SliverHeaderDelegate(
+                height: headerHeight,
+                isScrolled: isScrolled.value,
+                child: Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: mobileMode ? 16 : 40),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (mobileMode)
+                            Builder(
+                              builder: (context) => IconButton(
+                                icon: const Icon(Icons.menu,
+                                    color: Colors.black, size: 28),
+                                onPressed: () =>
+                                    Scaffold.of(context).openDrawer(),
+                              ),
+                            ),
+                          CustomWidget.customLogo(context, ref,
+                              fontSize: 38, letterSpacing: 1.5),
+                          if (mobileMode)
+                            IconButton(
+                                icon: const Icon(Icons.search,
+                                    color: Colors.black, size: 26),
+                                onPressed: () {}),
+                        ],
+                      ),
+                      if (!mobileMode) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: menuData.map((menu) {
+                                return DesktopHoverMenu(
+                                  title: menu['title'],
+                                  items: menu['children'] ?? [],
+                                );
+                              }).toList(),
+                            ),
+                            IconButton(
+                                icon: const Icon(Icons.search,
+                                    color: Colors.black, size: 26),
+                                onPressed: () {}),
+                          ],
+                        ),
+                      ]
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 📌 [구조 3]: NEW ARRIVALS 타이틀 바 섹션
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                    mobileMode ? 16 : 40, 40, mobileMode ? 16 : 40, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'NEW ARRIVALS',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          color: Colors.black),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                        width: 45, height: 3, color: const Color(0xFF4A6FA5)),
+                  ],
+                ),
+              ),
+            ),
+
+            // 📌 [구조 4]: 10개씩 끊어 읽는 무한 스크롤 격자 리스트 구역 (튕김 박멸 버전)
+            // .when 대신 .skipLoadingOnTrigger를 주거나 상태 데이터를 직접 분해합니다.
+            ref.watch(paginatedProductProvider(currentCategory)).when(
+                  // 🌟 [핵심 변경]: 처음 앱 켤 때 '완전 최초 로딩'일 때만 화면 중앙 로딩바를 띄웁니다.
+                  loading: () => const SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 100),
+                        child:
+                            CircularProgressIndicator(color: Color(0xFF4A6FA5)),
+                      ),
+                    ),
+                  ),
+                  error: (err, stack) => SliverToBoxAdapter(
+                    child: Center(
+                      child: Text('❌ 상품 로드 오류: $err',
+                          style: const TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                  data: (stateData) {
+                    final items = stateData.items;
+
+                    if (items.isEmpty) {
+                      return const SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 120),
+                            child: Text('신상 상품이 존재하지 않습니다.',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // 💡 현재 리버팟 창고가 "기존 데이터를 들고 있는 채로 추가 로딩 중(isRefreshing)"인지 파악합니다.
+                    final isNextPageLoading = ref
+                        .watch(paginatedProductProvider(currentCategory))
+                        .isRefreshing;
+
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        // 1️⃣ 기존에 불러온 상품 격자는 어떤 순간에도 화면에서 지우지 않고 철통 사수합니다! (높이 유지 = 스크롤 고정)
+                        SliverPadding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: mobileMode ? 16 : 40, vertical: 10),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              mainAxisSpacing: 30,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 0.68,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final product = items[index];
+                                return ProductCard(
+                                  product: product,
+                                  onDelete: () async {
+                                    // 🎉 해당 개별 카테고리 가방을 즉시 리셋 시켜 새로 고쳐 읽습니다.
+                                    ref.invalidate(paginatedProductProvider(
+                                        currentCategory));
+
+                                    // 피드백 스낵바 전송
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .clearSnackBars();
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                '🎉 상품 진열이 정상적으로 철수되었습니다.')),
+                                      );
+                                    }
+                                  },
+                                );
+                              },
+                              childCount: items.length,
+                            ),
+                          ),
+                        ),
+
+                        // 2️⃣ 다음 페이지를 조용히 긁어오는 중일 때만, 격자 바로 밑에 미니 로딩바를 스르륵 끼워 넣어 줍니다.
+                        if (isNextPageLoading)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Color(0xFF4A6FA5)),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+
+            // 📌 [구조 5]: 바닥 고정 푸터 통합 바인딩
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  CustomWidget.customFooter(context, ref, isMobile: mobileMode),
+                ],
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: CustomWidget.customFloatingBtn(
+            showButton: showButton, scrollController: scrollController));
   }
 }

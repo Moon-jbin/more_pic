@@ -126,17 +126,17 @@ class SlidingSearchBar extends HookConsumerWidget {
                       ),
                       onSubmitted: (value) {
                         // 💡 엔터 쳤을 때 지난번 만든 검색 로직 연동 지점
-                        ref.read(globalSearchProvider.notifier).filterProducts(
-                              query: value,
-                              targetList: currentScreenItems,
-                            );
-                        final query = textController.text.trim();
-                        // 💡 주소창을 강제로 바꿉니다! page는 무조건 1페이지로 리셋됩니다.
-                        searchContentRead.setState(
-                            SearchContent(searchContent: query, page: 1));
-                        searchListenerRead.workListener(1);
-                        textController.clear();
-                        ref.read(searchBarOpenProvider.notifier).close();
+                        // ref.read(globalSearchProvider.notifier).filterProducts(
+                        //       query: value,
+                        //       targetList: currentScreenItems,
+                        //     );
+                        // final query = textController.text.trim();
+                        // // 💡 주소창을 강제로 바꿉니다! page는 무조건 1페이지로 리셋됩니다.
+                        // searchContentRead.setState(
+                        //     SearchContent(searchContent: query, page: 1));
+                        // searchListenerRead.workListener(1);
+                        // textController.clear();
+                        // ref.read(searchBarOpenProvider.notifier).close();
                       },
                     ),
                   ],

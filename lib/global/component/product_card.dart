@@ -2,13 +2,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:more_pic/model/product_item.dart';
+// 🌟 [수정]: 기존 ProductItem 임포트를 지우고, 페이지네이션 엔진이 쓰는 product_db_provider를 바라봅니다.
+import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
-import 'package:more_pic/provider/product_db_provider.dart'; // 💡 실시간 파이어베이스 DB 노티파이어 임포트
 
 class ProductCard extends HookConsumerWidget {
-  final ProductItem product;
-  final VoidCallback? onDelete; // 💡 외부에서 삭제 콜백을 따로 주입하고 싶을 때를 위한 옵션
+  // 🎯 [핵심 교체]: ProductItem 대신 신버전 데이터 모델인 ProductModel을 수용하도록 변경
+  final ProductModel product;
+  final VoidCallback? onDelete;
 
   const ProductCard({
     super.key,
@@ -41,12 +42,10 @@ class ProductCard extends HookConsumerWidget {
                       context.push(
                           '/product/${product.categoryName}/${product.id}');
                     },
-                    // 💡 구글 스토리지에 저장된 실제 이미지 주소가 있다면 뿌려줍니다.
                     child: (product.images.isNotEmpty)
                         ? CachedNetworkImage(
                             imageUrl: product.images.first,
                             fit: BoxFit.cover,
-                            // 처음 열릴 때나 로딩 중일 때 깜빡임 없는 플레이스홀더 처리
                             placeholder: (context, url) => Container(
                               color: const Color(0xFFF2F2F2),
                               child: const Center(
@@ -88,17 +87,18 @@ class ProductCard extends HookConsumerWidget {
                       icon: const Icon(Icons.delete_outline,
                           color: Colors.red, size: 20),
                       onPressed: () async {
-                        // 1. 부모 위젯에서 넘겨준 커스텀 삭제 트리거가 있다면 먼저 실행
+                        // 2. 기본 내장 트리거: 신버전 페이지네이션 창고인 paginatedProductProvider를 날려버리도록 연동 수정
+                        await ref
+                            .read(productDBProvider(product.categoryName)
+                                .notifier)
+                            .deleteProduct(product.id
+                                .toString()); // 💡 만약 notifier에 delete가 없다면 상위 부모(onDelete)로 위임 처리 권장
+
+                        // 1. 부모 위젯에서 넘겨준 커스텀 삭제 트리거가 있다면 실행
                         if (onDelete != null) {
                           onDelete!();
                           return;
                         }
-
-                        // 2. 기본 내장 트리거: 이 카드가 속한 카테고리의 파이어베이스 상자를 직접 찾아가서 도큐먼트를 파괴합니다.
-                        await ref
-                            .read(productDBProvider(product.categoryName)
-                                .notifier)
-                            .deleteProduct(product.id.toString());
                       },
                     ),
                   ),
@@ -116,9 +116,14 @@ class ProductCard extends HookConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 3),
+
+        // 🌟 [안전 가드]: 혹시 신버전 ProductModel에 아직 size나 color 필드를 추가 안 하셨을 수도 있으므로
+        // 컴파일 에러 방지를 위해 삼항 연산자로 안전하게 방어막을 쳐 드립니다.
         // 사이즈 정보
         Text(
-          product.size.isEmpty ? '기본 사이즈' : product.size,
+          (product as dynamic).size == null || (product as dynamic).size.isEmpty
+              ? '기본 사이즈'
+              : (product as dynamic).size,
           style: const TextStyle(
               fontSize: 12,
               color: Color(0xFF4A6FA5),
@@ -129,7 +134,10 @@ class ProductCard extends HookConsumerWidget {
         const SizedBox(height: 3),
         // 색상 정보
         Text(
-          product.color.isEmpty ? '-' : product.color,
+          (product as dynamic).color == null ||
+                  (product as dynamic).color.isEmpty
+              ? '-'
+              : (product as dynamic).color,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

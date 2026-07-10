@@ -490,8 +490,11 @@ class ProductUploadDlg extends HookConsumerWidget {
               },
             );
 
-        ref.invalidate(productDBProvider(mappedCategory));
-        ref.invalidate(productDBProvider('all'));
+        // ref.invalidate(productDBProvider(mappedCategory));
+        // ref.invalidate(productDBProvider('all'));
+
+        ref.invalidate(paginatedProductProvider('all'));
+        ref.invalidate(paginatedProductProvider(mappedCategory));
 
         if (context.mounted) {
           Navigator.of(context, rootNavigator: true).pop();

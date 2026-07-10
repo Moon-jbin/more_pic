@@ -16,14 +16,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 class CustomScaffold extends HookConsumerWidget {
   final Widget Function(BuildContext context, ScrollController scrollController)
       bodyBuilder;
-  final List<ProductItem> itemData;
   final String category;
   final bool showSearchIcon; // 💡 [핵심 추가] 검색 아이콘 노출 여부 플래그
 
   const CustomScaffold({
     super.key,
     required this.bodyBuilder,
-    required this.itemData,
     required this.category,
     this.showSearchIcon = true,
   });

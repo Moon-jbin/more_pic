@@ -48,7 +48,6 @@ class ProductDetailScreen extends HookConsumerWidget {
     }
 
     return CustomScaffold(
-      itemData: productList,
       category: category,
       showSearchIcon: false,
       bodyBuilder: (context, scrollController) {

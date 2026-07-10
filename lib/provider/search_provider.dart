@@ -1,13 +1,14 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/model/product_item.dart';
 import 'package:more_pic/model/search_content.dart';
+import 'package:more_pic/provider/product_db_provider.dart';
 
 final searchBarOpenProvider =
     NotifierProvider<SearchBarOpenNotifier, bool>(SearchBarOpenNotifier.new);
 final searchListenerProvider =
     NotifierProvider<SearchListenerProvider, int>(SearchListenerProvider.new);
 final globalSearchProvider =
-    NotifierProvider<GlobalSearchNotifier, List<ProductItem>>(
+    NotifierProvider<GlobalSearchNotifier, List<ProductModel>>(
         GlobalSearchNotifier.new);
 final searchContentProvider =
     NotifierProvider<SearchContentProvider, SearchContent>(
@@ -49,15 +50,15 @@ class SearchBarOpenNotifier extends Notifier<bool> {
 // // 🌍 언제 어디서나 호출 가능한 전역 검색 프로바이더
 // final globalSearchProvider = NotifierProvider<GlobalSearchNotifier, List<ProductItem>>(GlobalSearchNotifier.new);
 
-class GlobalSearchNotifier extends Notifier<List<ProductItem>> {
+class GlobalSearchNotifier extends Notifier<List<ProductModel>> {
   @override
-  List<ProductItem> build() {
+  List<ProductModel> build() {
     return [];
   }
 
   // 💡 핵심 수정: 검색어(query)와 함께 현재 페이지의 원본 데이터 리스트(targetList)를 받습니다.
   void filterProducts(
-      {required String query, required List<ProductItem> targetList}) {
+      {required String query, required List<ProductModel> targetList}) {
     if (query.trim().isEmpty) {
       state = [];
       return;
@@ -72,7 +73,7 @@ class GlobalSearchNotifier extends Notifier<List<ProductItem>> {
   ///```
   /// 전체 데이터 받아오기
   ///```
-  void allProductsFn(List<ProductItem> targetList) {
+  void allProductsFn(List<ProductModel> targetList) {
     state = targetList;
   }
 
