@@ -352,12 +352,12 @@ class CustomWidget {
       runSpacing: 8,
       children: [
         _buildInfoText('상호명', '원앤그레인'),
-        _buildInfoText('대표자명', '모어픽'),
-        _buildInfoText('사업장 주소', '00000 모어픽'),
-        _buildInfoText('대표 전화', '01080373833'),
+        _buildInfoText('대표자명', '문은미'),
+        _buildInfoText('사업장 주소', '경기도 남양주시 화도읍 소래비로 130'),
+        _buildInfoText('대표 전화', '01054907886'),
         _buildInfoText('사업자 등록번호', '5430204088'),
-        _buildInfoText('통신판매업 신고번호', '기타'),
-        _buildInfoText('개인정보보호책임자', '모어픽'),
+        _buildInfoText('통신판매업 신고번호', '미가입'),
+        _buildInfoText('개인정보보호책임자', '원앤그레인'),
       ],
     );
   }
@@ -366,15 +366,16 @@ class CustomWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCustomerInfoRow('상담/주문 전화', '01080373833'),
-        const SizedBox(height: 8),
-        _buildCustomerInfoRow('상담/주문 이메일', 'morepic@naver.com'),
+        // _buildCustomerInfoRow('상담/주문 전화', '01080373833'),
+        // const SizedBox(height: 8),
+        _buildCustomerInfoRow('상담/주문 이메일', 'morepick@naver.com'),
         const SizedBox(height: 15),
         const Text('CS운영시간',
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 color: Colors.black87)),
+        _buildCustomerInfoRow('오전 9시 ~ 오후 17시', ''),
       ],
     );
   }
@@ -390,7 +391,8 @@ class CustomWidget {
           children: [
             Text('은행  ',
                 style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
-            const Text('0000-000-00000  예금주', style: TextStyle(fontSize: 12)),
+            const Text('카카오뱅크 3333-37-7919709 문은미(원앤그레인)',
+                style: TextStyle(fontSize: 12)),
           ],
         ),
       ],

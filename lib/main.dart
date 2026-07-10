@@ -408,7 +408,327 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// 💡 메인 웹 서비스 컴포넌트 (신상품 나열 레이아웃 장착)
+// // 💡 메인 웹 서비스 컴포넌트 (신상품 나열 레이아웃 장착)
+// class MorePicWebService extends HookConsumerWidget {
+//   const MorePicWebService({super.key});
+
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final adminSettingsWatch = ref.watch(adminSettingsProvider);
+//     final adminSettingsRead = ref.read(adminSettingsProvider.notifier);
+//     final scrollController = useScrollController();
+//     final showButton = useState(false);
+//     final isScrolled = useState(false);
+
+//     final bool mobileMode = isMobile(context);
+
+//     // 📊 메인 홈화면에 보여줄 신상품 카테고리 데이터 실시간 로드
+//     // (현재 메인은 'all' 분류를 관장하므로 고정 주입)
+//     const String currentCategory = 'all';
+
+//     useEffect(() {
+//       void listener() {
+//         if (scrollController.hasClients) {
+//           // 1. 위로 가기 버튼 처리
+//           if (scrollController.offset > 150) {
+//             if (!showButton.value) showButton.value = true;
+//           } else {
+//             if (showButton.value) showButton.value = false;
+//           }
+
+//           // 2. 스크롤 섀도우/헤더 감축 가드 처리
+//           if (scrollController.offset > 0) {
+//             if (!isScrolled.value) isScrolled.value = true;
+//           } else {
+//             if (isScrolled.value) isScrolled.value = false;
+//           }
+
+//           // 🔥🔥🔥 [무한 스크롤 바닥 감지 엔진 도킹] ⭐⭐⭐
+//           // 사용자의 현재 스크롤 위치가 맨 최하단 길이에서 200px 대역 안으로 진입했는지 실시간 서칭
+//           if (scrollController.position.pixels >=
+//               scrollController.position.maxScrollExtent - 200) {
+//             // 물리적인 센서가 바닥에 충돌했으므로, 10개 끊어 읽기 노티파이어의 fetchNextPage를 딸깍 실행!
+//             ref
+//                 .read(paginatedProductProvider(currentCategory).notifier)
+//                 .fetchNextPage();
+//           }
+//         }
+//       }
+
+//       scrollController.addListener(listener);
+//       return () => scrollController.removeListener(listener);
+//     }, [scrollController]); // 디펜던시 스크롤 유지
+
+//     final double headerHeight = mobileMode ? 70 : 120;
+
+//     // 💡 디바이스 너비에 따라 한 줄에 몇 개의 아이템을 배치할지 격자 갯수 동적 계산
+//     double screenWidth = MediaQuery.of(context).size.width;
+//     int crossAxisCount = 4; // PC 모니터 기본 4열
+//     if (screenWidth < 600) {
+//       crossAxisCount = 3; // 모바일 2열 기본 국룰
+//     } else if (screenWidth < 1100) {
+//       crossAxisCount = 3; // 태블릿 3열
+//     }
+
+//     return Scaffold(
+//         backgroundColor: Colors.white,
+//         drawer: mobileMode
+//             ? CustomWidget.customDrawer(context, ref, menuData)
+//             : null,
+//         body: CustomScrollView(
+//           controller: scrollController, // 🌟 물리 센서와 캔버스 스크롤뷰 완벽 밀착 바인딩!
+//           slivers: [
+//             // 📌 [구조 1]: 상단 안내 배너
+//             SliverToBoxAdapter(
+//               child: Container(
+//                 margin: const EdgeInsets.only(bottom: 30),
+//                 width: double.infinity,
+//                 color: const Color(0xFFD4CBE5),
+//                 padding: const EdgeInsets.symmetric(vertical: 8),
+//                 child: Row(
+//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                   children: [
+//                     Row(
+//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                         children: [
+//                           if (adminSettingsWatch) ...[
+//                             IconButton(
+//                               onPressed: () => showProductUploadDlgFn(context),
+//                               icon: const Icon(Icons.add_a_photo,
+//                                   color: Colors.black),
+//                               tooltip: '상품 업로드',
+//                             ),
+//                             IconButton(
+//                               onPressed: () => adminSettingsRead.initState(),
+//                               icon: const Icon(Icons.lock_open,
+//                                   color: Colors.red),
+//                               tooltip: '편집 모드 종료',
+//                             ),
+//                           ] else ...[
+//                             IconButton(
+//                               onPressed: () => showPasswordCheckDialog(context),
+//                               icon:
+//                                   const Icon(Icons.lock, color: Colors.black87),
+//                               tooltip: '관리자 편집모드 진입',
+//                             ),
+//                           ]
+//                         ]),
+//                     const Text(
+//                       '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
+//                       textAlign: TextAlign.center,
+//                       style: TextStyle(
+//                           color: Colors.black,
+//                           fontWeight: FontWeight.bold,
+//                           fontSize: 14),
+//                     ),
+//                     const SizedBox(width: 48)
+//                   ],
+//                 ),
+//               ),
+//             ),
+
+//             // 📌 [구조 2]: 상단 고정(Floating) 헤더 섹션
+//             SliverPersistentHeader(
+//               pinned: true,
+//               delegate: SliverHeaderDelegate(
+//                 height: headerHeight,
+//                 isScrolled: isScrolled.value,
+//                 child: Padding(
+//                   padding:
+//                       EdgeInsets.symmetric(horizontal: mobileMode ? 16 : 40),
+//                   child: Column(
+//                     mainAxisAlignment: MainAxisAlignment.center,
+//                     crossAxisAlignment: CrossAxisAlignment.start,
+//                     children: [
+//                       Row(
+//                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                         children: [
+//                           if (mobileMode)
+//                             Builder(
+//                               builder: (context) => IconButton(
+//                                 icon: const Icon(Icons.menu,
+//                                     color: Colors.black, size: 28),
+//                                 onPressed: () =>
+//                                     Scaffold.of(context).openDrawer(),
+//                               ),
+//                             ),
+//                           CustomWidget.customLogo(context, ref,
+//                               fontSize: 38, letterSpacing: 1.5),
+//                           if (mobileMode)
+//                             IconButton(
+//                                 icon: const Icon(Icons.search,
+//                                     color: Colors.black, size: 26),
+//                                 onPressed: () {}),
+//                         ],
+//                       ),
+//                       if (!mobileMode) ...[
+//                         const SizedBox(height: 10),
+//                         Row(
+//                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                           children: [
+//                             Row(
+//                               children: menuData.map((menu) {
+//                                 return DesktopHoverMenu(
+//                                   title: menu['title'],
+//                                   items: menu['children'] ?? [],
+//                                 );
+//                               }).toList(),
+//                             ),
+//                             IconButton(
+//                                 icon: const Icon(Icons.search,
+//                                     color: Colors.black, size: 26),
+//                                 onPressed: () {}),
+//                           ],
+//                         ),
+//                       ]
+//                     ],
+//                   ),
+//                 ),
+//               ),
+//             ),
+
+//             // 📌 [구조 3]: NEW ARRIVALS 타이틀 바 섹션
+//             SliverToBoxAdapter(
+//               child: Padding(
+//                 padding: EdgeInsets.fromLTRB(
+//                     mobileMode ? 16 : 40, 40, mobileMode ? 16 : 40, 16),
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     const Text(
+//                       'NEW ARRIVALS',
+//                       style: TextStyle(
+//                           fontSize: 20,
+//                           fontWeight: FontWeight.w900,
+//                           letterSpacing: 1.2,
+//                           color: Colors.black),
+//                     ),
+//                     const SizedBox(height: 4),
+//                     Container(
+//                         width: 45, height: 3, color: const Color(0xFF4A6FA5)),
+//                   ],
+//                 ),
+//               ),
+//             ),
+
+//             // 📌 [구조 4]: 10개씩 끊어 읽는 무한 스크롤 격자 리스트 구역 (튕김 박멸 버전)
+//             // .when 대신 .skipLoadingOnTrigger를 주거나 상태 데이터를 직접 분해합니다.
+//             ref.watch(paginatedProductProvider(currentCategory)).when(
+//                   // 🌟 [핵심 변경]: 처음 앱 켤 때 '완전 최초 로딩'일 때만 화면 중앙 로딩바를 띄웁니다.
+//                   loading: () => const SliverToBoxAdapter(
+//                     child: Center(
+//                       child: Padding(
+//                         padding: EdgeInsets.symmetric(vertical: 100),
+//                         child:
+//                             CircularProgressIndicator(color: Color(0xFF4A6FA5)),
+//                       ),
+//                     ),
+//                   ),
+//                   error: (err, stack) => SliverToBoxAdapter(
+//                     child: Center(
+//                       child: Text('❌ 상품 로드 오류: $err',
+//                           style: const TextStyle(color: Colors.red)),
+//                     ),
+//                   ),
+//                   data: (stateData) {
+//                     final items = stateData.items;
+
+//                     if (items.isEmpty) {
+//                       return const SliverToBoxAdapter(
+//                         child: Center(
+//                           child: Padding(
+//                             padding: EdgeInsets.symmetric(vertical: 120),
+//                             child: Text('신상 상품이 존재하지 않습니다.',
+//                                 style: TextStyle(color: Colors.grey)),
+//                           ),
+//                         ),
+//                       );
+//                     }
+
+//                     // 💡 현재 리버팟 창고가 "기존 데이터를 들고 있는 채로 추가 로딩 중(isRefreshing)"인지 파악합니다.
+//                     final isNextPageLoading = ref
+//                         .watch(paginatedProductProvider(currentCategory))
+//                         .isRefreshing;
+
+//                     return SliverMainAxisGroup(
+//                       slivers: [
+//                         // 1️⃣ 기존에 불러온 상품 격자는 어떤 순간에도 화면에서 지우지 않고 철통 사수합니다! (높이 유지 = 스크롤 고정)
+//                         SliverPadding(
+//                           padding: EdgeInsets.symmetric(
+//                               horizontal: mobileMode ? 16 : 40, vertical: 10),
+//                           sliver: SliverGrid(
+//                             gridDelegate:
+//                                 SliverGridDelegateWithFixedCrossAxisCount(
+//                               crossAxisCount: crossAxisCount,
+//                               mainAxisSpacing: 30,
+//                               crossAxisSpacing: 16,
+//                               childAspectRatio: 0.68,
+//                             ),
+//                             delegate: SliverChildBuilderDelegate(
+//                               (context, index) {
+//                                 final product = items[index];
+//                                 return ProductCard(
+//                                   product: product,
+//                                   onDelete: () async {
+//                                     // 🎉 해당 개별 카테고리 가방을 즉시 리셋 시켜 새로 고쳐 읽습니다.
+//                                     ref.invalidate(paginatedProductProvider(
+//                                         currentCategory));
+
+//                                     // 피드백 스낵바 전송
+//                                     if (context.mounted) {
+//                                       ScaffoldMessenger.of(context)
+//                                           .clearSnackBars();
+//                                       ScaffoldMessenger.of(context)
+//                                           .showSnackBar(
+//                                         const SnackBar(
+//                                             content: Text(
+//                                                 '🎉 상품 진열이 정상적으로 철수되었습니다.')),
+//                                       );
+//                                     }
+//                                   },
+//                                 );
+//                               },
+//                               childCount: items.length,
+//                             ),
+//                           ),
+//                         ),
+
+//                         // 2️⃣ 다음 페이지를 조용히 긁어오는 중일 때만, 격자 바로 밑에 미니 로딩바를 스르륵 끼워 넣어 줍니다.
+//                         if (isNextPageLoading)
+//                           const SliverToBoxAdapter(
+//                             child: Padding(
+//                               padding: EdgeInsets.symmetric(vertical: 24),
+//                               child: Center(
+//                                 child: SizedBox(
+//                                   width: 24,
+//                                   height: 24,
+//                                   child: CircularProgressIndicator(
+//                                       strokeWidth: 2, color: Color(0xFF4A6FA5)),
+//                                 ),
+//                               ),
+//                             ),
+//                           ),
+//                       ],
+//                     );
+//                   },
+//                 ),
+
+//             // 📌 [구조 5]: 바닥 고정 푸터 통합 바인딩
+//             SliverToBoxAdapter(
+//               child: Column(
+//                 children: [
+//                   CustomWidget.customFooter(context, ref, isMobile: mobileMode),
+//                 ],
+//               ),
+//             ),
+//           ],
+//         ),
+//         floatingActionButton: CustomWidget.customFloatingBtn(
+//             showButton: showButton, scrollController: scrollController));
+//   }
+// }
+
+// 💡 메인 웹 서비스 컴포넌트 (상품 리스트만 PC 여백 격리 장착 버전)
 class MorePicWebService extends HookConsumerWidget {
   const MorePicWebService({super.key});
 
@@ -421,33 +741,25 @@ class MorePicWebService extends HookConsumerWidget {
     final isScrolled = useState(false);
 
     final bool mobileMode = isMobile(context);
-
-    // 📊 메인 홈화면에 보여줄 신상품 카테고리 데이터 실시간 로드
-    // (현재 메인은 'all' 분류를 관장하므로 고정 주입)
     const String currentCategory = 'all';
 
     useEffect(() {
       void listener() {
         if (scrollController.hasClients) {
-          // 1. 위로 가기 버튼 처리
           if (scrollController.offset > 150) {
             if (!showButton.value) showButton.value = true;
           } else {
             if (showButton.value) showButton.value = false;
           }
 
-          // 2. 스크롤 섀도우/헤더 감축 가드 처리
           if (scrollController.offset > 0) {
             if (!isScrolled.value) isScrolled.value = true;
           } else {
             if (isScrolled.value) isScrolled.value = false;
           }
 
-          // 🔥🔥🔥 [무한 스크롤 바닥 감지 엔진 도킹] ⭐⭐⭐
-          // 사용자의 현재 스크롤 위치가 맨 최하단 길이에서 200px 대역 안으로 진입했는지 실시간 서칭
           if (scrollController.position.pixels >=
               scrollController.position.maxScrollExtent - 200) {
-            // 물리적인 센서가 바닥에 충돌했으므로, 10개 끊어 읽기 노티파이어의 fetchNextPage를 딸깍 실행!
             ref
                 .read(paginatedProductProvider(currentCategory).notifier)
                 .fetchNextPage();
@@ -457,17 +769,19 @@ class MorePicWebService extends HookConsumerWidget {
 
       scrollController.addListener(listener);
       return () => scrollController.removeListener(listener);
-    }, [scrollController]); // 디펜던시 스크롤 유지
+    }, [scrollController]);
 
     final double headerHeight = mobileMode ? 70 : 120;
 
-    // 💡 디바이스 너비에 따라 한 줄에 몇 개의 아이템을 배치할지 격자 갯수 동적 계산
+    // 💡 [동적 화면 계산식]: 모니터 너비에 따라 상품 리스트 구역만 양옆 공백 패딩을 실시간 계산합니다.
     double screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount = 4; // PC 모니터 기본 4열
-    if (screenWidth < 600) {
-      crossAxisCount = 3; // 모바일 2열 기본 국룰
-    } else if (screenWidth < 1100) {
-      crossAxisCount = 3; // 태블릿 3열
+    int crossAxisCount = 3; // 상품은 무조건 3열 고정
+
+    // PC 대화면일 때 상품 구역 가로 최대폭을 1280으로 묶기 위한 반응형 패딩 연산
+    double horizontalPadding = mobileMode ? 16 : 40;
+    if (!mobileMode && screenWidth > 1360) {
+      // (현재 전체 모니터 너비 - 목표 1280px) / 2 = 좌우에 줘야 할 완벽한 공백값 계산식 작동!
+      horizontalPadding = (screenWidth - 1280) / 2;
     }
 
     return Scaffold(
@@ -475,10 +789,11 @@ class MorePicWebService extends HookConsumerWidget {
         drawer: mobileMode
             ? CustomWidget.customDrawer(context, ref, menuData)
             : null,
+        // 🌟 [해제 완료]: 전체를 가두던 제한 가방을 풀어서 헤더/푸터가 좌우 100% 꽉 차게 복구했습니다!
         body: CustomScrollView(
-          controller: scrollController, // 🌟 물리 센서와 캔버스 스크롤뷰 완벽 밀착 바인딩!
+          controller: scrollController,
           slivers: [
-            // 📌 [구조 1]: 상단 안내 배너
+            // 📌 [구조 1]: 상단 안내 배너 (화면 끝까지 100% 확장)
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.only(bottom: 30),
@@ -527,15 +842,15 @@ class MorePicWebService extends HookConsumerWidget {
               ),
             ),
 
-            // 📌 [구조 2]: 상단 고정(Floating) 헤더 섹션
+            // 📌 [구조 2]: 상단 고정(Floating) 헤더 섹션 (메뉴바 전체 100% 확장 수용)
             SliverPersistentHeader(
               pinned: true,
               delegate: SliverHeaderDelegate(
                 height: headerHeight,
                 isScrolled: isScrolled.value,
                 child: Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: mobileMode ? 16 : 40),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40), // 헤더는 기존 와이드 패딩 유지
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,11 +902,11 @@ class MorePicWebService extends HookConsumerWidget {
               ),
             ),
 
-            // 📌 [구조 3]: NEW ARRIVALS 타이틀 바 섹션
+            // 📌 [구조 3]: NEW ARRIVALS 타이틀 바 섹션 (상품 리스트와 시작 줄을 맞추기 위해 가변 패딩 적용!)
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                    mobileMode ? 16 : 40, 40, mobileMode ? 16 : 40, 16),
+                    horizontalPadding, 40, horizontalPadding, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -611,10 +926,8 @@ class MorePicWebService extends HookConsumerWidget {
               ),
             ),
 
-            // 📌 [구조 4]: 10개씩 끊어 읽는 무한 스크롤 격자 리스트 구역 (튕김 박멸 버전)
-            // .when 대신 .skipLoadingOnTrigger를 주거나 상태 데이터를 직접 분해합니다.
+            // 📌 [구조 4]: 10개씩 끊어 읽는 무한 스크롤 격자 리스트 구역
             ref.watch(paginatedProductProvider(currentCategory)).when(
-                  // 🌟 [핵심 변경]: 처음 앱 켤 때 '완전 최초 로딩'일 때만 화면 중앙 로딩바를 띄웁니다.
                   loading: () => const SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
@@ -645,65 +958,67 @@ class MorePicWebService extends HookConsumerWidget {
                       );
                     }
 
-                    // 💡 현재 리버팟 창고가 "기존 데이터를 들고 있는 채로 추가 로딩 중(isRefreshing)"인지 파악합니다.
                     final isNextPageLoading = ref
                         .watch(paginatedProductProvider(currentCategory))
                         .isRefreshing;
 
                     return SliverMainAxisGroup(
                       slivers: [
-                        // 1️⃣ 기존에 불러온 상품 격자는 어떤 순간에도 화면에서 지우지 않고 철통 사수합니다! (높이 유지 = 스크롤 고정)
+                        // 🌟 [핵심 변경 타겟 파트]
                         SliverPadding(
+                          // 실시간으로 계산해 낸 horizontalPadding을 주입하여 오직 이 상품 구역만 1280px로 가지런히 모읍니다!
                           padding: EdgeInsets.symmetric(
-                              horizontal: mobileMode ? 16 : 40, vertical: 10),
+                              horizontal: horizontalPadding, vertical: 10),
                           sliver: SliverGrid(
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: crossAxisCount,
-                              mainAxisSpacing: 30,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.68,
+                              mainAxisSpacing: mobileMode ? 12 : 35,
+                              crossAxisSpacing: mobileMode ? 8 : 20,
+                              childAspectRatio: mobileMode ? 0.55 : 0.65,
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
                                 final product = items[index];
                                 return ProductCard(
-                                  product: product,
-                                  onDelete: () async {
-                                    // 🎉 해당 개별 카테고리 가방을 즉시 리셋 시켜 새로 고쳐 읽습니다.
-                                    ref.invalidate(paginatedProductProvider(
-                                        currentCategory));
+                                    product: product,
+                                    onDelete: () async {
+                                      // 🎉 해당 개별 카테고리 가방을 즉시 리셋 시켜 새로 고쳐 읽습니다.
+                                      ref.invalidate(paginatedProductProvider(
+                                          currentCategory));
 
-                                    // 피드백 스낵바 전송
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .clearSnackBars();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                '🎉 상품 진열이 정상적으로 철수되었습니다.')),
-                                      );
-                                    }
-                                  },
-                                );
+                                      // 피드백 스낵바 전송
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .clearSnackBars();
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  '🎉 상품 진열이 정상적으로 철수되었습니다.')),
+                                        );
+                                      }
+                                    });
                               },
                               childCount: items.length,
                             ),
                           ),
                         ),
-
-                        // 2️⃣ 다음 페이지를 조용히 긁어오는 중일 때만, 격자 바로 밑에 미니 로딩바를 스르륵 끼워 넣어 줍니다.
                         if (isNextPageLoading)
-                          const SliverToBoxAdapter(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Color(0xFF4A6FA5)),
+                          SliverPadding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding),
+                            sliver: const SliverToBoxAdapter(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Color(0xFF4A6FA5)),
+                                  ),
                                 ),
                               ),
                             ),
@@ -713,7 +1028,7 @@ class MorePicWebService extends HookConsumerWidget {
                   },
                 ),
 
-            // 📌 [구조 5]: 바닥 고정 푸터 통합 바인딩
+            // 📌 [구조 5]: 바닥 고정 푸터 통합 바인딩 (다시 화면 끝까지 와이드하게 확장)
             SliverToBoxAdapter(
               child: Column(
                 children: [
