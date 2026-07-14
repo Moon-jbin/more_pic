@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/global/global.dart';
 import 'package:more_pic/model/product_item.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
+import 'package:flutter/services.dart';
 
 class ProductDetailScreen extends HookConsumerWidget {
   final String category;
@@ -113,23 +116,30 @@ class ProductDetailScreen extends HookConsumerWidget {
                                 '사이즈',
                                 product.size.isEmpty
                                     ? '기본 프리사이즈'
-                                    : product.size),
+                                    : product.size,
+                                fontSize: 17,
+                                isBold: true,
+                                verticalPadding: 18),
                             _buildInfoRow('색상',
-                                product.color.isEmpty ? '' : product.color),
-                            //국내,해외배송,
-                            _buildInfoRow(
-                                '국내·해외배송',
-                                product.shippingType.isEmpty
-                                    ? '국내배송'
-                                    : product.shippingType),
-                            //배송방법
-                            _buildInfoRow(
-                                '배송방법',
-                                product.shippingMethod.isEmpty
-                                    ? ''
-                                    : product.shippingMethod),
+                                product.color.isEmpty ? '' : product.color,
+                                fontSize: 17,
+                                isBold: true,
+                                verticalPadding: 18),
+                            // //국내,해외배송,
+                            // _buildInfoRow(
+                            //     '국내·해외배송',
+                            //     product.shippingType.isEmpty
+                            //         ? '국내배송'
+                            //         : product.shippingType),
+                            // //배송방법
+                            // _buildInfoRow(
+                            //     '배송방법',
+                            //     product.shippingMethod.isEmpty
+                            //         ? ''
+                            //         : product.shippingMethod),
 
-                            _buildInfoRow('판매가', '${product.price}원',
+                            _buildInfoRow(
+                                '판매가', '${numberFormat(product.price)}원',
                                 fontSize: 15,
                                 isBold: true,
                                 fontWeight: FontWeight.w900,
@@ -258,18 +268,68 @@ class ProductDetailScreen extends HookConsumerWidget {
             child: Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: 16, vertical: verticalPadding),
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: fontWeight ??
-                      (isBold ? FontWeight.bold : FontWeight.w400),
-                  color: color ?? Colors.black,
-                  decoration: isLineThrough
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                ),
-              ),
+              child: label == '상품명'
+                  ? Builder(builder: (context) {
+                      return InkWell(
+                        onTap: () async {
+                          await Clipboard.setData(ClipboardData(text: value));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('📋 상품명이 클립보드에 복사되었습니다!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        // 🌟 [핵심 피드백 반영]: 모든 반응 색상을 투명하게 처리하여 디자인을 유지합니다.
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 4, horizontal: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  value,
+                                  style: TextStyle(
+                                    fontSize: fontSize,
+                                    fontWeight: fontWeight ??
+                                        (isBold
+                                            ? FontWeight.bold
+                                            : FontWeight.w400),
+                                    color: color ?? Colors.black,
+                                    decoration: isLineThrough
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.copy,
+                                  size: 16, color: Colors.grey),
+                            ],
+                          ),
+                        ),
+                      );
+                    })
+                  : Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        fontWeight: fontWeight ??
+                            (isBold ? FontWeight.bold : FontWeight.w400),
+                        color: color ?? Colors.black,
+                        decoration: isLineThrough
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                      ),
+                    ),
             ),
           ),
         ],

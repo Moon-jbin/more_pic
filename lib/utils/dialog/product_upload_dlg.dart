@@ -642,83 +642,83 @@ class ProductUploadDlg extends HookConsumerWidget {
                           child: Divider()),
 
                       // 💡 [새 기능] 📦 배송 정책 분기 전용 칩 세그먼트 도킹
-                      const Text('📦 배송 권역 정책 설정',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87)),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ChoiceChip(
-                              label: const Center(
-                                  child: Text('국내 배송',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              selected: shippingType.value == '국내배송',
-                              selectedColor:
-                                  const Color(0xFF4A6FA5).withOpacity(0.18),
-                              labelStyle: TextStyle(
-                                color: shippingType.value == '국내배송'
-                                    ? const Color(0xFF4A6FA5)
-                                    : Colors.black54,
-                                fontSize: 13,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                side: BorderSide(
-                                    color: shippingType.value == '국내배송'
-                                        ? const Color(0xFF4A6FA5)
-                                        : Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              onSelected: (bool selected) {
-                                if (selected) shippingType.value = '국내배송';
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ChoiceChip(
-                              label: const Center(
-                                  child: Text('해외 직배송',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
-                              selected: shippingType.value == '해외배송',
-                              selectedColor:
-                                  const Color(0xFF4A6FA5).withOpacity(0.18),
-                              labelStyle: TextStyle(
-                                color: shippingType.value == '해외배송'
-                                    ? const Color(0xFF4A6FA5)
-                                    : Colors.black54,
-                                fontSize: 13,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                side: BorderSide(
-                                    color: shippingType.value == '해외배송'
-                                        ? const Color(0xFF4A6FA5)
-                                        : Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              onSelected: (bool selected) {
-                                if (selected) shippingType.value = '해외배송';
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                      // const Text('📦 배송 권역 정책 설정',
+                      //     style: TextStyle(
+                      //         fontWeight: FontWeight.bold,
+                      //         color: Colors.black87)),
+                      // const SizedBox(height: 10),
+                      // Row(
+                      //   children: [
+                      //     Expanded(
+                      //       child: ChoiceChip(
+                      //         label: const Center(
+                      //             child: Text('국내 배송',
+                      //                 style: TextStyle(
+                      //                     fontWeight: FontWeight.bold))),
+                      //         selected: shippingType.value == '국내배송',
+                      //         selectedColor:
+                      //             const Color(0xFF4A6FA5).withOpacity(0.18),
+                      //         labelStyle: TextStyle(
+                      //           color: shippingType.value == '국내배송'
+                      //               ? const Color(0xFF4A6FA5)
+                      //               : Colors.black54,
+                      //           fontSize: 13,
+                      //         ),
+                      //         shape: RoundedRectangleBorder(
+                      //           side: BorderSide(
+                      //               color: shippingType.value == '국내배송'
+                      //                   ? const Color(0xFF4A6FA5)
+                      //                   : Colors.grey.shade300),
+                      //           borderRadius: BorderRadius.circular(6),
+                      //         ),
+                      //         onSelected: (bool selected) {
+                      //           if (selected) shippingType.value = '국내배송';
+                      //         },
+                      //       ),
+                      //     ),
+                      //     const SizedBox(width: 12),
+                      //     Expanded(
+                      //       child: ChoiceChip(
+                      //         label: const Center(
+                      //             child: Text('해외 직배송',
+                      //                 style: TextStyle(
+                      //                     fontWeight: FontWeight.bold))),
+                      //         selected: shippingType.value == '해외배송',
+                      //         selectedColor:
+                      //             const Color(0xFF4A6FA5).withOpacity(0.18),
+                      //         labelStyle: TextStyle(
+                      //           color: shippingType.value == '해외배송'
+                      //               ? const Color(0xFF4A6FA5)
+                      //               : Colors.black54,
+                      //           fontSize: 13,
+                      //         ),
+                      //         shape: RoundedRectangleBorder(
+                      //           side: BorderSide(
+                      //               color: shippingType.value == '해외배송'
+                      //                   ? const Color(0xFF4A6FA5)
+                      //                   : Colors.grey.shade300),
+                      //           borderRadius: BorderRadius.circular(6),
+                      //         ),
+                      //         onSelected: (bool selected) {
+                      //           if (selected) shippingType.value = '해외배송';
+                      //         },
+                      //       ),
+                      //     ),
+                      //   ],
+                      // ),
+                      // const SizedBox(height: 12),
 
-                      // 💡 [새 기능] 구체적인 배송 방법 (택배사 및 소요 가이드 입력 필드)
-                      TextField(
-                          controller: shippingMethodController,
-                          decoration: const InputDecoration(
-                              labelText:
-                                  '배송 방법 (예: CJ대한통운 영업일 2~3일 소요 / 항공 직배송)',
-                              border: OutlineInputBorder())),
+                      // // 💡 [새 기능] 구체적인 배송 방법 (택배사 및 소요 가이드 입력 필드)
+                      // TextField(
+                      //     controller: shippingMethodController,
+                      //     decoration: const InputDecoration(
+                      //         labelText:
+                      //             '배송 방법 (예: CJ대한통운 영업일 2~3일 소요 / 항공 직배송)',
+                      //         border: OutlineInputBorder())),
 
-                      const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Divider()),
+                      // const Padding(
+                      //     padding: EdgeInsets.symmetric(vertical: 12),
+                      //     child: Divider()),
 
                       const Text('📸 사입처 통이미지 등록 *',
                           style: TextStyle(fontWeight: FontWeight.bold)),

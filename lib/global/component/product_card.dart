@@ -161,6 +161,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart'; // 💡 신버전 페이지네이션 창고 임포트
 
@@ -310,7 +311,7 @@ class ProductCard extends HookConsumerWidget {
 
         // 3️⃣ [가격 표시 구역] - 가려짐 현상 없이 언제나 최하단에 칼같이 밀착 고정
         Text(
-          '${product.price}원',
+          '${numberFormat(product.price)}원',
           style: TextStyle(
             fontSize: isMobileSize ? 11 : 12,
             fontWeight: FontWeight.bold,
