@@ -635,15 +635,61 @@ class PaginatedProductNotifier
     });
   }
 
-  // 🗑️ 단일 ID 완전 폭파 딜리트 엔진 (타입 에러 완치)
-  Future<void> deleteProduct(String productId) async {
+  // // 🗑️ 단일 ID 완전 폭파 딜리트 엔진 (타입 에러 완치)
+  // Future<void> deleteProduct(String productId) async {
+  //   state = AsyncValue<PaginationState>.loading().copyWithPrevious(state);
+  //   await AsyncValue.guard(() async {
+  //     await FirebaseFirestore.instance
+  //         .collection('products')
+  //         .doc(productId)
+  //         .delete();
+  //     ref.invalidateSelf();
+  //     return future;
+  //   });
+  // }
+
+  // 🗑️ [스마트 매대 철수 및 전역 삭제 결합 엔진]
+  Future<void> deleteProduct({
+    required String productId, 
+    required String targetCategory, 
+    required List<String> productCategories,
+  }) async {
     state = AsyncValue<PaginationState>.loading().copyWithPrevious(state);
     await AsyncValue.guard(() async {
-      await FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .delete();
+      final docRef = FirebaseFirestore.instance.collection('products').doc(productId);
+
+      if (targetCategory == 'all') {
+        // 1️⃣ 메인('all')에서 삭제를 누르면 자비 없이 전역 영구 삭제!
+        await docRef.delete();
+      } else {
+        // 2️⃣ 개별 카테고리 매대에서 삭제를 누르면 "현재 코너만 배열에서 쏙 제거(Pull)"
+        await docRef.update({
+          'categories': FieldValue.arrayRemove([targetCategory]),
+        });
+
+        // 3️⃣ [안전 가드]: 지우고 나서 남은 매대가 아무 데도 없다면 유령 방지를 위해 영구 삭제
+        final updatedDoc = await docRef.get();
+        if (updatedDoc.exists) {
+          final updatedData = updatedDoc.data() as Map<String, dynamic>;
+          final List remainingCategories = updatedData['categories'] ?? [];
+          if (remainingCategories.isEmpty) {
+            await docRef.delete();
+          }
+        }
+      }
+
+      // 🔄 4️⃣ [실시간 연쇄 동기화 무효화 뿜뿜]
+      // 메인('all') 피드 즉시 리프레시
+      ref.invalidate(paginatedProductProvider('all'));
+      
+      // 이 상품이 엮여있던 다른 코너들도 싹 새로고침 처리
+      for (var cat in productCategories) {
+        ref.invalidate(paginatedProductProvider(cat));
+      }
+      
+      // 현재 내가 보고 있는 매대 가방 최종 무효화
       ref.invalidateSelf();
+
       return future;
     });
   }

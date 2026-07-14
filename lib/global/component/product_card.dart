@@ -259,17 +259,18 @@ class ProductCard extends HookConsumerWidget {
                         // ProductCard.dart 내부 휴지통 아이콘 onPressed 구역 교체용
 
                         onPressed: () async {
-                          // 1️⃣ 리버팟 프로바이더의 삭제 단일 엔진 가동!
-                          // product.categoryNames에 담긴 첫 번째 방 주소를 타겟팅해 새로고침을 유발시킵니다.
-                          final String targetCat =
-                              product.categoryNames.isNotEmpty
-                                  ? product.categoryNames.first
-                                  : 'all';
+                          // 🌟 현재 카드가 렌더링된 구역 (부모 위젯인 ProductListPage나 메인화면에서 전달받은 currentCategory 변수 사용)
+                          final String targetCat = currentCategory;
 
+                          // 🚀 스마트 저격 삭제 엔진 호출
                           await ref
                               .read(
                                   paginatedProductProvider(targetCat).notifier)
-                              .deleteProduct(product.id);
+                              .deleteProduct(
+                                productId: product.id,
+                                targetCategory: targetCat,
+                                productCategories: product.categoryNames,
+                              );
 
                           // 2️⃣ 메인 화면 전체보기 피드도 같이 연쇄 청소
                           ref.invalidate(paginatedProductProvider('all'));
