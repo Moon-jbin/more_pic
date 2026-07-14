@@ -260,6 +260,7 @@ class ProductCard extends HookConsumerWidget {
 
                         onPressed: () async {
                           // 🌟 현재 카드가 렌더링된 구역 (부모 위젯인 ProductListPage나 메인화면에서 전달받은 currentCategory 변수 사용)
+
                           final String targetCat = currentCategory;
 
                           // 🚀 스마트 저격 삭제 엔진 호출
@@ -275,7 +276,13 @@ class ProductCard extends HookConsumerWidget {
                           // 2️⃣ 메인 화면 전체보기 피드도 같이 연쇄 청소
                           ref.invalidate(paginatedProductProvider('all'));
 
-                          // 3️⃣ 부모 위젯 리스트 뷰 피드백 콜백 가동
+                          // 이 상품이 엮여있던 다른 코너들도 싹 새로고침 처리
+                          for (var cat in product.categoryNames) {
+                            // print("cat => ${cat}");
+                            ref.invalidate(paginatedProductProvider(cat));
+                          }
+
+                          // // 3️⃣ 부모 위젯 리스트 뷰 피드백 콜백 가동
                           if (onDelete != null) {
                             onDelete!();
                           }
