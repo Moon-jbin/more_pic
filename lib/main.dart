@@ -106,7 +106,7 @@ class DesktopHoverMenu extends HookConsumerWidget {
               // 슬래시 구문 정리 (빈 값 방지)
               if (targetPath.isEmpty) targetPath = '/';
 
-              print("🚀 [이동 타격 완치] Go To Path: $targetPath");
+              // print("🚀 [이동 타격 완치] Go To Path: $targetPath");
 
               context.go(targetPath);
               searchContentRead.initState();
