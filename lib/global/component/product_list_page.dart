@@ -77,9 +77,33 @@ class ProductListPage extends HookConsumerWidget {
       return () => scrollController.removeListener(scrollListener);
     }, [scrollController, category]);
 
+    // useEffect(() {
+    //   paginatedStateAsync.whenData((stateData) {
+    //     WidgetsBinding.instance.addPostFrameCallback((_) async {
+    //       if (searchContentWatch.searchContent.isNotEmpty) {
+    //         isLoading.value = true;
+    //         await Future.delayed(const Duration(milliseconds: 100));
+    //         isLoading.value = false;
+    //         globalSearchRead.filterProducts(
+    //           query: searchContentWatch.searchContent,
+    //           targetList: stateData.items,
+    //         );
+    //       } else {
+    //         globalSearchRead.allProductsFn(stateData.items);
+    //       }
+    //     });
+    //   });
+    //   return null;
+    // }, [
+    //   paginatedStateAsync.runtimeType,
+    //   category,
+    //   searchContentWatch.searchContent
+    // ]);
+
     useEffect(() {
       paginatedStateAsync.whenData((stateData) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
+          // 🌟 [완치 가드]: 진짜로 검색어가 존재할 때만 검색 상태 장부를 건드립니다.
           if (searchContentWatch.searchContent.isNotEmpty) {
             isLoading.value = true;
             await Future.delayed(const Duration(milliseconds: 100));
@@ -89,7 +113,9 @@ class ProductListPage extends HookConsumerWidget {
               targetList: stateData.items,
             );
           } else {
-            globalSearchRead.allProductsFn(stateData.items);
+            // 🔒 [완치 핵심]: 검색어가 비어있을 때는 이미 'all' 데이터 피드를 직접 바라보고 있으므로,
+            // 굳이 globalSearchProvider 상태를 건드려 검색바 위젯을 헛되이 리빌드시키지 않고 조용히 패스합니다!
+            // globalSearchRead.allProductsFn(stateData.items); 👈 기존의 이 줄을 과감히 주석 처리하거나 지워줍니다.
           }
         });
       });
