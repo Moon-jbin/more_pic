@@ -1,34 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:more_pic/model/product_item.dart';
 import 'package:more_pic/model/search_content.dart';
+import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
-import 'package:more_pic/utils/routing/navigation_service.dart';
 
 class SlidingSearchBar extends HookConsumerWidget {
-  final List<ProductItem> currentScreenItems;
+  final List<ProductModel> currentScreenItems; // 🌟 타입 일치 완치
   const SlidingSearchBar({super.key, required this.currentScreenItems});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchListenerRead = ref.read(searchListenerProvider.notifier);
     final searchContentRead = ref.read(searchContentProvider.notifier);
+    final globalSearchRead = ref.read(globalSearchProvider.notifier);
 
     FocusNode _focusNode = useFocusNode();
-    // 💡 [Riverpod]: 검색창 오픈 상태 감시
     final isOpen = ref.watch(searchBarOpenProvider);
-
-    // 💡 [Hooks]: 검색어 입력 컨트롤러
     final textController = useTextEditingController();
 
-    // 💡 [Hooks]: 위에서 아래로 내려오는 애니메이션 컨트롤러 세팅
     final animationController = useAnimationController(
-      duration: const Duration(milliseconds: 400), // 내려오는 속도
+      duration: const Duration(milliseconds: 400),
     );
 
-    // 💡 isOpen 상태가 바뀔 때마다 애니메이션 트리거 구동
     useEffect(() {
       if (isOpen) {
         animationController.forward();
@@ -39,10 +32,9 @@ class SlidingSearchBar extends HookConsumerWidget {
       return null;
     }, [isOpen]);
 
-    // 슬라이드 애니메이션 세부 곡선 설정 (Cubic으로 쫀득하게 내려오도록)
     final offsetAnimation = Tween<Offset>(
-      begin: const Offset(0, -1), // 화면 위 영역에 완전히 숨어있음
-      end: Offset.zero, // 제자리로 복귀
+      begin: const Offset(0, -1),
+      end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: animationController,
       curve: Curves.easeOutCubic,
@@ -52,7 +44,7 @@ class SlidingSearchBar extends HookConsumerWidget {
       position: offsetAnimation,
       child: Container(
         width: double.infinity,
-        height: 320, // 💡 두 번째 사진 기준 흰색 검색창 영역 적정 높이
+        height: 320,
         decoration: const BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -74,6 +66,9 @@ class SlidingSearchBar extends HookConsumerWidget {
                 icon: const Icon(Icons.close, size: 32),
                 onPressed: () {
                   textController.clear();
+                  // 닫을 때는 검색어 필터를 밀어버려서 정갈하게 복구시킵니다.
+                  searchContentRead.setState(
+                      const SearchContent(searchContent: '', page: 1));
                   ref.read(searchBarOpenProvider.notifier).close();
                 },
               ),
@@ -82,8 +77,7 @@ class SlidingSearchBar extends HookConsumerWidget {
             // 🔍 [중앙 SEARCH 레이아웃 구역]
             Center(
               child: Container(
-                constraints: const BoxConstraints(
-                    maxWidth: 600), //웹 브라우저에서 너무 퍼지지 않게 폭 제한
+                constraints: const BoxConstraints(maxWidth: 600),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -93,18 +87,15 @@ class SlidingSearchBar extends HookConsumerWidget {
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2.0,
-                        color: Colors.black, // 미니멀 블랙
+                        color: Colors.black,
                       ),
                     ),
                     const SizedBox(height: 32),
-
-                    // ✍️ 두 번째 사진과 일치하는 미니멀 밑줄형 검색창
                     TextField(
                       focusNode: _focusNode,
-                      autofocus: true,
                       controller: textController,
                       style: const TextStyle(fontSize: 18),
-                      textAlign: TextAlign.center, // 글자를 가운데서부터 입력
+                      textAlign: TextAlign.center,
                       decoration: InputDecoration(
                         hintText: '검색어를 입력해 주세요',
                         hintStyle: TextStyle(
@@ -114,7 +105,6 @@ class SlidingSearchBar extends HookConsumerWidget {
                           child:
                               Icon(Icons.search, size: 28, color: Colors.black),
                         ),
-                        // 포커스 여부와 상관없이 밑에 얇은 선 하나만 깔끔하게 유지
                         enabledBorder: const UnderlineInputBorder(
                           borderSide:
                               BorderSide(color: Colors.black, width: 1.5),
@@ -125,18 +115,21 @@ class SlidingSearchBar extends HookConsumerWidget {
                         ),
                       ),
                       onSubmitted: (value) {
-                        // 💡 엔터 쳤을 때 지난번 만든 검색 로직 연동 지점
-                        // ref.read(globalSearchProvider.notifier).filterProducts(
-                        //       query: value,
-                        //       targetList: currentScreenItems,
-                        //     );
-                        // final query = textController.text.trim();
-                        // // 💡 주소창을 강제로 바꿉니다! page는 무조건 1페이지로 리셋됩니다.
-                        // searchContentRead.setState(
-                        //     SearchContent(searchContent: query, page: 1));
-                        // searchListenerRead.workListener(1);
-                        // textController.clear();
-                        // ref.read(searchBarOpenProvider.notifier).close();
+                        final query = value.trim();
+
+                        // 1️⃣ [검색 필터 작동]: 현재 페이지에 안착된 실시간 리스트를 찌릅니다.
+                        globalSearchRead.filterProducts(
+                          query: query,
+                          targetList: currentScreenItems,
+                        );
+
+                        // 2️⃣ [무한스크롤 연동 핵심]: 장부에 내 검색어를 이식합니다. page는 무조건 1페이지로 리셋!
+                        searchContentRead.setState(
+                          SearchContent(searchContent: query, page: 1),
+                        );
+
+                        // 3️⃣ 검색 주기를 마치고 서치바를 이쁘게 반전 슬라이딩 시킵니다.
+                        ref.read(searchBarOpenProvider.notifier).close();
                       },
                     ),
                   ],
