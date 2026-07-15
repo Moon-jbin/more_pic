@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
-import 'package:more_pic/provider/product_db_provider.dart'; // 💡 신버전 페이지네이션 창고 임포트
+import 'package:more_pic/provider/product_db_provider.dart';
+import 'package:more_pic/utils/dialog/dlg_function.dart'; // 💡 신버전 페이지네이션 창고 임포트
 
 class ProductCard extends HookConsumerWidget {
   final ProductModel product; // 🌟 신버전 모델 적용 완료
@@ -55,8 +56,8 @@ class ProductCard extends HookConsumerWidget {
                           },
                         );
 
-                        print(
-                            "🚀 [안전 수송 완치] /product/${product.categoryNames.first}/${product.id}");
+                        // print(
+                        //     "🚀 [안전 수송 완치] /product/${product.categoryNames.first}/${product.id}");
                       },
                       child: (product.images.isNotEmpty)
                           ? CachedNetworkImage(
@@ -89,54 +90,69 @@ class ProductCard extends HookConsumerWidget {
                   ),
                 ),
 
-                // 🗑️ [우측 상단 삭제 버튼 구역]
-                // 🗑️ [ProductCard.dart 내부 - 우측 상단 삭제 버튼 구역]
+                // 🌟 [완치 및 업그레이드]: 관리자 모드일 때만 동작하는 '수정 & 삭제' 조작 패널
                 if (adminSettingsWatch)
                   Positioned(
                     top: 4,
                     right: 4,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        constraints: const BoxConstraints(),
-                        padding: const EdgeInsets.all(6),
-                        icon: const Icon(Icons.delete_outline,
-                            color: Colors.red, size: 20),
-                        // ProductCard.dart 내부 휴지통 아이콘 onPressed 구역 교체용
-
-                        onPressed: () async {
-                          // 🌟 현재 카드가 렌더링된 구역 (부모 위젯인 ProductListPage나 메인화면에서 전달받은 currentCategory 변수 사용)
-
-                          final String targetCat = currentCategory;
-
-                          // 🚀 스마트 저격 삭제 엔진 호출
-                          await ref
-                              .read(
-                                  paginatedProductProvider(targetCat).notifier)
-                              .deleteProduct(
-                                productId: product.id,
-                                targetCategory: targetCat,
-                                productCategories: product.categoryNames,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 🛠️ 1. [신규 도킹]: 상품 정보 수정 버튼 (연필 모양)
+                        Container(
+                          margin:
+                              const EdgeInsets.only(right: 6), // 삭제 버튼과의 간격 조율
+                          decoration: BoxDecoration(
+                            color: Colors.white
+                                .withOpacity(0.9), // 가시성 확보용 투명 백그라운드
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.all(6),
+                            icon: const Icon(Icons.edit_outlined,
+                                color: Color(0xFF4A6FA5), size: 18),
+                            onPressed: () {
+                              // 🚀 2단계에서 새로 만든 무결성 텍스트 수정 다이얼로그 강제 소환!
+                              showProductEditDlgFn(
+                                context,
+                                product: product,
+                                currentCategory: currentCategory,
                               );
+                            },
+                          ),
+                        ),
 
-                          // 2️⃣ 메인 화면 전체보기 피드도 같이 연쇄 청소
-                          ref.invalidate(paginatedProductProvider('all'));
+                        // 🗑️ 2. 기존 삭제 버튼 (순정 로직 무결성 보존)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.all(6),
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red, size: 18),
+                            onPressed: () async {
+                              final String targetCat = currentCategory;
+                              await ref
+                                  .read(paginatedProductProvider(targetCat)
+                                      .notifier)
+                                  .deleteProduct(
+                                    productId: product.id,
+                                    targetCategory: targetCat,
+                                    productCategories: product.categoryNames,
+                                  );
 
-                          // 이 상품이 엮여있던 다른 코너들도 싹 새로고침 처리
-                          for (var cat in product.categoryNames) {
-                            // print("cat => ${cat}");
-                            ref.invalidate(paginatedProductProvider(cat));
-                          }
-
-                          // // 3️⃣ 부모 위젯 리스트 뷰 피드백 콜백 가동
-                          if (onDelete != null) {
-                            onDelete!();
-                          }
-                        },
-                      ),
+                              ref.invalidate(paginatedProductProvider('all'));
+                              for (var cat in product.categoryNames) {
+                                ref.invalidate(paginatedProductProvider(cat));
+                              }
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   )
               ],

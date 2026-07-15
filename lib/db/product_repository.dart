@@ -457,6 +457,31 @@ class ProductRepository {
 
     onProgress(1.0, "진열 완수!");
   }
+
+  // 🌟 [새 기능 도킹]: 사진을 제외한 상품의 순수 텍스트 정보들만 Firestore에 업데이트합니다.
+  Future<void> updateProductTextInfo(
+      {required String productId,
+      required String name,
+      required int price,
+      required String size,
+      required String color}) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .update({
+        'name': name,
+        'price': price,
+        'size': size,
+        'color': color,
+        'updatedAt': FieldValue.serverTimestamp(), // 수정 시간 기록
+      });
+      // print("🎉 [Firestore 수정 완치] 제품 ID: $productId 장부 변경 성공!");
+    } catch (e) {
+      print("❌ [Firestore 수정 에러] 원인: $e");
+      throw Exception('상품 정보 수정 중 서버 통신 실패: $e');
+    }
+  }
 }
 
 // 리버팟 프로바이더 도킹 (기존 변수명과 일치)

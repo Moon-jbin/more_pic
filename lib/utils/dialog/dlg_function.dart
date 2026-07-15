@@ -15,6 +15,7 @@ import 'package:more_pic/utils/dialog/menu_edit_dlg.dart';
 import 'package:more_pic/utils/dialog/ok_cancel_dialog.dart';
 import 'package:more_pic/utils/dialog/ok_dialog.dart';
 import 'package:more_pic/utils/dialog/password_check_dlg.dart';
+import 'package:more_pic/utils/dialog/product_edit_dlg.dart';
 import 'package:more_pic/utils/dialog/product_upload_dlg.dart';
 
 showProductUploadDlgFn(BuildContext context,
@@ -95,4 +96,18 @@ showOkCancelDlg(BuildContext context,
               onTap: onTap,
               onCancel: onCancel,
               onClosePressed: onClosePressed)));
+}
+
+
+// 🌟 [새 기능 도킹]: 상품 정보 수정 팝업 호출 가이드
+void showProductEditDlgFn(BuildContext context, {required dynamic product, required String currentCategory}) {
+  showCustomDialog(
+    context,
+    (context) => customDialogForm(
+      content: ProductEditDlg(
+        product: product,
+        currentCategory: currentCategory,
+      ),
+    ),
+  );
 }
