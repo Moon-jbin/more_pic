@@ -14,11 +14,13 @@ class PasswordCheckDlg extends HookConsumerWidget {
     final globalProviderFnRead = ref.read(globalProviderFunction.notifier);
     final adminSettingsRead = ref.read(adminSettingsProvider.notifier);
 
-    // 🎯 [중복 제거] 엔터키와 마우스 클릭 액션을 하나로 관통하는 통합 인증 함수
+    // 🌟 [반응형 가로폭 계산]
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double dialogWidth = screenWidth < 600 ? (screenWidth - 40) : 360.0;
+
     Future<void> handleVerification() async {
       final String inputPassword = passwordController.text.trim();
 
-      // 입력값이 비어있다면 불필요한 서버 통신을 차단하는 기본 예외 가드
       if (inputPassword.isEmpty) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -44,7 +46,6 @@ class PasswordCheckDlg extends HookConsumerWidget {
         }
       } else {
         if (context.mounted) {
-          // 100번 연타 및 연속 엔터를 쳐도 이전 스낵바 큐를 통째로 청소하고 단 1개만 노출
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -57,13 +58,20 @@ class PasswordCheckDlg extends HookConsumerWidget {
     }
 
     return CustomWidget.dialogCustomForm(
-      height: 200,
+      width: dialogWidth,
+      height: 220,
+      isScrollable: false, // 🌟 가로 스크롤을 꺼서 무한대 팽창 크래시를 원천 박멸합니다!
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CustomWidget.customDialogTitle(context, ref,
-              title: '관리자 인증', isShowCloseBtn: true),
-          Container(
-            padding: const EdgeInsets.all(10),
+          CustomWidget.customDialogTitle(
+            context,
+            ref,
+            title: '관리자 인증',
+            isShowCloseBtn: true,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
                 TextField(
@@ -71,22 +79,31 @@ class PasswordCheckDlg extends HookConsumerWidget {
                   decoration: const InputDecoration(
                     labelText: '관리자 패스워드 입력',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                   ),
-                  // 🚀 키보드 완료/엔터 키를 쳤을 때도 공용 인증 로직 강제 연동
                   onSubmitted: (_) => handleVerification(),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A6FA5),
-                    minimumSize:
-                        const Size(double.infinity, 48), // 버튼 터치 영역 살짝 최적화
+                    minimumSize: const Size(double.infinity,
+                        48), // 💡 이제 무한대 너비(infinity)를 줘도 터지지 않고 부모 폭에 안착합니다!
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    elevation: 0,
                   ),
-                  // 🚀 마우스로 버튼을 클릭했을 때도 동일 로직 연동
                   onPressed: handleVerification,
-                  child: const Text('인증하기',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    '인증하기',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14),
+                  ),
                 ),
               ],
             ),

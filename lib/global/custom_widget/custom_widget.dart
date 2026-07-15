@@ -378,9 +378,89 @@ class CustomWidget {
     );
   }
 
-// 🌟 [완치]: 계좌번호를 클릭하면 자동으로 클립보드에 복사해 주는 스마트 컴포넌트 개조
+// // 🌟 [완치]: 계좌번호를 클릭하면 자동으로 클립보드에 복사해 주는 스마트 컴포넌트 개조
+//   static Widget buildPaymentInfoContent(BuildContext context) {
+//     const String accountNumber = '3333-37-7919709'; // 👈 복사될 순수 계좌번호 타깃
+
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         const Text('무통장 계좌정보',
+//             style: TextStyle(color: Colors.grey, fontSize: 12)),
+//         const SizedBox(height: 12),
+//         Row(
+//           children: [
+//             const Text(
+//               '은행 ',
+//               style: TextStyle(color: Color(0xFF666666), fontSize: 12),
+//             ),
+//             const Text(
+//               '카카오뱅크 ',
+//               style: TextStyle(fontSize: 12),
+//             ),
+
+//             // 🌟 [핵심 가드]: 계좌번호 구역을 클릭(터치)할 수 있는 감지 레이어로 감쌉니다.
+//             InkWell(
+//               borderRadius: BorderRadius.circular(4),
+//               onTap: () async {
+//                 // 1️⃣ 구글 안드로이드 / iOS / 웹 브라우저 통합 클립보드에 계좌번호 강제 수혈!
+//                 await Clipboard.setData(
+//                     const ClipboardData(text: accountNumber));
+
+//                 // 2️⃣ 사용자에게 복사가 완료되었음을 친절하게 스낵바로 알림 전파
+//                 if (context.mounted) {
+//                   ScaffoldMessenger.of(context)
+//                       .clearSnackBars(); // 기존 스낵바 밀어내기 소독
+//                   ScaffoldMessenger.of(context).showSnackBar(
+//                     const SnackBar(
+//                       content: Text('📋 계좌번호($accountNumber)가 클립보드에 복사되었습니다!'),
+//                       duration: Duration(seconds: 2),
+//                       behavior: SnackBarBehavior.floating, // 이쁘게 떠오르는 스타일 가드
+//                     ),
+//                   );
+//                 }
+//               },
+//               child: Container(
+//                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+//                 decoration: BoxDecoration(
+//                   color: const Color(0xFF4A6FA5)
+//                       .withOpacity(0.08), // 마우스 가져갔을 때 힌트 팁 색상
+//                   borderRadius: BorderRadius.circular(4),
+//                 ),
+//                 child: const Row(
+//                   mainAxisSize: MainAxisSize.min,
+//                   children: [
+//                     Text(
+//                       accountNumber,
+//                       style: TextStyle(
+//                         fontSize: 12,
+//                         fontWeight: FontWeight.bold,
+//                         color: Color(0xFF4A6FA5), // 💡 클릭 가능한 녀석임을 시각적으로 분리
+//                         decoration:
+//                             TextDecoration.underline, // 밑줄 쳐서 가독성 100점 튜닝
+//                       ),
+//                     ),
+//                     SizedBox(width: 4),
+//                     Icon(Icons.copy_rounded,
+//                         size: 12, color: Color(0xFF4A6FA5)), // 복사 유도 아이콘 도킹
+//                   ],
+//                 ),
+//               ),
+//             ),
+
+//             const Text(
+//               ' 문은미(원앤그레인)',
+//               style: TextStyle(fontSize: 12),
+//             ),
+//           ],
+//         ),
+//       ],
+//     );
+//   }
+
+// 🌟 [완치]: 화면 폭이 좁아져도 절대 오버플로우가 나지 않도록 'Wrap' 설계를 도입한 결제정보 섹션
   static Widget buildPaymentInfoContent(BuildContext context) {
-    const String accountNumber = '3333-37-7919709'; // 👈 복사될 순수 계좌번호 타깃
+    const String accountNumber = '3333-37-7919709';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +468,13 @@ class CustomWidget {
         const Text('무통장 계좌정보',
             style: TextStyle(color: Colors.grey, fontSize: 12)),
         const SizedBox(height: 12),
-        Row(
+
+        // 🌟 [완치 포인트]: Row 대신 Wrap을 사용하여, 화면 우측 경계선에 닿으면
+        // 텍스트와 복사 버튼이 에러 없이 자동으로 다음 줄로 내려앉도록(자동 줄바꿈) 방어합니다!
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 4, // 가로 사이 간격
+          runSpacing: 6, // 줄바꿈 시 세로 간격
           children: [
             const Text(
               '은행 ',
@@ -399,32 +485,27 @@ class CustomWidget {
               style: TextStyle(fontSize: 12),
             ),
 
-            // 🌟 [핵심 가드]: 계좌번호 구역을 클릭(터치)할 수 있는 감지 레이어로 감쌉니다.
+            // 💡 터치 복사 영역
             InkWell(
               borderRadius: BorderRadius.circular(4),
               onTap: () async {
-                // 1️⃣ 구글 안드로이드 / iOS / 웹 브라우저 통합 클립보드에 계좌번호 강제 수혈!
                 await Clipboard.setData(
                     const ClipboardData(text: accountNumber));
-
-                // 2️⃣ 사용자에게 복사가 완료되었음을 친절하게 스낵바로 알림 전파
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context)
-                      .clearSnackBars(); // 기존 스낵바 밀어내기 소독
+                  ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('📋 계좌번호($accountNumber)가 클립보드에 복사되었습니다!'),
                       duration: Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating, // 이쁘게 떠오르는 스타일 가드
+                      behavior: SnackBarBehavior.floating,
                     ),
                   );
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A6FA5)
-                      .withOpacity(0.08), // 마우스 가져갔을 때 힌트 팁 색상
+                  color: const Color(0xFF4A6FA5).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Row(
@@ -433,16 +514,15 @@ class CustomWidget {
                     Text(
                       accountNumber,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11, // 💡 가독성을 깨지 않는 선에서 폰트 크기를 살짝 다듬어 컴팩트화
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF4A6FA5), // 💡 클릭 가능한 녀석임을 시각적으로 분리
-                        decoration:
-                            TextDecoration.underline, // 밑줄 쳐서 가독성 100점 튜닝
+                        color: Color(0xFF4A6FA5),
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                     SizedBox(width: 4),
                     Icon(Icons.copy_rounded,
-                        size: 12, color: Color(0xFF4A6FA5)), // 복사 유도 아이콘 도킹
+                        size: 11, color: Color(0xFF4A6FA5)),
                   ],
                 ),
               ),
@@ -618,35 +698,73 @@ class CustomWidget {
   //     ),
   //   );
   // }
+  // static Widget dialogCustomForm({
+  //   double? width,
+  //   double? height,
+  //   required Widget child,
+  // }) {
+  //   return SingleChildScrollView(
+  //     scrollDirection: Axis.horizontal,
+  //     child: Container(
+  //       decoration: BoxDecoration(
+  //         color: Colors.white,
+  //         border: Border.all(
+  //           width: 0.3,
+  //           color: Colors.black.withOpacity(0.5),
+  //         ),
+  //       ),
+  //       width: width,
+  //       height: height,
+  //       // 🌟 [완치 가드]: width가 null(동적)일 때 IntrinsicWidth가 올바르게 작동하도록 제어하되,
+  //       // 자식들의 Row(Expanded)가 무한대로 폭주하여 크래시가 나지 않도록 최대 가로 범위를 명확히 제한합니다!
+  //       child: ConstrainedBox(
+  //         constraints: BoxConstraints(
+  //           // 수동 지정된 width가 없으면 최소 320, 최대 600까지 내부에서 늘어나도록 락을 겁니다.
+  //           minWidth: width ?? 320,
+  //           maxWidth: width ?? 600,
+  //         ),
+  //         child: SingleChildScrollView(child: child),
+  //       ),
+  //     ),
+  //   );
+  // }
+
   static Widget dialogCustomForm({
     double? width,
     double? height,
     required Widget child,
+    bool isScrollable =
+        false, // 🌟 [완치 가드]: 기본값은 false(반응형). 가로 스크롤이 진짜 필요할 때만 true로 켭니다.
   }) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(
-            width: 0.3,
-            color: Colors.black.withOpacity(0.5),
-          ),
-        ),
-        width: width,
-        height: height,
-        // 🌟 [완치 가드]: width가 null(동적)일 때 IntrinsicWidth가 올바르게 작동하도록 제어하되,
-        // 자식들의 Row(Expanded)가 무한대로 폭주하여 크래시가 나지 않도록 최대 가로 범위를 명확히 제한합니다!
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            // 수동 지정된 width가 없으면 최소 320, 최대 600까지 내부에서 늘어나도록 락을 겁니다.
-            minWidth: width ?? 320,
-            maxWidth: width ?? 600,
-          ),
-          child: SingleChildScrollView(child: child),
+    // 💡 1단계: 가로 스크롤이 필요 없는 일반 팝업은 스크롤 없이 고정/반응형 컨테이너를 즉시 리턴
+    final Widget coreContainer = Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          width: 0.3,
+          color: Colors.black.withOpacity(0.5),
         ),
       ),
+      width: width,
+      height: height,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minWidth: width ?? 320,
+          maxWidth: width ?? 600,
+        ),
+        child: SingleChildScrollView(child: child),
+      ),
     );
+
+    // 💡 2단계: 가로 스크롤 옵션이 켜져 있을 때만 무한대 constraints 가로 스크롤러로 감쌉니다.
+    if (isScrollable) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: coreContainer,
+      );
+    }
+
+    return coreContainer;
   }
 
   // static customDialogTitle(BuildContext context, WidgetRef ref,
