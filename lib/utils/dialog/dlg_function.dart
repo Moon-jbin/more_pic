@@ -11,6 +11,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:more_pic/utils/dialog/dlg_form.dart';
+import 'package:more_pic/utils/dialog/menu_edit_dlg.dart';
+import 'package:more_pic/utils/dialog/ok_cancel_dialog.dart';
+import 'package:more_pic/utils/dialog/ok_dialog.dart';
 import 'package:more_pic/utils/dialog/password_check_dlg.dart';
 import 'package:more_pic/utils/dialog/product_upload_dlg.dart';
 
@@ -24,4 +27,72 @@ showPasswordCheckDialog(BuildContext context,
     {String? msg, bool isShowPercent = false}) {
   return showCustomDialog(
       context, (context) => customDialogForm(content: PasswordCheckDlg()));
+}
+
+// 별도의 정식 다이얼로그 위젯 클래스로 완벽하게 분리 교정했습니다.
+void showMenuEditDialog(
+    BuildContext context, List<Map<String, dynamic>> currentMenus) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return MenuEditDialog(currentMenus: currentMenus);
+    },
+  );
+}
+
+///```
+/// OK Button Dialog
+/// _dialog.dart 전용
+///```
+showOkDlg(BuildContext context,
+    {String? title,
+    String? msg,
+    VoidCallback? onTap,
+    Icon? icon,
+    double? width,
+    double? height,
+    double? contentHeight,
+    MainAxisAlignment? mainAxisAlignment,
+    CrossAxisAlignment? crossAxisAlignment}) {
+  return showCustomDialog(
+      dismissible: false,
+      context,
+      (context) => customDialogForm(
+              content: OkDialog(
+            title: title,
+            msg: msg,
+            onTap: onTap,
+            icon: icon,
+            width: width,
+            height: height,
+            contentHeight: contentHeight,
+            mainAxisAlignment: mainAxisAlignment,
+            crossAxisAlignment: crossAxisAlignment,
+          )));
+}
+
+///```
+/// OK Cancel Button Dialog
+/// _dialog.dart 전용
+///```
+showOkCancelDlg(BuildContext context,
+    {String? title,
+    String? msg,
+    double? width,
+    double? height,
+    VoidCallback? onTap,
+    VoidCallback? onCancel,
+    VoidCallback? onClosePressed}) {
+  return showCustomDialog(
+      dismissible: false,
+      context,
+      (context) => customDialogForm(
+          content: OkCancelDialog(
+              title: title,
+              msg: msg,
+              width: width,
+              height: height,
+              onTap: onTap,
+              onCancel: onCancel,
+              onClosePressed: onClosePressed)));
 }
