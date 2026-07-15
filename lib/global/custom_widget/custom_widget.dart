@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
@@ -10,6 +11,7 @@ import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
 import 'package:more_pic/utils/dialog/dlg_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:html' as html;
 
 // 💡 [2] 고정 레이아웃과 반응형 컨트롤러를 품은 스캐폴드
 class CustomScaffold extends HookConsumerWidget {
@@ -263,21 +265,82 @@ class CustomWidget {
       runSpacing: 8,
       children: [
         _buildInfoText('상호명', '원앤그레인'),
-        _buildInfoText('대표자명', '문은미'),
-        _buildInfoText('사업장 주소', '경기도 남양주시 화도읍 소래비로 130'),
-        _buildInfoText('대표 전화', '01054907886'),
-        _buildInfoText('사업자 등록번호', '5430204088'),
-        _buildInfoText('통신판매업 신고번호', '미가입'),
+        _buildInfoText('사업자 등록번호', '543-02-04088'),
+        _buildInfoText('통신판매업 신고번호', '2026-화도수동-0435'),
         _buildInfoText('개인정보보호책임자', '원앤그레인'),
       ],
     );
   }
 
+  // static Widget buildCustomerInfoContent() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       _buildCustomerInfoRow('상담/주문 이메일', 'morepick@naver.com'),
+  //       const SizedBox(height: 15),
+  //       const Text('CS운영시간',
+  //           style: TextStyle(
+  //               fontWeight: FontWeight.bold,
+  //               fontSize: 12,
+  //               color: Colors.black87)),
+  //       const SizedBox(height: 4),
+  //       const Text('오전 9시 ~ 오후 5시',
+  //           style: TextStyle(fontSize: 12, color: Color(0xFF666666))),
+  //     ],
+  //   );
+  // }
+  // 🌟 [완치]: 카카오톡 채널톡 바로가기 링크 및 아이콘이 이쁘게 탑재된 고객센터 컴포넌트
   static Widget buildCustomerInfoContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCustomerInfoRow('상담/주문 이메일', 'morepick@naver.com'),
+        InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () {
+            const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
+
+            // 💡 웹 브라우저 환경에서 깔끔하게 새 탭(_blank)을 열어 카카오톡 채널로 점프시킵니다.
+            html.window.open(kakaoUrl, '_blank');
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              // 카카오톡 시그니처 옐로우 컬러와 폰트 디자인 밸런스 튜닝
+              color: const Color(0xFFFEE500),
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: [
+                BoxConstraints.expand().maxWidth > 0 // 컴파일 에러 방지용 가벼운 섀도우
+                    ? BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      )
+                    : const BoxShadow(),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min, // 글자 길이에 딱 맞게 쫀득하게 축소
+              children: [
+                Icon(
+                  Icons.chat_bubble_rounded, // 카카오톡 느낌의 대화창 아이콘
+                  size: 14,
+                  color: Color(0xFF191919),
+                ),
+                SizedBox(width: 6),
+                Text(
+                  '모어픽 채널톡 바로가기',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF191919), // 카카오톡 전용 다크 그레이 글자색
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // const SizedBox(height: 15),
+        // _buildCustomerInfoRow('상담/주문 이메일', 'morepick@naver.com'),
         const SizedBox(height: 15),
         const Text('CS운영시간',
             style: TextStyle(
@@ -285,8 +348,10 @@ class CustomWidget {
                 fontSize: 12,
                 color: Colors.black87)),
         const SizedBox(height: 4),
-        Text('오전 9시 ~ 오후 17시',
+        const Text('오전 9시 ~ 오후 5시',
             style: TextStyle(fontSize: 12, color: Color(0xFF666666))),
+
+        // 🌟 [새 기능 도킹]: 고객센터 안내 맨 하단에 카카오톡 채널톡 바로가기 배치
       ],
     );
   }
@@ -313,18 +378,80 @@ class CustomWidget {
     );
   }
 
-  static Widget buildPaymentInfoContent() {
-    return const Column(
+// 🌟 [완치]: 계좌번호를 클릭하면 자동으로 클립보드에 복사해 주는 스마트 컴포넌트 개조
+  static Widget buildPaymentInfoContent(BuildContext context) {
+    const String accountNumber = '3333-37-7919709'; // 👈 복사될 순수 계좌번호 타깃
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('무통장 계좌정보', style: TextStyle(color: Colors.grey, fontSize: 12)),
-        SizedBox(height: 12),
+        const Text('무통장 계좌정보',
+            style: TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 12),
         Row(
           children: [
-            Text('은행 ',
-                style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
-            Text('카카오뱅크 3333-37-7919709 문은미(원앤그레인)',
-                style: TextStyle(fontSize: 12)),
+            const Text(
+              '은행 ',
+              style: TextStyle(color: Color(0xFF666666), fontSize: 12),
+            ),
+            const Text(
+              '카카오뱅크 ',
+              style: TextStyle(fontSize: 12),
+            ),
+
+            // 🌟 [핵심 가드]: 계좌번호 구역을 클릭(터치)할 수 있는 감지 레이어로 감쌉니다.
+            InkWell(
+              borderRadius: BorderRadius.circular(4),
+              onTap: () async {
+                // 1️⃣ 구글 안드로이드 / iOS / 웹 브라우저 통합 클립보드에 계좌번호 강제 수혈!
+                await Clipboard.setData(
+                    const ClipboardData(text: accountNumber));
+
+                // 2️⃣ 사용자에게 복사가 완료되었음을 친절하게 스낵바로 알림 전파
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context)
+                      .clearSnackBars(); // 기존 스낵바 밀어내기 소독
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('📋 계좌번호($accountNumber)가 클립보드에 복사되었습니다!'),
+                      duration: Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating, // 이쁘게 떠오르는 스타일 가드
+                    ),
+                  );
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A6FA5)
+                      .withOpacity(0.08), // 마우스 가져갔을 때 힌트 팁 색상
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      accountNumber,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4A6FA5), // 💡 클릭 가능한 녀석임을 시각적으로 분리
+                        decoration:
+                            TextDecoration.underline, // 밑줄 쳐서 가독성 100점 튜닝
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.copy_rounded,
+                        size: 12, color: Color(0xFF4A6FA5)), // 복사 유도 아이콘 도킹
+                  ],
+                ),
+              ),
+            ),
+
+            const Text(
+              ' 문은미(원앤그레인)',
+              style: TextStyle(fontSize: 12),
+            ),
           ],
         ),
       ],
@@ -396,7 +523,7 @@ class CustomWidget {
                     const SizedBox(height: 35),
                     buildFooterSectionTitle('결제정보'),
                     const SizedBox(height: 12),
-                    buildPaymentInfoContent(),
+                    buildPaymentInfoContent(context),
                   ],
                 );
               } else {
@@ -435,7 +562,7 @@ class CustomWidget {
                         children: [
                           buildFooterSectionTitle('결제정보'),
                           const SizedBox(height: 15),
-                          buildPaymentInfoContent(),
+                          buildPaymentInfoContent(context),
                         ],
                       ),
                     ),
