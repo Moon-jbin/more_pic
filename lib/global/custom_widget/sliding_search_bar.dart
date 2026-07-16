@@ -26,7 +26,6 @@ class SlidingSearchBar extends HookConsumerWidget {
       if (isOpen) {
         animationController.forward();
         _focusNode.requestFocus();
-        print('가동됨?');
       } else {
         animationController.reverse();
       }

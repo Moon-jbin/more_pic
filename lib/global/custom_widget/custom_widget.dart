@@ -75,21 +75,21 @@ class CustomScaffold extends HookConsumerWidget {
             CustomScrollView(
               controller: scrollController,
               slivers: [
-                SliverToBoxAdapter(
-                  child: Container(
-                    width: double.infinity,
-                    color: const Color(0xFFD4CBE5),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: const Text(
-                      '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
-                    ),
-                  ),
-                ),
+                // SliverToBoxAdapter(
+                //   child: Container(
+                //     width: double.infinity,
+                //     color: const Color(0xFFD4CBE5),
+                //     padding: const EdgeInsets.symmetric(vertical: 8),
+                //     child: const Text(
+                //       '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
+                //       textAlign: TextAlign.center,
+                //       style: TextStyle(
+                //           color: Colors.black,
+                //           fontWeight: FontWeight.bold,
+                //           fontSize: 14),
+                //     ),
+                //   ),
+                // ),
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: SliverHeaderDelegate(

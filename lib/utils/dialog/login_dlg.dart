@@ -11,31 +11,24 @@ class LoginDlg extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 1. Flutter Hooks 기반 컨트롤러 선언 (메모리 누수 방지 자동 처리)
     final emailController = useTextEditingController();
     final passwordController = useTextEditingController();
     final passwordConfirmController = useTextEditingController();
 
-    // 2. 상태 관리 (useState)
     final isLoading = useState<bool>(false);
-    final isInitLoading = useState<bool>(true); // 로컬 저장값 불러오는 중인지 여부
+    final isInitLoading = useState<bool>(true);
     final obscurePw = useState<bool>(true);
-    final isLoginMode = useState<bool>(true); // 로그인 vs 회원가입 모드 스위치
+    final isLoginMode = useState<bool>(true);
 
-    // 💾 아이디 저장 및 자동 로그인 체크박스 상태
     final rememberId = useState<bool>(false);
     final autoLogin = useState<bool>(false);
 
     final adminSettingsRead = ref.read(adminSettingsProvider.notifier);
 
-    // 🌟 [Hooks 라이프사이클]: 다이얼로그가 켜질 때 SharedPreferences에서 아이디/체크박스 정보 즉시 복원
     useEffect(() {
       Future<void> loadSavedSettings() async {
         try {
           final prefs = await SharedPreferences.getInstance();
-
-          // 기존에 이상한 타입으로 박혀있을 캐시 충돌을 방어하기 위해
-          // 형변환 에러를 캐치하거나 강제로 디폴트 처리를 박아둡니다.
           final rawRemember = prefs.get('remember_id');
           final rawAuto = prefs.get('auto_login');
 
@@ -47,7 +40,6 @@ class LoginDlg extends HookConsumerWidget {
             emailController.text = saved ?? '';
           }
         } catch (e) {
-          // 에러가 나면 캐시를 아예 안 쓰고 빈칸으로 초기화하여 먹통 방지
           rememberId.value = false;
           autoLogin.value = false;
         } finally {
@@ -59,7 +51,6 @@ class LoginDlg extends HookConsumerWidget {
       return null;
     }, []);
 
-    // 🎯 [전송 처리 장부]: 로그인 및 회원가입 비즈니스 로직
     Future<void> handleSubmit() async {
       final String email = emailController.text.trim();
       final String password = passwordController.text.trim();
@@ -72,10 +63,7 @@ class LoginDlg extends HookConsumerWidget {
         return;
       }
 
-      // 🌟 [추가]: 비밀번호 유효성 검사 (6자리 이상 & 한글 포함 불가 정규식)
-      // 자음/모음(ㄱ-ㅎ, ㅏ-ㅣ) 및 완성형 한글(가-힣)을 원천 차단합니다.
       final RegExp hangulRegExp = RegExp(r'[ㄱ-ㅎㅏ-ㅣ가-힣]');
-
       if (password.length < 6) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('비밀번호는 최소 6자리 이상이어야 합니다.')),
@@ -86,7 +74,7 @@ class LoginDlg extends HookConsumerWidget {
       if (hangulRegExp.hasMatch(password)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('🚨 비밀번호에는 한글을 사용할 수 없습니다. (영어/숫자/특수문자 권장)')),
+              content: Text('⚠️ 비밀번호에는 한글을 사용할 수 없습니다. (영어/숫자/특수문자 권장)')),
         );
         return;
       }
@@ -102,50 +90,33 @@ class LoginDlg extends HookConsumerWidget {
         isLoading.value = true;
 
         if (isLoginMode.value) {
-          // 🔵 로그인 호출 (반환값 성공 여부 동기화)
-          final bool success = await adminSettingsRead.login(
-            email,
-            password,
-            rememberId: rememberId.value,
-            autoLogin: autoLogin.value,
-          );
+          // 🌟 [핵심 변경]: 이제 여기서 실패하면 바로 아래의 catch(e)로 직행합니다!
+          await adminSettingsRead.login(email, password);
 
-          if (success) {
-            // 💾 로그인 성공 시 로컬 세팅 기기에 박제
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setBool('remember_id', rememberId.value);
-            await prefs.setBool('auto_login', autoLogin.value);
-            if (rememberId.value) {
-              await prefs.setString('saved_email', email);
-            } else {
-              await prefs.remove('saved_email');
-            }
-
-            if (!context.mounted) return;
-
-            if (context.mounted) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).clearSnackBars();
-
-              if (adminSettingsRead.isMasterAdmin) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('🔓 관리자 모드로 로그인되었습니다.')),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('🎉 모어픽에 오신 것을 환영합니다!')),
-                );
-              }
-            }
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('remember_id', rememberId.value);
+          await prefs.setBool('auto_login', autoLogin.value);
+          if (rememberId.value) {
+            await prefs.setString('saved_email', email);
           } else {
-            if (context.mounted) {
+            await prefs.remove('saved_email');
+          }
+
+          if (context.mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).clearSnackBars();
+
+            if (adminSettingsRead.isMasterAdmin) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('🚨 이메일 또는 비밀번호가 올바르지 않습니다.')),
+                const SnackBar(content: Text('🔓 관리자 모드로 로그인되었습니다.')),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('🎉 모어픽에 오신 것을 환영합니다!')),
               );
             }
           }
         } else {
-          // 🟢 회원가입
           await adminSettingsRead.register(email, password);
           if (context.mounted) {
             Navigator.pop(context);
@@ -156,6 +127,7 @@ class LoginDlg extends HookConsumerWidget {
           }
         }
       } on FirebaseAuthException catch (e) {
+        // 🌟 [핵심 작동]: 이제 이 상세 에러 분기문이 100% 정상 작동합니다!
         if (context.mounted) {
           String errorMessage = '처리 중 오류가 발생했습니다.';
           if (e.code == 'user-not-found' ||
@@ -172,7 +144,7 @@ class LoginDlg extends HookConsumerWidget {
 
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('🚨 $errorMessage')),
+            SnackBar(content: Text('⚠️ $errorMessage')),
           );
         }
       } finally {
@@ -191,7 +163,7 @@ class LoginDlg extends HookConsumerWidget {
 
     return CustomWidget.dialogCustomForm(
       width: dialogWidth,
-      height: isLoginMode.value ? 450 : 510, // 체크박스 영역 높이 확보
+      height: isLoginMode.value ? 450 : 510,
       isScrollable: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -206,7 +178,6 @@ class LoginDlg extends HookConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: Column(
               children: [
-                // 1. 이메일 주소 입력창 (엔터 시 비번 창 포커스 이동)
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -218,13 +189,9 @@ class LoginDlg extends HookConsumerWidget {
                     contentPadding:
                         EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                   ),
-                  onSubmitted: (_) {
-                    FocusScope.of(context).nextFocus();
-                  },
+                  onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                 ),
                 const SizedBox(height: 16),
-
-                // 2. 비밀번호 입력창 (엔터 시 즉시 전송 또는 다음 칸 이동)
                 TextField(
                   controller: passwordController,
                   obscureText: obscurePw.value,
@@ -256,8 +223,6 @@ class LoginDlg extends HookConsumerWidget {
                     }
                   },
                 ),
-
-                // 3. 회원가입 확인 입력창 (가입 모드 전용)
                 if (!isLoginMode.value) ...[
                   const SizedBox(height: 16),
                   TextField(
@@ -274,8 +239,6 @@ class LoginDlg extends HookConsumerWidget {
                     onSubmitted: (_) => handleSubmit(),
                   ),
                 ],
-
-                // 🌟 [체크박스 영역]: 로그인 모드 전용
                 if (isLoginMode.value) ...[
                   const SizedBox(height: 12),
                   Row(
@@ -305,8 +268,7 @@ class LoginDlg extends HookConsumerWidget {
                               onChanged: (val) {
                                 autoLogin.value = val ?? false;
                                 if (autoLogin.value) {
-                                  rememberId.value =
-                                      true; // 자동 로그인 활성화 시 아이디 저장 세트 처리
+                                  rememberId.value = true;
                                 }
                               },
                             ),
@@ -319,10 +281,7 @@ class LoginDlg extends HookConsumerWidget {
                     ],
                   ),
                 ],
-
                 const SizedBox(height: 16),
-
-                // 4. 가입/로그인 최종 승인 버튼
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A6FA5),
@@ -351,34 +310,24 @@ class LoginDlg extends HookConsumerWidget {
                         ),
                 ),
                 const SizedBox(height: 16),
-
-                // 🌟 로그인 <-> 회원가입 스위처 버튼 최종 수정
                 TextButton(
                   onPressed: () async {
-                    // 1. 먼저 모드를 전환합니다.
                     isLoginMode.value = !isLoginMode.value;
-
-                    // 2. 비밀번호 입력칸들은 어떤 모드로 가든 무조건 청소!
                     passwordController.clear();
                     passwordConfirmController.clear();
 
                     if (isLoginMode.value) {
-                      // 🔵 [회원가입 -> 로그인 모드로 돌아올 때]
                       final prefs = await SharedPreferences.getInstance();
                       final bool isRemember =
                           prefs.getBool('remember_id') ?? false;
 
                       if (isRemember) {
-                        // 아이디 저장이 켜져 있다면 저장된 이메일을 슥 불러옵니다.
                         emailController.text =
                             prefs.getString('saved_email') ?? '';
                       } else {
-                        // 아이디 저장이 꺼져 있다면 깔끔하게 비웁니다.
                         emailController.clear();
                       }
                     } else {
-                      // 🟢 [로그인 -> 회원가입 모드로 갈 때]
-                      // 가입을 위해 이메일 칸을 깨끗하게 비워줍니다.
                       emailController.clear();
                     }
                   },
