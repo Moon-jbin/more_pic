@@ -16,9 +16,6 @@ import 'package:more_pic/utils/dialog/dlg_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/utils/routing/router.dart';
 
-
-
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kIsWeb) {
@@ -183,7 +180,8 @@ class MorePicWebService extends HookConsumerWidget {
                     height: headerHeight,
                     isScrolled: isScrolled.value,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: mobileMode ? 10 : 40),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
