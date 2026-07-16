@@ -426,10 +426,10 @@ class ProductListPage extends HookConsumerWidget {
                           return ProductCard(
                             product: product,
                             currentCategory: category,
-                            onDelete: () async {
-                              ref.invalidate(
-                                  paginatedProductProvider(category));
-                            },
+                            // onDelete: () async {
+                            //   ref.invalidate(
+                            //       paginatedProductProvider(category));
+                            // },
                           );
                         },
                       ),

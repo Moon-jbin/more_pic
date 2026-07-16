@@ -11,13 +11,13 @@ import 'package:more_pic/utils/dialog/dlg_function.dart'; // 💡 신버전 페�
 class ProductCard extends HookConsumerWidget {
   final ProductModel product; // 🌟 신버전 모델 적용 완료
   final String currentCategory; // 🌟 [추가]: 부모 매대 코너 이름을 받습니다. (기본값 'all' 처리 가능)
-  final VoidCallback? onDelete;
+  // final VoidCallback? onDelete;
 
   const ProductCard({
     super.key,
     required this.product,
     this.currentCategory = 'all', // 💡 기본값은 'all'로 세팅
-    this.onDelete,
+    // this.onDelete,
   });
 
   @override
@@ -135,20 +135,34 @@ class ProductCard extends HookConsumerWidget {
                             icon: const Icon(Icons.delete_outline,
                                 color: Colors.red, size: 18),
                             onPressed: () async {
-                              final String targetCat = currentCategory;
-                              await ref
-                                  .read(paginatedProductProvider(targetCat)
-                                      .notifier)
-                                  .deleteProduct(
-                                    productId: product.id,
-                                    targetCategory: targetCat,
-                                    productCategories: product.categoryNames,
-                                  );
+                              await showOkCancelDlg(
+                                width: 400,
+                                context,
+                                title: '상품 삭제 확인',
+                                msg: '정말 \'${product.name}\'를 삭제하시겠습니까?',
+                                onCancel: () => Navigator.pop(context),
+                                onTap: () async {
+                                  final String targetCat = currentCategory;
+                                  await ref
+                                      .read(paginatedProductProvider(targetCat)
+                                          .notifier)
+                                      .deleteProduct(
+                                        productId: product.id,
+                                        targetCategory: targetCat,
+                                        productCategories:
+                                            product.categoryNames,
+                                      );
 
-                              ref.invalidate(paginatedProductProvider('all'));
-                              for (var cat in product.categoryNames) {
-                                ref.invalidate(paginatedProductProvider(cat));
-                              }
+                                  ref.invalidate(
+                                      paginatedProductProvider('all'));
+                                  for (var cat in product.categoryNames) {
+                                    ref.invalidate(
+                                        paginatedProductProvider(cat));
+                                  }
+
+                                  Navigator.pop(context);
+                                },
+                              );
                             },
                           ),
                         ),

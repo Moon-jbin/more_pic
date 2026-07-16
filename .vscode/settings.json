@@ -1,5 +1,0 @@
-{
-  "dart.flutterAdditionalArgs": [
-    "--no-tree-shake-icons"
-  ]
-}

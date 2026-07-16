@@ -7,18 +7,21 @@
         {
             "name": "more_pic",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "deviceId": "chrome"
         },
         {
             "name": "more_pic (profile mode)",
             "request": "launch",
             "type": "dart",
+            "deviceId": "chrome",
             "flutterMode": "profile"
         },
         {
             "name": "more_pic (release mode)",
             "request": "launch",
             "type": "dart",
+            "deviceId": "chrome",
             "flutterMode": "release"
         }
     ]
