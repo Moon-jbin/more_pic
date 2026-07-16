@@ -11,6 +11,7 @@ import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
+import 'package:more_pic/secret.dart';
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
 import 'package:more_pic/utils/dialog/dlg_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -47,10 +48,18 @@ class MorePicWebService extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 🌟 [완치 포인트 1]: Scaffold를 수동으로 직접 제어할 마스터 리모컨(GlobalKey)을 Hooks 규격으로 개설합니다.
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
-    final adminSettingsWatch = ref.watch(adminSettingsProvider);
-    final adminSettingsRead = ref.read(adminSettingsProvider.notifier);
+
+    // 🌟 [실시간 동기화 핵심]: 파이어베이스의 로그인 상태를 실시간으로 완전히 구독(watch)합니다.
+    final authState = ref.watch(authStateProvider);
+    final bool isLoggedIn = authState.value != null;
+    final bool isMasterAdmin =
+        authState.value?.email == SecretConfig.masterAdminEmail;
+
+    // 🌟 [편집 상태 제어]: state(bool)는 오직 편집 모드의 ON/OFF만 담당합니다.
+    final isEditMode = ref.watch(adminSettingsProvider);
+    final adminSettingsController = ref.read(adminSettingsProvider.notifier);
+
     final scrollController = useScrollController();
     final showButton = useState(false);
     final isScrolled = useState(false);
@@ -134,46 +143,87 @@ class MorePicWebService extends HookConsumerWidget {
             CustomScrollView(
               controller: scrollController,
               slivers: [
-                SliverToBoxAdapter(
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 30),
-                    width: double.infinity,
-                    color: const Color(0xFFD4CBE5),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(children: [
-                          if (adminSettingsWatch) ...[
-                            IconButton(
+                // 🌟 [최고 관리자 콘솔 띠지]: 어드민일 때만 노출
+                if (isMasterAdmin)
+                  SliverToBoxAdapter(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      color: isEditMode
+                          ? Colors.deepPurple[100]
+                          : Colors.grey[800],
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(children: [
+                            // 편집 모드가 활성화되었을 때만 기능용 아이콘 노출
+                            if (isEditMode) ...[
+                              IconButton(
                                 onPressed: () =>
                                     showProductUploadDlgFn(context),
-                                icon: const Icon(Icons.add_a_photo)),
-                            IconButton(
-                                onPressed: () => adminSettingsRead.initState(),
-                                icon: const Icon(Icons.lock_open,
-                                    color: Colors.red)),
-                            if (!mobileMode)
+                                icon: const Icon(
+                                  Icons.add_a_photo,
+                                  color: Colors.red,
+                                ),
+                                tooltip: '상품 업로드',
+                              ),
                               IconButton(
-                                  onPressed: () => showMenuEditDialog(
-                                      context, currentMenuData),
-                                  icon: const Icon(Icons.category,
-                                      color: Colors.blue))
-                          ] else ...[
-                            IconButton(
-                                onPressed: () =>
-                                    showPasswordCheckDialog(context),
-                                icon: const Icon(Icons.lock)),
-                          ]
-                        ]),
-                        const Text('🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14)),
-                        const SizedBox(width: 48)
-                      ],
+                                onPressed: () => showMenuEditDialog(
+                                    context, currentMenuData),
+                                icon: const Icon(Icons.category,
+                                    color: Colors.blue),
+                                tooltip: '카테고리 메뉴 편집',
+                              )
+                            ]
+                          ]),
+
+                          // 오른쪽 액션 버튼 분기
+                          Row(
+                            children: [
+                              if (isEditMode) ...[
+                                TextButton.icon(
+                                  onPressed: () {
+                                    adminSettingsController.toggleEditMode();
+                                    ScaffoldMessenger.of(context)
+                                        .clearSnackBars();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('🔒 조회 모드로 전환되었습니다.'),
+                                          duration: Duration(seconds: 1)),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.check_circle_outline,
+                                      color: Colors.red, size: 18),
+                                  label: const Text('편집 종료',
+                                      style: TextStyle(color: Colors.red)),
+                                ),
+                              ] else ...[
+                                TextButton.icon(
+                                  onPressed: () {
+                                    adminSettingsController.toggleEditMode();
+                                    ScaffoldMessenger.of(context)
+                                        .clearSnackBars();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('🔓 편집 모드가 활성화되었습니다.'),
+                                          duration: Duration(seconds: 1)),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.orangeAccent, size: 18),
+                                  label: const Text('편집 시작',
+                                      style: TextStyle(
+                                          color: Colors.orangeAccent)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: SliverHeaderDelegate(
@@ -188,8 +238,6 @@ class MorePicWebService extends HookConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // 🌟 [완치 핵심 가드]: Builder 위젯으로 감싸서 새로운 하위 context를 공급합니다.
-                              // 이렇게 하면 현재 카테고리 화면에 떠 있는 CustomScaffold 내부의 Scaffold를 자석처럼 정확하게 낚아챕니다!
                               if (mobileMode)
                                 Builder(
                                   builder: (BuildContext innerContext) {
@@ -197,7 +245,6 @@ class MorePicWebService extends HookConsumerWidget {
                                       icon: const Icon(Icons.menu,
                                           color: Colors.black, size: 28),
                                       onPressed: () {
-                                        // 🔓 innerContext를 사용하여 현재 활성화된 화면의 서랍장을 안전하게 엽니다.
                                         Scaffold.of(innerContext).openDrawer();
                                       },
                                     );
@@ -205,12 +252,47 @@ class MorePicWebService extends HookConsumerWidget {
                                 ),
                               CustomWidget.customLogo(context, ref,
                                   fontSize: 38),
+
+                              // 📱 [모바일 뷰 검색 & 로그인/로그아웃 스위처]
                               if (mobileMode)
-                                IconButton(
-                                    icon: const Icon(Icons.search),
-                                    onPressed: () => ref
-                                        .read(searchBarOpenProvider.notifier)
-                                        .open()),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                        icon: const Icon(Icons.search),
+                                        onPressed: () => ref
+                                            .read(
+                                                searchBarOpenProvider.notifier)
+                                            .open()),
+                                    IconButton(
+                                      onPressed: () async {
+                                        if (isLoggedIn) {
+                                          await adminSettingsController
+                                              .logout();
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .clearSnackBars();
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content:
+                                                      Text('로그아웃 되었습니다. 👋'),
+                                                  duration:
+                                                      Duration(seconds: 1)),
+                                            );
+                                          }
+                                        } else {
+                                          showAdminLoginDialog(context);
+                                        }
+                                      },
+                                      icon: Icon(
+                                        isLoggedIn
+                                            ? Icons.logout
+                                            : Icons.person_outline,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                             ],
                           ),
                           if (!mobileMode) ...[
@@ -224,11 +306,49 @@ class MorePicWebService extends HookConsumerWidget {
                                             title: menu['title'],
                                             items: menu['children'] ?? []))
                                         .toList()),
-                                IconButton(
-                                    icon: const Icon(Icons.search),
-                                    onPressed: () => ref
-                                        .read(searchBarOpenProvider.notifier)
-                                        .open()),
+
+                                // 💻 [PC 뷰 검색 & 로그인/로그아웃 스위처]
+                                Row(
+                                  children: [
+                                    IconButton(
+                                        icon: const Icon(Icons.search),
+                                        onPressed: () => ref
+                                            .read(
+                                                searchBarOpenProvider.notifier)
+                                            .open()),
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      onPressed: () async {
+                                        if (isLoggedIn) {
+                                          await adminSettingsController
+                                              .logout();
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .clearSnackBars();
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content:
+                                                      Text('로그아웃 되었습니다. 👋'),
+                                                  duration:
+                                                      Duration(seconds: 1)),
+                                            );
+                                          }
+                                        } else {
+                                          showAdminLoginDialog(context);
+                                        }
+                                      },
+                                      icon: Icon(
+                                        isLoggedIn
+                                            ? Icons.logout
+                                            : Icons.person_outline,
+                                        color: Colors.black87,
+                                      ),
+                                      tooltip:
+                                          isLoggedIn ? '로그아웃' : '로그인 / 회원가입',
+                                    )
+                                  ],
+                                ),
                               ],
                             ),
                           ]

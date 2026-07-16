@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -158,7 +159,17 @@ class CustomWidget {
 
   static Widget customDrawer(BuildContext context, WidgetRef ref,
       List<Map<String, dynamic>> menuData) {
-    final adminWatch = ref.watch(adminSettingsProvider);
+    // UI 갱신을 위해 구독
+    // final adminWatch = ref.watch(adminSettingsProvider);
+    // final authState = ref.watch(StreamProvider<User?>(
+    //     (ref) => FirebaseAuth.instance.authStateChanges()));
+    final adminRead = ref.watch(adminSettingsProvider.notifier);
+
+    // 현재 관리자 로그인 상태 확인
+    // final bool isLoggedIn = authState.value != null;
+    final adminSettingsWatch = ref.watch(adminSettingsProvider);
+    final adminSettingsRead = ref.watch(adminSettingsProvider.notifier);
+
     return Drawer(
       backgroundColor: Colors.white,
       child: Column(
@@ -178,24 +189,52 @@ class CustomWidget {
               ),
             ),
           ),
-          if (adminWatch) ...[
+
+          // 🌟 [로그인된 관리자에게만 보이는 특별 메뉴 구역]
+
+          ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 40)),
-                icon: const Icon(Icons.settings_suggest_rounded, size: 16),
-                label: const Text('카테고리 편집기'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  showMenuEditDialog(context, menuData);
-                },
+              child: Column(
+                children: [
+                  if (adminSettingsWatch)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 40)),
+                      icon:
+                          const Icon(Icons.settings_suggest_rounded, size: 16),
+                      label: const Text('카테고리 편집기'),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        showMenuEditDialog(context, menuData);
+                      },
+                    ),
+                  const SizedBox(height: 8),
+                  if (adminSettingsRead.isLoggedIn)
+                    TextButton.icon(
+                      // 🌟 진짜 로그아웃 버튼!
+                      style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          minimumSize: const Size(double.infinity, 40)),
+                      icon: const Icon(Icons.logout, size: 16),
+                      label: const Text('로그아웃'),
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await adminRead.logout();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('안전하게 로그아웃 되었습니다.')),
+                          );
+                        }
+                      },
+                    ),
+                ],
               ),
             ),
           ],
-          const Divider(height: 1),
+          if (adminSettingsRead.isLoggedIn) const Divider(height: 1),
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
