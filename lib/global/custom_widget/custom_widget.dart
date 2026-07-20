@@ -160,13 +160,7 @@ class CustomWidget {
   static Widget customDrawer(BuildContext context, WidgetRef ref,
       List<Map<String, dynamic>> menuData) {
     // UI 갱신을 위해 구독
-    // final adminWatch = ref.watch(adminSettingsProvider);
-    // final authState = ref.watch(StreamProvider<User?>(
-    //     (ref) => FirebaseAuth.instance.authStateChanges()));
     final adminRead = ref.watch(adminSettingsProvider.notifier);
-
-    // 현재 관리자 로그인 상태 확인
-    // final bool isLoggedIn = authState.value != null;
     final adminSettingsWatch = ref.watch(adminSettingsProvider);
     final adminSettingsRead = ref.watch(adminSettingsProvider.notifier);
 
@@ -175,6 +169,7 @@ class CustomWidget {
       child: Column(
         children: [
           SafeArea(
+            bottom: false, // 하단 SafeArea는 맨 밑에서 따로 처리
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
@@ -190,57 +185,82 @@ class CustomWidget {
             ),
           ),
 
-          // 🌟 [로그인된 관리자에게만 보이는 특별 메뉴 구역]
-
-          ...[
+          // 🌟 [관리자 전용: 카테고리 편집기] (상단 유지)
+          if (adminSettingsWatch)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: [
-                  if (adminSettingsWatch)
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 40)),
-                      icon:
-                          const Icon(Icons.settings_suggest_rounded, size: 16),
-                      label: const Text('카테고리 편집기'),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        showMenuEditDialog(context, menuData);
-                      },
-                    ),
-                  const SizedBox(height: 8),
-                  if (adminSettingsRead.isLoggedIn)
-                    TextButton.icon(
-                      // 🌟 진짜 로그아웃 버튼!
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          minimumSize: const Size(double.infinity, 40)),
-                      icon: const Icon(Icons.logout, size: 16),
-                      label: const Text('로그아웃'),
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await adminRead.logout();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('안전하게 로그아웃 되었습니다.')),
-                          );
-                        }
-                      },
-                    ),
-                ],
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 40)),
+                icon: const Icon(Icons.settings_suggest_rounded, size: 16),
+                label: const Text('카테고리 편집기'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  showMenuEditDialog(context, menuData);
+                },
               ),
             ),
-          ],
-          if (adminSettingsRead.isLoggedIn) const Divider(height: 1),
+
+          if (adminSettingsWatch) const Divider(height: 1),
+
+          // 📋 중앙 카테고리 메뉴 리스트
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: menuData
                   .map((menu) => buildDrawerMenu(context, ref, menu))
                   .toList(),
+            ),
+          ),
+
+          // 🌟 [하단: 로그인 / 회원가입 / 로그아웃 버튼]
+          // 메뉴 맨 아래에 은은하고 작은 회색 글씨로 배치
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16, bottom: 16, top: 8),
+              child: Align(
+                alignment:
+                    Alignment.centerRight, // 우측 하단 정렬 (원하시면 center로 변경 가능)
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade500, // 은은한 회색
+                    minimumSize: Size.zero,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    splashFactory:
+                        NoSplash.splashFactory, // 클릭 시 번짐 효과 제거 (더 깔끔하게)
+                  ),
+                  onPressed: () async {
+                    // Navigator.pop(context); // 일단 드로어 메뉴 닫기
+
+                    if (adminSettingsRead.isLoggedIn) {
+                      // 🔴 로그인 상태 -> 로그아웃 진행
+                      await adminRead.logout();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('안전하게 로그아웃 되었습니다.')),
+                        );
+                      }
+                    } else {
+                      // 🟢 로그아웃 상태 -> 로그인/회원가입 다이얼로그 호출
+                      // (몽글님이 만드신 login_dlg.dart 의 위젯을 호출해주세요!)
+                      showAdminLoginDialog(context);
+                    }
+                  },
+                  child: Text(
+                    adminSettingsRead.isLoggedIn ? '로그아웃' : '로그인 / 회원가입',
+                    style: const TextStyle(
+                      fontSize: 12, // 작은 글씨
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

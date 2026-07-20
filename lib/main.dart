@@ -263,34 +263,34 @@ class MorePicWebService extends HookConsumerWidget {
                                             .read(
                                                 searchBarOpenProvider.notifier)
                                             .open()),
-                                    IconButton(
-                                      onPressed: () async {
-                                        if (isLoggedIn) {
-                                          await adminSettingsController
-                                              .logout();
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context)
-                                                .clearSnackBars();
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                  content:
-                                                      Text('로그아웃 되었습니다. 👋'),
-                                                  duration:
-                                                      Duration(seconds: 1)),
-                                            );
-                                          }
-                                        } else {
-                                          showAdminLoginDialog(context);
-                                        }
-                                      },
-                                      icon: Icon(
-                                        isLoggedIn
-                                            ? Icons.logout
-                                            : Icons.person_outline,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
+                                    // IconButton(
+                                    //   onPressed: () async {
+                                    //     if (isLoggedIn) {
+                                    //       await adminSettingsController
+                                    //           .logout();
+                                    //       if (context.mounted) {
+                                    //         ScaffoldMessenger.of(context)
+                                    //             .clearSnackBars();
+                                    //         ScaffoldMessenger.of(context)
+                                    //             .showSnackBar(
+                                    //           const SnackBar(
+                                    //               content:
+                                    //                   Text('로그아웃 되었습니다. 👋'),
+                                    //               duration:
+                                    //                   Duration(seconds: 1)),
+                                    //         );
+                                    //       }
+                                    //     } else {
+                                    //       showAdminLoginDialog(context);
+                                    //     }
+                                    //   },
+                                    //   icon: Icon(
+                                    //     isLoggedIn
+                                    //         ? Icons.logout
+                                    //         : Icons.person_outline,
+                                    //     color: Colors.black87,
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                             ],
