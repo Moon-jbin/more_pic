@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:more_pic/global/component/product_card.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
@@ -8,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/model/search_content.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
+import 'package:more_pic/utils/routing/navigation_service.dart';
 
 class ProductListPage extends HookConsumerWidget {
   final ScrollController scrollController;
@@ -394,12 +396,48 @@ class ProductListPage extends HookConsumerWidget {
                     ),
 
                     if (items.isEmpty && !isLoading.value)
-                      const Center(
+                      Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 100),
-                          child: Text('등록된 상품이 없습니다.',
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 15)),
+                          padding: const EdgeInsets.symmetric(vertical: 100),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.inventory_2_outlined,
+                                  size: 60, color: Colors.grey.shade300),
+                              const SizedBox(height: 16),
+                              const Text(
+                                '아직 준비된 상품이 없어요.',
+                                style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '다른 카테고리에서 예쁜 아이템을 찾아보세요!',
+                                style:
+                                    TextStyle(color: Colors.grey, fontSize: 13),
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4A6FA5),
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
+                                ),
+                                onPressed: () {
+                                  // 전체 카테고리나 홈으로 이동 유도
+                                  ref
+                                      .read(searchContentProvider.notifier)
+                                      .initState();
+                                  NavigationService().routerGo(context, '/');
+                                },
+                                child: const Text('전체 상품 보러가기',
+                                    style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 

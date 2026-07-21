@@ -718,23 +718,42 @@ class CustomWidget {
   static Widget customFloatingBtn(
       {required ValueNotifier<bool> showButton,
       required ScrollController scrollController}) {
+    final isHovered = useState(false);
     return AnimatedOpacity(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       opacity: showButton.value ? 1.0 : 0.0,
-      child: showButton.value
-          ? FloatingActionButton(
+      child: IgnorePointer(
+        ignoring: !showButton.value,
+        child: MouseRegion(
+          onEnter: (_) => isHovered.value = true,
+          onExit: (_) => isHovered.value = false,
+          cursor: SystemMouseCursors.click,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            // 호버 시 위로 4px 이동
+            transform:
+                Matrix4.translationValues(0, isHovered.value ? -4 : 0, 0),
+            child: FloatingActionButton.small(
+              heroTag: 'top_button',
               backgroundColor: Colors.white,
+              // isHovered.value ? const Color(0xFF6B4EAD) : Colors.black87,
+              elevation: isHovered.value ? 6 : 2,
               onPressed: () {
                 if (scrollController.hasClients) {
-                  scrollController.animateTo(0,
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeInOutCubic);
+                  scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOutQuart, // 감속 반동 커브
+                  );
                 }
               },
               child:
-                  const Icon(Icons.arrow_upward_rounded, color: Colors.black87),
-            )
-          : const SizedBox.shrink(),
+                  const Icon(Icons.arrow_upward, color: Colors.black, size: 18),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

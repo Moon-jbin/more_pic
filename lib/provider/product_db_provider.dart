@@ -685,7 +685,7 @@ class PaginatedProductNotifier
 
       // 이 상품이 엮여있던 다른 코너들도 싹 새로고침 처리
       for (var cat in productCategories) {
-        print("cat => ${cat}");
+        // print("cat => ${cat}");
         ref.invalidate(paginatedProductProvider(cat));
       }
 
