@@ -526,7 +526,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/db/product_repository.dart';
 
-// 📦 1. 상품 모델 정의 (하이브리드 과거 데이터 방어망 장착)
+// 📦 1. 상품 모델 정의 (하이브리드 과거 데이터 방어망 + LocalStorage 직렬화 지원)
 class ProductModel {
   final String id;
   final String name;
@@ -546,6 +546,7 @@ class ProductModel {
     required this.color,
   });
 
+  // Firestore DocumentSnapshot용 생성자
   factory ProductModel.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
@@ -566,6 +567,32 @@ class ProductModel {
       size: data['size'] ?? '',
       color: data['color'] ?? '',
     );
+  }
+
+  // 1. SharedPreferences (JSON Map) 읽기용 생성자
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    return ProductModel(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      price: json['price'] ?? 0,
+      categoryNames: List<String>.from(json['categoryNames'] ?? []),
+      images: List<String>.from(json['images'] ?? []),
+      size: json['size'] ?? '',
+      color: json['color'] ?? '',
+    );
+  }
+
+  // 2. SharedPreferences (JSON Map) 쓰기용 메서드
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'categoryNames': categoryNames,
+      'images': images,
+      'size': size,
+      'color': color,
+    };
   }
 }
 

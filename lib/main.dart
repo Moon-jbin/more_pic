@@ -6,6 +6,7 @@ import 'package:more_pic/firebase_options.dart';
 import 'package:more_pic/global/component/hover_menu.dart';
 import 'package:more_pic/global/component/product_card.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/global/custom_widget/recently_viewed_floationg_bar.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
@@ -421,7 +422,8 @@ class MorePicWebService extends HookConsumerWidget {
                 ),
               ],
             ),
-            SlidingSearchBar(currentScreenItems: items)
+            SlidingSearchBar(currentScreenItems: items),
+            RecentlyViewedFloatingBar(hasBottomTab: showButton.value),
           ],
         ),
         floatingActionButton: CustomWidget.customFloatingBtn(

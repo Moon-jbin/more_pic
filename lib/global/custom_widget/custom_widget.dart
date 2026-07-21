@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:more_pic/global/custom_widget/recently_viewed_floationg_bar.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/global_provider.dart';
@@ -131,7 +132,8 @@ class CustomScaffold extends HookConsumerWidget {
                 ),
               ],
             ),
-            SlidingSearchBar(currentScreenItems: filterProducts)
+            SlidingSearchBar(currentScreenItems: filterProducts),
+            RecentlyViewedFloatingBar(hasBottomTab: showButton.value),
           ],
         ),
         floatingActionButton: CustomWidget.customFloatingBtn(

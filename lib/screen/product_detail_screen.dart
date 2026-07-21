@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/provider/product_db_provider.dart'; // 🌟 ProductModel 및 가방 프로바이더 위치
 import 'package:flutter/services.dart';
+import 'package:more_pic/provider/recently_viewed_provider.dart';
 
 class ProductDetailScreen extends HookConsumerWidget {
   final String category;
@@ -64,6 +66,13 @@ class ProductDetailScreen extends HookConsumerWidget {
         ),
       );
     }
+
+    useEffect(() {
+    Future.microtask(() {
+      ref.read(recentlyViewedProvider.notifier).addProduct(product);
+    });
+      return null;
+  }, [product]);
 
     return CustomScaffold(
       category: category,
