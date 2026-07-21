@@ -135,270 +135,274 @@ class MorePicWebService extends HookConsumerWidget {
     }
 
     return Scaffold(
-        key: scaffoldKey,
-        backgroundColor: Colors.white,
-        drawer: mobileMode
-            ? CustomWidget.customDrawer(context, ref, currentMenuData)
-            : null,
-        body: Stack(
-          children: [
-            CustomScrollView(
-              controller: scrollController,
-              slivers: [
-                if (isMasterAdmin)
-                  SliverToBoxAdapter(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      color: isEditMode
-                          ? Colors.deepPurple[100]
-                          : Colors.grey[800],
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(children: [
-                            if (isEditMode) ...[
-                              IconButton(
-                                onPressed: () =>
-                                    showProductUploadDlgFn(context),
-                                icon: const Icon(
-                                  Icons.add_a_photo,
-                                  color: Colors.red,
-                                ),
-                                tooltip: '상품 업로드',
-                              ),
-                              IconButton(
-                                onPressed: () => showMenuEditDialog(
-                                    context, currentMenuData),
-                                icon: const Icon(Icons.category,
-                                    color: Colors.blue),
-                                tooltip: '카테고리 메뉴 편집',
-                              )
-                            ]
-                          ]),
-                          Row(
-                            children: [
-                              if (isEditMode) ...[
-                                TextButton.icon(
-                                  onPressed: () {
-                                    adminSettingsController.toggleEditMode();
-                                    ScaffoldMessenger.of(context)
-                                        .clearSnackBars();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('👉 조회 모드로 전환되었습니다.'),
-                                          duration: Duration(seconds: 1)),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.check_circle_outline,
-                                      color: Colors.red, size: 18),
-                                  label: const Text('편집 종료',
-                                      style: TextStyle(color: Colors.red)),
-                                ),
-                              ] else ...[
-                                TextButton.icon(
-                                  onPressed: () {
-                                    adminSettingsController.toggleEditMode();
-                                    ScaffoldMessenger.of(context)
-                                        .clearSnackBars();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('🛠️ 편집 모드가 활성화되었습니다.'),
-                                          duration: Duration(seconds: 1)),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.orangeAccent, size: 18),
-                                  label: const Text('편집 시작',
-                                      style: TextStyle(
-                                          color: Colors.orangeAccent)),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: SliverHeaderDelegate(
-                    height: headerHeight,
-                    isScrolled: isScrolled.value,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: mobileMode ? 10 : 40),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (mobileMode)
-                                Builder(
-                                  builder: (BuildContext innerContext) {
-                                    return IconButton(
-                                      icon: const Icon(Icons.menu,
-                                          color: Colors.black, size: 28),
-                                      onPressed: () {
-                                        Scaffold.of(innerContext).openDrawer();
-                                      },
-                                    );
-                                  },
-                                ),
-                              CustomWidget.customLogo(context, ref,
-                                  fontSize: 38),
-                              if (mobileMode)
-                                Row(
-                                  children: [
-                                    IconButton(
-                                        icon: const Icon(Icons.search),
-                                        onPressed: () => ref
-                                            .read(
-                                                searchBarOpenProvider.notifier)
-                                            .open()),
-                                  ],
-                                ),
-                            ],
-                          ),
-                          if (!mobileMode) ...[
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                    children: currentMenuData
-                                        .map((menu) => DesktopHoverMenu(
-                                            title: menu['title'],
-                                            items: menu['children'] ?? []))
-                                        .toList()),
-                                Row(
-                                  children: [
-                                    IconButton(
-                                        icon: const Icon(Icons.search),
-                                        onPressed: () => ref
-                                            .read(
-                                                searchBarOpenProvider.notifier)
-                                            .open()),
-                                    const SizedBox(width: 4),
-                                    IconButton(
-                                      onPressed: () async {
-                                        if (isLoggedIn) {
-                                          await adminSettingsController
-                                              .logout();
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context)
-                                                .clearSnackBars();
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                  content:
-                                                      Text('로그아웃 되었습니다. 👋'),
-                                                  duration:
-                                                      Duration(seconds: 1)),
-                                            );
-                                          }
-                                        } else {
-                                          showAdminLoginDialog(context);
-                                        }
-                                      },
-                                      icon: Icon(
-                                        isLoggedIn
-                                            ? Icons.logout
-                                            : Icons.person_outline,
-                                        color: Colors.black87,
-                                      ),
-                                      tooltip:
-                                          isLoggedIn ? '로그아웃' : '로그인 / 회원가입',
-                                    )
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ]
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+      key: scaffoldKey,
+      backgroundColor: Colors.white,
+      drawer: mobileMode
+          ? CustomWidget.customDrawer(context, ref, currentMenuData)
+          : null,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              if (isMasterAdmin)
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                        horizontalPadding, 40, horizontalPadding, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    color:
+                        isEditMode ? Colors.deepPurple[100] : Colors.grey[800],
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                            searchContentWatch.searchContent.isEmpty
-                                ? 'NEW ARRIVALS'
-                                : "SEARCH RESULT (${globalSearchWatch.length})",
-                            style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.w900)),
-                        if (searchContentWatch.searchContent.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          TextButton(
-                              onPressed: () => ref
-                                  .read(searchContentProvider.notifier)
-                                  .initState(),
-                              child: const Text('전체보기 돌아가기')),
-                        ],
-                        const SizedBox(height: 20),
-
-                        // 🌟 메인 화면용 필터 & 정렬 위젯 부착 🌟
-                        ProductFilterBar(
-                          totalCount: searchContentWatch.searchContent.isEmpty
-                              ? items.length
-                              : globalSearchWatch.length,
+                        Row(children: [
+                          if (isEditMode) ...[
+                            IconButton(
+                              onPressed: () => showProductUploadDlgFn(context),
+                              icon: const Icon(
+                                Icons.add_a_photo,
+                                color: Colors.red,
+                              ),
+                              tooltip: '상품 업로드',
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  showMenuEditDialog(context, currentMenuData),
+                              icon: const Icon(Icons.category,
+                                  color: Colors.blue),
+                              tooltip: '카테고리 메뉴 편집',
+                            )
+                          ]
+                        ]),
+                        Row(
+                          children: [
+                            if (isEditMode) ...[
+                              TextButton.icon(
+                                onPressed: () {
+                                  adminSettingsController.toggleEditMode();
+                                  ScaffoldMessenger.of(context)
+                                      .clearSnackBars();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('👉 조회 모드로 전환되었습니다.'),
+                                        duration: Duration(seconds: 1)),
+                                  );
+                                },
+                                icon: const Icon(Icons.check_circle_outline,
+                                    color: Colors.red, size: 18),
+                                label: const Text('편집 종료',
+                                    style: TextStyle(color: Colors.red)),
+                              ),
+                            ] else ...[
+                              TextButton.icon(
+                                onPressed: () {
+                                  adminSettingsController.toggleEditMode();
+                                  ScaffoldMessenger.of(context)
+                                      .clearSnackBars();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('🛠️ 편집 모드가 활성화되었습니다.'),
+                                        duration: Duration(seconds: 1)),
+                                  );
+                                },
+                                icon: const Icon(Icons.edit,
+                                    color: Colors.orangeAccent, size: 18),
+                                label: const Text('편집 시작',
+                                    style:
+                                        TextStyle(color: Colors.orangeAccent)),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
-                paginatedStateAsync.when(
-                  loading: () => const SliverToBoxAdapter(
-                      child: Center(child: CircularProgressIndicator())),
-                  error: (err, s) =>
-                      SliverToBoxAdapter(child: Text('Error: $err')),
-                  data: (stateData) {
-                    return SliverPadding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: horizontalPadding, vertical: 10),
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            mainAxisSpacing: 20,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.6),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product =
-                                searchContentWatch.searchContent.isEmpty
-                                    ? items[index]
-                                    : globalSearchWatch[index];
-                            return ProductCard(
-                                product: product,
-                                currentCategory: currentCategory);
-                          },
-                          childCount: searchContentWatch.searchContent.isEmpty
-                              ? items.length
-                              : globalSearchWatch.length,
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: SliverHeaderDelegate(
+                  height: headerHeight,
+                  isScrolled: isScrolled.value,
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: mobileMode ? 10 : 40),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            if (mobileMode)
+                              Builder(
+                                builder: (BuildContext innerContext) {
+                                  return IconButton(
+                                    icon: const Icon(Icons.menu,
+                                        color: Colors.black, size: 28),
+                                    onPressed: () {
+                                      Scaffold.of(innerContext).openDrawer();
+                                    },
+                                  );
+                                },
+                              ),
+                            CustomWidget.customLogo(context, ref, fontSize: 38),
+                            if (mobileMode)
+                              Row(
+                                children: [
+                                  IconButton(
+                                      icon: const Icon(Icons.search),
+                                      onPressed: () => ref
+                                          .read(searchBarOpenProvider.notifier)
+                                          .open()),
+                                ],
+                              ),
+                          ],
                         ),
+                        if (!mobileMode) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                  children: currentMenuData
+                                      .map((menu) => DesktopHoverMenu(
+                                          title: menu['title'],
+                                          items: menu['children'] ?? []))
+                                      .toList()),
+                              Row(
+                                children: [
+                                  IconButton(
+                                      icon: const Icon(Icons.search),
+                                      onPressed: () => ref
+                                          .read(searchBarOpenProvider.notifier)
+                                          .open()),
+                                  const SizedBox(width: 4),
+                                  IconButton(
+                                    onPressed: () async {
+                                      if (isLoggedIn) {
+                                        await adminSettingsController.logout();
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text('로그아웃 되었습니다. 👋'),
+                                                duration: Duration(seconds: 1)),
+                                          );
+                                        }
+                                      } else {
+                                        showAdminLoginDialog(context);
+                                      }
+                                    },
+                                    icon: Icon(
+                                      isLoggedIn
+                                          ? Icons.logout
+                                          : Icons.person_outline,
+                                      color: Colors.black87,
+                                    ),
+                                    tooltip: isLoggedIn ? '로그아웃' : '로그인 / 회원가입',
+                                  )
+                                ],
+                              ),
+                            ],
+                          ),
+                        ]
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                      horizontalPadding, 40, horizontalPadding, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          searchContentWatch.searchContent.isEmpty
+                              ? 'NEW ARRIVALS'
+                              : "SEARCH RESULT (${globalSearchWatch.length})",
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w900)),
+                      if (searchContentWatch.searchContent.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        TextButton(
+                            onPressed: () => ref
+                                .read(searchContentProvider.notifier)
+                                .initState(),
+                            child: const Text('전체보기 돌아가기')),
+                      ],
+                      const SizedBox(height: 20),
+
+                      // 🌟 메인 화면용 필터 & 정렬 위젯 부착 🌟
+                      ProductFilterBar(
+                        totalCount: searchContentWatch.searchContent.isEmpty
+                            ? items.length
+                            : globalSearchWatch.length,
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
-                SliverToBoxAdapter(
-                  child: CustomWidget.customFooter(context, ref,
-                      isMobile: mobileMode),
-                ),
-              ],
-            ),
-            SlidingSearchBar(currentScreenItems: items),
-            RecentlyViewedFloatingBar(hasBottomTab: showButton.value),
-          ],
-        ),
-        floatingActionButton: CustomWidget.customFloatingBtn(
-            showButton: showButton, scrollController: scrollController));
+              ),
+              paginatedStateAsync.when(
+                loading: () => const SliverToBoxAdapter(
+                    child: Center(child: CircularProgressIndicator())),
+                error: (err, s) =>
+                    SliverToBoxAdapter(child: Text('Error: $err')),
+                data: (stateData) {
+                  return SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding, vertical: 10),
+                    sliver: SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          mainAxisSpacing: 20,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.6),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final product =
+                              searchContentWatch.searchContent.isEmpty
+                                  ? items[index]
+                                  : globalSearchWatch[index];
+                          return ProductCard(
+                              product: product,
+                              currentCategory: currentCategory);
+                        },
+                        childCount: searchContentWatch.searchContent.isEmpty
+                            ? items.length
+                            : globalSearchWatch.length,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SliverToBoxAdapter(
+                child: CustomWidget.customFooter(context, ref,
+                    isMobile: mobileMode),
+              ),
+            ],
+          ),
+          SlidingSearchBar(currentScreenItems: items),
+          RecentlyViewedFloatingBar(hasBottomTab: showButton.value),
+        ],
+      ),
+      floatingActionButton: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. 채널톡 Floating 버튼
+          CustomWidget.buildChannelTalkFloatingBtn(context),
+
+          // 2. 기존 맨 위로 가기(Top) 버튼
+          CustomWidget.customFloatingBtn(
+            showButton: showButton,
+            scrollController: scrollController,
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -138,8 +138,20 @@ class CustomScaffold extends HookConsumerWidget {
             RecentlyViewedFloatingBar(hasBottomTab: showButton.value),
           ],
         ),
-        floatingActionButton: CustomWidget.customFloatingBtn(
-            showButton: showButton, scrollController: scrollController));
+        floatingActionButton: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1. 채널톡 Floating 버튼
+            CustomWidget.buildChannelTalkFloatingBtn(context),
+
+            // 2. 기존 맨 위로 가기(Top) 버튼
+            CustomWidget.customFloatingBtn(
+              showButton: showButton,
+              scrollController: scrollController,
+            ),
+          ],
+        ));
   }
 }
 
@@ -718,45 +730,48 @@ class CustomWidget {
     );
   }
 
+  // 🌟 1. Top 버튼: 사라질 때 높이도 0으로 줄어들도록 AnimatedSize 적용
   static Widget customFloatingBtn(
       {required ValueNotifier<bool> showButton,
       required ScrollController scrollController}) {
     final isHovered = useState(false);
-    return AnimatedOpacity(
+
+    // 💡 AnimatedSize를 통해 showButton이 false일 때 버튼 크기를 0으로 축소시킵니다.
+    return AnimatedSize(
       duration: const Duration(milliseconds: 250),
-      opacity: showButton.value ? 1.0 : 0.0,
-      child: IgnorePointer(
-        ignoring: !showButton.value,
-        child: MouseRegion(
-          onEnter: (_) => isHovered.value = true,
-          onExit: (_) => isHovered.value = false,
-          cursor: SystemMouseCursors.click,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            // 호버 시 위로 4px 이동
-            transform:
-                Matrix4.translationValues(0, isHovered.value ? -4 : 0, 0),
-            child: FloatingActionButton.small(
-              heroTag: 'top_button',
-              backgroundColor: Colors.white,
-              // isHovered.value ? const Color(0xFF6B4EAD) : Colors.black87,
-              elevation: isHovered.value ? 6 : 2,
-              onPressed: () {
-                if (scrollController.hasClients) {
-                  scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeOutQuart, // 감속 반동 커브
-                  );
-                }
-              },
-              child:
-                  const Icon(Icons.arrow_upward, color: Colors.black, size: 18),
-            ),
-          ),
-        ),
-      ),
+      curve: Curves.easeOutCubic,
+      child: showButton.value
+          ? Padding(
+              padding: const EdgeInsets.only(top: 12), // 채널톡 버튼과 Top 버튼 사이의 간격
+              child: MouseRegion(
+                onEnter: (_) => isHovered.value = true,
+                onExit: (_) => isHovered.value = false,
+                cursor: SystemMouseCursors.click,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  transform:
+                      Matrix4.translationValues(0, isHovered.value ? -4 : 0, 0),
+                  child: FloatingActionButton.small(
+                    heroTag: 'top_button',
+                    backgroundColor: Colors.white,
+                    elevation: isHovered.value ? 6 : 2,
+                    onPressed: () {
+                      if (scrollController.hasClients) {
+                        scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeOutQuart,
+                        );
+                      }
+                    },
+                    child: const Icon(Icons.arrow_upward,
+                        color: Colors.black, size: 18),
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox(width: 40, height: 0), // 💡 숨겨졌을 때는 높이를 0으로 제거!
     );
   }
 
@@ -947,6 +962,122 @@ class CustomWidget {
         width: width ?? double.infinity,
         height: height ?? double.infinity,
         color: Colors.white, // 배경 영역
+      ),
+    );
+  }
+
+  // // 🌟 PC 환경: 캡슐 통합형 [ 💬 모어픽 채널톡 ]
+  // // 🌟 모바일 환경: 원형 아이콘 [ 💬 ]
+  // static Widget buildChannelTalkFloatingBtn(BuildContext context) {
+  //   final bool mobileMode = isMobile(context); // 모바일 여부 감지
+
+  //   return Material(
+  //     elevation: 4,
+  //     borderRadius: BorderRadius.circular(24),
+  //     color: const Color(0xFFFEE500), // 카카오/채널톡 시그니처 옐로우
+  //     child: InkWell(
+  //       borderRadius: BorderRadius.circular(24),
+  //       onTap: () {
+  //         // 💬 채널톡 URL 이동 또는 SDK 호출
+  //         const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
+
+  //         // 💡 웹 브라우저 환경에서 깔끔하게 새 탭(_blank)을 열어 카카오톡 채널로 점프시킵니다.
+  //         html.window.open(kakaoUrl, '_blank');
+  //       },
+  //       child: AnimatedContainer(
+  //         duration: const Duration(milliseconds: 200),
+  //         padding: EdgeInsets.symmetric(
+  //           horizontal: mobileMode ? 10 : 14,
+  //           vertical: mobileMode ? 10 : 9,
+  //         ),
+  //         child: Row(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             const Icon(
+  //               Icons.chat_bubble_rounded,
+  //               color: Colors.black,
+  //               size: 16,
+  //             ),
+
+  //             // 🌟 모바일이 아닐 때(PC/웹)만 텍스트 노출
+  //             if (!mobileMode) ...[
+  //               const SizedBox(width: 8),
+  //               const Text(
+  //                 '모어픽 채널톡',
+  //                 style: TextStyle(
+  //                   color: Colors.black,
+  //                   fontSize: 12,
+  //                   fontWeight: FontWeight.bold,
+  //                   letterSpacing: -0.3,
+  //                 ),
+  //               ),
+  //             ],
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  // 📁 lib/global/custom_widget/custom_widget.dart
+
+  static Widget buildChannelTalkFloatingBtn(BuildContext context) {
+    final bool mobileMode = isMobile(context);
+
+    if (mobileMode) {
+      // 📱 모바일: 단순 원형 small FAB
+      return FloatingActionButton.small(
+        heroTag: 'channelTalkBtn',
+        elevation: 3,
+        backgroundColor: const Color(0xFFFEE500),
+        // shape: const CircleBorder(),
+        onPressed: () {
+          // 채널톡 열기
+          const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
+
+          // 💡 웹 브라우저 환경에서 깔끔하게 새 탭(_blank)을 열어 카카오톡 채널로 점프시킵니다.
+          html.window.open(kakaoUrl, '_blank');
+        },
+        child: const Icon(
+          Icons.chat_bubble_rounded,
+          color: Colors.black,
+          size: 18,
+        ),
+      );
+    }
+
+    // 💻 PC/웹: small 버전 높이(40px)에 맞춘 슬림 캡슐 FAB
+    return SizedBox(
+      height: 40, // 🌟 small FAB 기본 높이인 40px로 슬림하게 강제 지정!
+      child: FloatingActionButton.extended(
+        heroTag: 'channelTalkBtn',
+        elevation: 3,
+        backgroundColor: const Color(0xFFFEE500),
+        // 상하 패딩과 최소 크기 제약을 40px 높이에 맞춰 축소
+        extendedPadding: const EdgeInsets.symmetric(horizontal: 14),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onPressed: () {
+          // 채널톡 열기
+          const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
+
+          // 💡 웹 브라우저 환경에서 깔끔하게 새 탭(_blank)을 열어 카카오톡 채널로 점프시킵니다.
+          html.window.open(kakaoUrl, '_blank');
+        },
+        icon: const Icon(
+          Icons.chat_bubble_rounded,
+          color: Colors.black,
+          size: 17,
+        ),
+        label: const Text(
+          '모어픽 채널톡',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.3,
+          ),
+        ),
       ),
     );
   }

@@ -25,8 +25,8 @@ class RecentlyViewedFloatingBar extends HookConsumerWidget {
 
     // 💡 탭 유무 및 모바일 여부에 따라 Dynamic Bottom Margin 계산
     final double dynamicBottom = mobileMode
-        ? (hasBottomTab ? 80.0 : 20.0) // 모바일: 탭 있으면 위로 쑥 올려줌
-        : (hasBottomTab ? 100.0 : 20.0); // PC/데스크톱
+        ? (hasBottomTab ? 130.0 : 75.0)
+        : (hasBottomTab ? 130.0 : 75.0);
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 250),
