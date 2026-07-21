@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart'; // 👉 useState를 위해 추가
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/utils/dialog/dlg_function.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ProductCard extends HookConsumerWidget {
   final ProductModel product;
@@ -68,18 +70,10 @@ class ProductCard extends HookConsumerWidget {
                             ? CachedNetworkImage(
                                 imageUrl: product.images.first,
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: const Color(0xFFF2F2F2),
-                                  child: const Center(
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Color(0xFF6B4EAD)),
-                                    ),
-                                  ),
-                                ),
+                                // 👉 이렇게 변경해 보세요!
+                                placeholder: (context, url) =>
+                                    CustomWidget.buildShimmerPlaceholder(),
+                                  
                                 errorWidget: (context, url, error) =>
                                     const Center(
                                   child: Icon(Icons.broken_image_outlined,

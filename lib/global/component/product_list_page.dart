@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:more_pic/global/component/product_card.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/global/custom_widget/product_filter_bar.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -439,6 +440,14 @@ class ProductListPage extends HookConsumerWidget {
                             ],
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 40),
+                      
+                      // 🌟 필터바 추가 🌟
+                      ProductFilterBar(
+                        totalCount: searchContentWatch.searchContent.isEmpty
+                            ? items.length
+                            : globalSearchWatch.length,
                       ),
 
                     // 🏎️ [상품 그리드 섹션 - 1280px 여백 가이드라인 내에 정렬 가동]

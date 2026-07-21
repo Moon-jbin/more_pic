@@ -6,6 +6,7 @@ import 'package:more_pic/firebase_options.dart';
 import 'package:more_pic/global/component/hover_menu.dart';
 import 'package:more_pic/global/component/product_card.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/global/custom_widget/product_filter_bar.dart';
 import 'package:more_pic/global/custom_widget/recently_viewed_floationg_bar.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
@@ -51,13 +52,11 @@ class MorePicWebService extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
 
-    // 🌟 [실시간 동기화 핵심]: 파이어베이스의 로그인 상태를 실시간으로 완전히 구독(watch)합니다.
     final authState = ref.watch(authStateProvider);
     final bool isLoggedIn = authState.value != null;
     final bool isMasterAdmin =
         authState.value?.email == SecretConfig.masterAdminEmail;
 
-    // 🌟 [편집 상태 제어]: state(bool)는 오직 편집 모드의 ON/OFF만 담당합니다.
     final isEditMode = ref.watch(adminSettingsProvider);
     final adminSettingsController = ref.read(adminSettingsProvider.notifier);
 
@@ -111,6 +110,8 @@ class MorePicWebService extends HookConsumerWidget {
           } else {
             if (isScrolled.value) isScrolled.value = false;
           }
+
+          // 무한 스크롤 하단 도달 감지
           if (scrollController.position.pixels >=
               scrollController.position.maxScrollExtent - 200) {
             ref
@@ -144,7 +145,6 @@ class MorePicWebService extends HookConsumerWidget {
             CustomScrollView(
               controller: scrollController,
               slivers: [
-                // 🌟 [최고 관리자 콘솔 띠지]: 어드민일 때만 노출
                 if (isMasterAdmin)
                   SliverToBoxAdapter(
                     child: AnimatedContainer(
@@ -158,7 +158,6 @@ class MorePicWebService extends HookConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(children: [
-                            // 편집 모드가 활성화되었을 때만 기능용 아이콘 노출
                             if (isEditMode) ...[
                               IconButton(
                                 onPressed: () =>
@@ -178,8 +177,6 @@ class MorePicWebService extends HookConsumerWidget {
                               )
                             ]
                           ]),
-
-                          // 오른쪽 액션 버튼 분기
                           Row(
                             children: [
                               if (isEditMode) ...[
@@ -190,7 +187,7 @@ class MorePicWebService extends HookConsumerWidget {
                                         .clearSnackBars();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                          content: Text('🔒 조회 모드로 전환되었습니다.'),
+                                          content: Text('👉 조회 모드로 전환되었습니다.'),
                                           duration: Duration(seconds: 1)),
                                     );
                                   },
@@ -207,7 +204,7 @@ class MorePicWebService extends HookConsumerWidget {
                                         .clearSnackBars();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                          content: Text('🔓 편집 모드가 활성화되었습니다.'),
+                                          content: Text('🛠️ 편집 모드가 활성화되었습니다.'),
                                           duration: Duration(seconds: 1)),
                                     );
                                   },
@@ -224,7 +221,6 @@ class MorePicWebService extends HookConsumerWidget {
                       ),
                     ),
                   ),
-
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: SliverHeaderDelegate(
@@ -253,8 +249,6 @@ class MorePicWebService extends HookConsumerWidget {
                                 ),
                               CustomWidget.customLogo(context, ref,
                                   fontSize: 38),
-
-                              // 📱 [모바일 뷰 검색 & 로그인/로그아웃 스위처]
                               if (mobileMode)
                                 Row(
                                   children: [
@@ -264,34 +258,6 @@ class MorePicWebService extends HookConsumerWidget {
                                             .read(
                                                 searchBarOpenProvider.notifier)
                                             .open()),
-                                    // IconButton(
-                                    //   onPressed: () async {
-                                    //     if (isLoggedIn) {
-                                    //       await adminSettingsController
-                                    //           .logout();
-                                    //       if (context.mounted) {
-                                    //         ScaffoldMessenger.of(context)
-                                    //             .clearSnackBars();
-                                    //         ScaffoldMessenger.of(context)
-                                    //             .showSnackBar(
-                                    //           const SnackBar(
-                                    //               content:
-                                    //                   Text('로그아웃 되었습니다. 👋'),
-                                    //               duration:
-                                    //                   Duration(seconds: 1)),
-                                    //         );
-                                    //       }
-                                    //     } else {
-                                    //       showAdminLoginDialog(context);
-                                    //     }
-                                    //   },
-                                    //   icon: Icon(
-                                    //     isLoggedIn
-                                    //         ? Icons.logout
-                                    //         : Icons.person_outline,
-                                    //     color: Colors.black87,
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                             ],
@@ -307,8 +273,6 @@ class MorePicWebService extends HookConsumerWidget {
                                             title: menu['title'],
                                             items: menu['children'] ?? []))
                                         .toList()),
-
-                                // 💻 [PC 뷰 검색 & 로그인/로그아웃 스위처]
                                 Row(
                                   children: [
                                     IconButton(
@@ -361,7 +325,7 @@ class MorePicWebService extends HookConsumerWidget {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
-                        horizontalPadding, 40, horizontalPadding, 16),
+                        horizontalPadding, 40, horizontalPadding, 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -378,7 +342,15 @@ class MorePicWebService extends HookConsumerWidget {
                                   .read(searchContentProvider.notifier)
                                   .initState(),
                               child: const Text('전체보기 돌아가기')),
-                        ]
+                        ],
+                        const SizedBox(height: 20),
+
+                        // 🌟 메인 화면용 필터 & 정렬 위젯 부착 🌟
+                        ProductFilterBar(
+                          totalCount: searchContentWatch.searchContent.isEmpty
+                              ? items.length
+                              : globalSearchWatch.length,
+                        ),
                       ],
                     ),
                   ),

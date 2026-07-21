@@ -68,11 +68,11 @@ class ProductDetailScreen extends HookConsumerWidget {
     }
 
     useEffect(() {
-    Future.microtask(() {
-      ref.read(recentlyViewedProvider.notifier).addProduct(product);
-    });
+      Future.microtask(() {
+        ref.read(recentlyViewedProvider.notifier).addProduct(product);
+      });
       return null;
-  }, [product]);
+    }, [product]);
 
     return CustomScaffold(
       category: category,
@@ -106,9 +106,8 @@ class ProductDetailScreen extends HookConsumerWidget {
                                   ? product.images[0]
                                   : '',
                               fit: BoxFit.cover,
-                              placeholder: (c, u) => const Center(
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2)),
+                              placeholder: (c, u) =>
+                                  CustomWidget.buildShimmerPlaceholder(),
                               filterQuality: FilterQuality.high,
                               errorWidget: (c, u, e) => const Center(
                                   child: Icon(Icons.broken_image, size: 40)),
@@ -198,13 +197,9 @@ class ProductDetailScreen extends HookConsumerWidget {
                                   fit: BoxFit.contain,
                                   width: double.infinity,
                                   filterQuality: FilterQuality.high,
-                                  placeholder: (c, u) => const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(40),
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    ),
-                                  ),
+                                  placeholder: (c, u) =>
+                                      CustomWidget.buildShimmerPlaceholder(
+                                          height: 500),
                                   errorWidget: (c, u, e) =>
                                       const SizedBox.shrink(),
                                 ),

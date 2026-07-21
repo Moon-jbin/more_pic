@@ -60,7 +60,6 @@ class ProductEditDlg extends HookConsumerWidget {
       try {
         isSubmitting.value = true; // 로딩 가동 및 버튼 락
 
-        // 🚀 Firestore 업데이터 호출 (명세에 없는 productDetail, isSoldOut 제거)
         await ref.read(productRepositoryProvider).updateProductTextInfo(
               productId: product.id,
               name: editedName,

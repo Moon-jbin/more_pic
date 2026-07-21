@@ -15,6 +15,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:html' as html;
 
+import 'package:shimmer/shimmer.dart';
+
 // 💡 [2] 고정 레이아웃과 반응형 컨트롤러를 품은 스캐폴드
 class CustomScaffold extends HookConsumerWidget {
   final Widget Function(BuildContext context, ScrollController scrollController)
@@ -526,8 +528,7 @@ class CustomWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('무통장 계좌정보',
-            style: TextStyle(color: Colors.grey, fontSize: 12)),
+        const Text('입금 계좌', style: TextStyle(color: Colors.grey, fontSize: 12)),
         const SizedBox(height: 12),
 
         // 🌟 [완치 포인트]: Row 대신 Wrap을 사용하여, 화면 우측 경계선에 닿으면
@@ -933,6 +934,19 @@ class CustomWidget {
             ],
           )
         ],
+      ),
+    );
+  }
+
+  static Widget buildShimmerPlaceholder(
+      {double? width, double? height, double borderRadius = 0}) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFE0E0E0), // 바탕이 되는 연한 회색
+      highlightColor: const Color(0xFFF5F5F5), // 지나가는 반짝이는 빛 색상
+      child: Container(
+        width: width ?? double.infinity,
+        height: height ?? double.infinity,
+        color: Colors.white, // 배경 영역
       ),
     );
   }
