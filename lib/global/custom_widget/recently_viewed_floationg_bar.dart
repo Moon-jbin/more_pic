@@ -8,106 +8,119 @@ import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/provider/recently_viewed_provider.dart';
 
 class RecentlyViewedFloatingBar extends HookConsumerWidget {
-  final bool hasBottomTab; // 🌟 하단/상단 탭이 활성화되어 있는지 여부
-
-  const RecentlyViewedFloatingBar({
-    super.key,
-    this.hasBottomTab = false, // 기본값은 false
-  });
+  const RecentlyViewedFloatingBar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recentProducts = ref.watch(recentlyViewedProvider);
     final isExpanded = useState(false);
-    final bool mobileMode = isMobile(context); // 반응형 분기
+    final bool mobileMode = isMobile(context);
 
     if (recentProducts.isEmpty) return const SizedBox.shrink();
 
-    // 💡 탭 유무 및 모바일 여부에 따라 Dynamic Bottom Margin 계산
-    final double dynamicBottom = mobileMode
-        ? (hasBottomTab ? 130.0 : 75.0)
-        : (hasBottomTab ? 130.0 : 75.0);
-
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-      right: 16,
-      bottom: dynamicBottom,
-      child: mobileMode
-          ? _buildMobileWidget(context, recentProducts)
-          : _buildDesktopWidget(context, recentProducts, isExpanded),
-    );
+    // 💡 AnimatedPositioned를 제거하고 Pure Widget 형태로 반환하여 Column/Stack 어디든 삽입 가능
+    return mobileMode
+        ? _buildMobileWidget(context, recentProducts)
+        : _buildDesktopWidget(context, recentProducts, isExpanded);
   }
 }
 
-// 📱 모바일 위젯 분리
+// 📱 모바일 위젯 (40px FAB 규격 적용)
 Widget _buildMobileWidget(
     BuildContext context, List<ProductModel> recentProducts) {
-  return FloatingActionButton.small(
-    heroTag: 'recently_viewed_btn',
-    backgroundColor: Colors.white,
-    elevation: 4,
-    onPressed: () => _showMobileBottomSheet(context, recentProducts),
-    child: Stack(
-      alignment: Alignment.center,
-      children: [
-        const Icon(Icons.history, color: Color(0xFF6B4EAD), size: 20),
-        Positioned(
-          right: 0,
-          top: 0,
-          child: Container(
-            padding: const EdgeInsets.all(3),
-            decoration: const BoxDecoration(
-              color: Colors.redAccent,
-              shape: BoxShape.circle,
+  final lastProduct = recentProducts.first; // 가장 최근 상품
+
+  return SizedBox(
+    height: 40,
+    width: 40,
+    child: FloatingActionButton.small(
+      heroTag: 'recently_viewed_btn',
+      backgroundColor: Colors.white,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      onPressed: () => _showMobileBottomSheet(context, recentProducts),
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          // 🖼️ 최근 상품 썸네일 (없으면 기본 history 아이콘)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: lastProduct.images.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: lastProduct.images.first,
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(Icons.history,
+                      color: Color(0xFF6B4EAD), size: 20),
             ),
-            child: Text(
-              '${recentProducts.length}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
+          ),
+          // 🔴 개수 표시 뱃지
+          Positioned(
+            right: -6,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                '${recentProducts.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
 
-// 💻 데스크톱 위젯 분리
+// 💻 데스크톱 위젯 (40px 패밀리 룩 높이 세팅)
 Widget _buildDesktopWidget(BuildContext context,
     List<ProductModel> recentProducts, ValueNotifier<bool> isExpanded) {
   return Material(
-    elevation: 6,
-    borderRadius: BorderRadius.circular(12),
+    elevation: 4,
+    borderRadius: BorderRadius.circular(14),
     color: Colors.white,
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 40px 높이의 캡슐형 헤더
           InkWell(
+            borderRadius: BorderRadius.circular(14),
             onTap: () => isExpanded.value = !isExpanded.value,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.history, size: 16, color: Color(0xFF6B4EAD)),
-                  const SizedBox(width: 4),
+                  const Icon(Icons.history, size: 18, color: Color(0xFF6B4EAD)),
+                  const SizedBox(width: 6),
                   Text(
                     '최근 본 상품 (${recentProducts.length})',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -117,22 +130,25 @@ Widget _buildDesktopWidget(BuildContext context,
                     isExpanded.value
                         ? Icons.keyboard_arrow_down
                         : Icons.keyboard_arrow_up,
-                    size: 16,
-                    color: Colors.grey,
+                    size: 18,
+                    color: Colors.grey.shade600,
                   ),
                 ],
               ),
             ),
           ),
+          // 펼쳤을 때 나오는 아코디언 목록
           if (isExpanded.value) ...[
-            const Divider(height: 12, thickness: 1),
-            SizedBox(
-              width: 140,
-              child: Column(
-                children: recentProducts.map((product) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: InkWell(
+            const Divider(height: 1, thickness: 1),
+            Container(
+              width: 160,
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: recentProducts.map((product) {
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(8),
                       onTap: () {
                         context.pushNamed(
                           'productDetail',
@@ -144,38 +160,42 @@ Widget _buildDesktopWidget(BuildContext context,
                           },
                         );
                       },
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: SizedBox(
-                              width: 36,
-                              height: 36,
-                              child: product.images.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: product.images.first,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(color: Colors.grey.shade200),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              product.name,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.black87,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 4, horizontal: 4),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: product.images.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: product.images.first,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(color: Colors.grey.shade200),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                product.name,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ],
@@ -194,81 +214,83 @@ void _showMobileBottomSheet(BuildContext context, List<ProductModel> products) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (context) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '최근 본 상품 (${products.length})',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => Navigator.pop(context),
-                )
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 110,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.pushNamed(
-                        'productDetail',
-                        params: {
-                          'category': product.categoryNames.isNotEmpty
-                              ? product.categoryNames.first
-                              : 'all',
-                          'id': product.id,
-                        },
-                      );
-                    },
-                    child: Container(
-                      width: 80,
-                      margin: const EdgeInsets.only(right: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: SizedBox(
-                              width: 80,
-                              height: 80,
-                              child: product.images.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: product.images.first,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(color: Colors.grey.shade200),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            product.name,
-                            style: const TextStyle(fontSize: 11),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '최근 본 상품 (${products.length})',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  )
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 110,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.pushNamed(
+                          'productDetail',
+                          params: {
+                            'category': product.categoryNames.isNotEmpty
+                                ? product.categoryNames.first
+                                : 'all',
+                            'id': product.id,
+                          },
+                        );
+                      },
+                      child: Container(
+                        width: 80,
+                        margin: const EdgeInsets.only(right: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 80,
+                                height: 80,
+                                child: product.images.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: product.images.first,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(color: Colors.grey.shade200),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              product.name,
+                              style: const TextStyle(fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       );
     },

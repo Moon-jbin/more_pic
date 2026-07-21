@@ -23,3 +23,5 @@ String numberFormat(int number) {
 
   return format;
 }
+
+const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';

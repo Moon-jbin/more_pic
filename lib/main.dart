@@ -386,13 +386,14 @@ class MorePicWebService extends HookConsumerWidget {
             ],
           ),
           SlidingSearchBar(currentScreenItems: items),
-          RecentlyViewedFloatingBar(hasBottomTab: showButton.value),
         ],
       ),
       floatingActionButton: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
+          const RecentlyViewedFloatingBar(),
+          const SizedBox(height: 15),
           // 1. 채널톡 Floating 버튼
           CustomWidget.buildChannelTalkFloatingBtn(context),
 

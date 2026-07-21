@@ -135,13 +135,13 @@ class CustomScaffold extends HookConsumerWidget {
               ],
             ),
             SlidingSearchBar(currentScreenItems: filterProducts),
-            RecentlyViewedFloatingBar(hasBottomTab: showButton.value),
           ],
         ),
         floatingActionButton: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
+            const RecentlyViewedFloatingBar(), const SizedBox(height: 15),
             // 1. 채널톡 Floating 버튼
             CustomWidget.buildChannelTalkFloatingBtn(context),
 
@@ -372,8 +372,6 @@ class CustomWidget {
         InkWell(
           borderRadius: BorderRadius.circular(6),
           onTap: () {
-            const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
-
             // 💡 웹 브라우저 환경에서 깔끔하게 새 탭(_blank)을 열어 카카오톡 채널로 점프시킵니다.
             html.window.open(kakaoUrl, '_blank');
           },
@@ -1033,7 +1031,6 @@ class CustomWidget {
         // shape: const CircleBorder(),
         onPressed: () {
           // 채널톡 열기
-          const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
 
           // 💡 웹 브라우저 환경에서 깔끔하게 새 탭(_blank)을 열어 카카오톡 채널로 점프시킵니다.
           html.window.open(kakaoUrl, '_blank');
@@ -1059,7 +1056,6 @@ class CustomWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onPressed: () {
           // 채널톡 열기
-          const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
 
           // 💡 웹 브라우저 환경에서 깔끔하게 새 탭(_blank)을 열어 카카오톡 채널로 점프시킵니다.
           html.window.open(kakaoUrl, '_blank');
