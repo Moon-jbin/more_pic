@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:more_pic/main.dart';
 import 'package:more_pic/global/component/product_list_page.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/screen/order_form_screen.dart';
 import 'package:more_pic/screen/product_detail_screen.dart';
+import 'package:more_pic/utils/routing/router_name.dart';
 
 CustomTransitionPage buildPageWithTransition<T>({
   required BuildContext context,
@@ -45,6 +47,15 @@ final GoRouter router = GoRouter(
         context: context,
         state: state,
         child: const MorePicWebService(),
+      ),
+    ),
+    GoRoute(
+      name: OrderFormScreenRoute,
+      path: OrderFormScreenRoute,
+      pageBuilder: (context, state) => buildPageWithTransition(
+        context: context,
+        state: state,
+        child: const OrderFormScreen(),
       ),
     ),
 

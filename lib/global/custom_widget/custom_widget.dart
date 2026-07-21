@@ -5,30 +5,39 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:more_pic/global/custom_widget/recently_viewed_floationg_bar.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
+import 'package:more_pic/provider/cart_provider.dart';
 import 'package:more_pic/provider/global_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
+import 'package:more_pic/screen/order_form_screen.dart';
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
 import 'package:more_pic/utils/dialog/dlg_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:more_pic/utils/routing/navigation_service.dart';
+import 'package:more_pic/utils/routing/router_name.dart';
 import 'dart:html' as html;
 
 import 'package:shimmer/shimmer.dart';
 
-// 💡 [2] 고정 레이아웃과 반응형 컨트롤러를 품은 스캐폴드
+// 💡 [수정 위치]: lib/global/custom_widget/custom_widget.dart 내 CustomScaffold 클래스 전체
+
+// FILE: lib/global/custom_widget/custom_widget.dart 내 CustomScaffold 클래스 수정
+
 class CustomScaffold extends HookConsumerWidget {
   final Widget Function(BuildContext context, ScrollController scrollController)
       bodyBuilder;
   final String category;
   final bool showSearchIcon;
+  final Widget? bottomNavigationBar;
 
   const CustomScaffold({
     super.key,
     required this.bodyBuilder,
     required this.category,
     this.showSearchIcon = true,
+    this.bottomNavigationBar,
   });
 
   @override
@@ -37,13 +46,15 @@ class CustomScaffold extends HookConsumerWidget {
     final showButton = useState(false);
     final isScrolled = useState(false);
 
+    // 🚀 장바구니 개수 구독
+    final cartCount = ref.watch(cartProvider).length;
+
     final paginatedState = ref.watch(paginatedProductProvider(category));
     final filterProducts = paginatedState.maybeWhen(
       data: (stateData) => stateData.items.cast<ProductModel>(),
       orElse: () => const <ProductModel>[],
     );
 
-    // 🌟 파이어베이스 원격 실시간 메뉴판 장부 구독 감시
     final menuAsync = ref.watch(globalMenuProvider);
     final List<Map<String, dynamic>> currentMenuData = menuAsync.maybeWhen(
       data: (menuList) => menuList,
@@ -78,21 +89,6 @@ class CustomScaffold extends HookConsumerWidget {
             CustomScrollView(
               controller: scrollController,
               slivers: [
-                // SliverToBoxAdapter(
-                //   child: Container(
-                //     width: double.infinity,
-                //     color: const Color(0xFFD4CBE5),
-                //     padding: const EdgeInsets.symmetric(vertical: 8),
-                //     child: const Text(
-                //       '🖤 🖤 가격은 카톡방에서 확인 해주세요 🖤 🖤',
-                //       textAlign: TextAlign.center,
-                //       style: TextStyle(
-                //           color: Colors.black,
-                //           fontWeight: FontWeight.bold,
-                //           fontSize: 14),
-                //     ),
-                //   ),
-                // ),
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: SliverHeaderDelegate(
@@ -114,16 +110,60 @@ class CustomScaffold extends HookConsumerWidget {
                           ),
                           CustomWidget.customLogo(context, ref,
                               fontSize: 24, letterSpacing: 1.5),
-                          if (showSearchIcon)
-                            IconButton(
-                              icon:
-                                  const Icon(Icons.search, color: Colors.black),
-                              onPressed: () => ref
-                                  .read(searchBarOpenProvider.notifier)
-                                  .open(),
-                            )
-                          else
-                            const SizedBox(width: 40),
+
+                          // 🚀 우측 아이콘 그룹 (검색 + 장바구니)
+                          Row(
+                            children: [
+                              if (showSearchIcon)
+                                IconButton(
+                                  icon: const Icon(Icons.search,
+                                      color: Colors.black),
+                                  onPressed: () => ref
+                                      .read(searchBarOpenProvider.notifier)
+                                      .open(),
+                                ),
+
+                              // 🛒 주문서 바로가기 (뱃지)
+                              Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.assignment_outlined,
+                                        color: Colors.black, size: 26),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const OrderFormScreen()),
+                                      );
+                                    },
+                                  ),
+                                  if (cartCount > 0)
+                                    Positioned(
+                                      right: 4,
+                                      top: 4,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                            color: Colors.redAccent,
+                                            shape: BoxShape.circle),
+                                        constraints: const BoxConstraints(
+                                            minWidth: 16, minHeight: 16),
+                                        child: Text(
+                                          '$cartCount',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -137,15 +177,14 @@ class CustomScaffold extends HookConsumerWidget {
             SlidingSearchBar(currentScreenItems: filterProducts),
           ],
         ),
+        bottomNavigationBar: bottomNavigationBar,
         floatingActionButton: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const RecentlyViewedFloatingBar(), const SizedBox(height: 15),
-            // 1. 채널톡 Floating 버튼
+            const RecentlyViewedFloatingBar(),
+            const SizedBox(height: 15),
             CustomWidget.buildChannelTalkFloatingBtn(context),
-
-            // 2. 기존 맨 위로 가기(Top) 버튼
             CustomWidget.customFloatingBtn(
               showButton: showButton,
               scrollController: scrollController,
@@ -175,17 +214,19 @@ class CustomWidget {
 
   static Widget customDrawer(BuildContext context, WidgetRef ref,
       List<Map<String, dynamic>> menuData) {
-    // UI 갱신을 위해 구독
     final adminRead = ref.watch(adminSettingsProvider.notifier);
     final adminSettingsWatch = ref.watch(adminSettingsProvider);
     final adminSettingsRead = ref.watch(adminSettingsProvider.notifier);
+
+    // 🚀 장바구니 품목 수량 구독
+    final cartCount = ref.watch(cartProvider).length;
 
     return Drawer(
       backgroundColor: Colors.white,
       child: Column(
         children: [
           SafeArea(
-            bottom: false, // 하단 SafeArea는 맨 밑에서 따로 처리
+            bottom: false,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
@@ -201,7 +242,7 @@ class CustomWidget {
             ),
           ),
 
-          // 🌟 [관리자 전용: 카테고리 편집기] (상단 유지)
+          // 관리자 전용 메뉴 편집 버튼
           if (adminSettingsWatch)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -221,7 +262,53 @@ class CustomWidget {
 
           if (adminSettingsWatch) const Divider(height: 1),
 
-          // 📋 중앙 카테고리 메뉴 리스트
+          // 🚀 [추가] 드로어 메뉴 목록 상단에 '주문서 작성 (장바구니)' 전용 타일 배치
+          if (cartCount > 0)
+            ListTile(
+              leading:
+                  const Icon(Icons.assignment_outlined, color: Colors.black87),
+              title: Row(
+                children: [
+                  const Text(
+                    '주문서 작성',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  if (cartCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$cartCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              trailing:
+                  const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+              onTap: () {
+                Navigator.pop(context); // 드로어 닫기
+                NavigationService().routerGo(context, OrderFormScreenRoute);
+              },
+            ),
+          if (cartCount > 0)
+            const Divider(height: 1, indent: 16, endIndent: 16),
+
+          // 카테고리 메뉴 리스트
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -231,30 +318,24 @@ class CustomWidget {
             ),
           ),
 
-          // 🌟 [하단: 로그인 / 회원가입 / 로그아웃 버튼]
-          // 메뉴 맨 아래에 은은하고 작은 회색 글씨로 배치
+          // 하단 회원 관련 버튼
           SafeArea(
             top: false,
             child: Padding(
               padding: const EdgeInsets.only(right: 16, bottom: 16, top: 8),
               child: Align(
-                alignment:
-                    Alignment.centerRight, // 우측 하단 정렬 (원하시면 center로 변경 가능)
+                alignment: Alignment.centerRight,
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey.shade500, // 은은한 회색
+                    foregroundColor: Colors.grey.shade500,
                     minimumSize: Size.zero,
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    splashFactory:
-                        NoSplash.splashFactory, // 클릭 시 번짐 효과 제거 (더 깔끔하게)
+                    splashFactory: NoSplash.splashFactory,
                   ),
                   onPressed: () async {
-                    // Navigator.pop(context); // 일단 드로어 메뉴 닫기
-
                     if (adminSettingsRead.isLoggedIn) {
-                      // 🔴 로그인 상태 -> 로그아웃 진행
                       await adminRead.logout();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -262,15 +343,13 @@ class CustomWidget {
                         );
                       }
                     } else {
-                      // 🟢 로그아웃 상태 -> 로그인/회원가입 다이얼로그 호출
-                      // (몽글님이 만드신 login_dlg.dart 의 위젯을 호출해주세요!)
                       showAdminLoginDialog(context);
                     }
                   },
                   child: Text(
                     adminSettingsRead.isLoggedIn ? '로그아웃' : '로그인 / 회원가입',
                     style: const TextStyle(
-                      fontSize: 12, // 작은 글씨
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                       letterSpacing: -0.5,
                     ),
@@ -1075,6 +1154,43 @@ class CustomWidget {
           ),
         ),
       ),
+    );
+  }
+
+  static Widget buildCartBadgeIcon(BuildContext context, int cartCount) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.assignment_outlined,
+              color: Colors.black, size: 26),
+          onPressed: () {
+            NavigationService().routerGo(context, OrderFormScreenRoute);
+          },
+        ),
+        if (cartCount > 0)
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                '$cartCount',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

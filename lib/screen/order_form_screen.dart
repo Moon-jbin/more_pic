@@ -1,0 +1,621 @@
+// FILE: lib/screen/order_form_screen.dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/global/global.dart';
+import 'package:more_pic/provider/cart_provider.dart';
+import 'dart:html' as html;
+
+// 📱 한국 전화번호 자동 하이픈(-) 포맷터
+class PhoneInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text.replaceAll(RegExp(r'\D'), '');
+    var newString = '';
+
+    if (text.length <= 3) {
+      newString = text;
+    } else if (text.length <= 7) {
+      newString = '${text.substring(0, 3)}-${text.substring(3)}';
+    } else if (text.length <= 11) {
+      newString =
+          '${text.substring(0, 3)}-${text.substring(3, 7)}-${text.substring(7)}';
+    } else {
+      newString =
+          '${text.substring(0, 3)}-${text.substring(3, 7)}-${text.substring(7, 11)}';
+    }
+
+    return TextEditingValue(
+      text: newString,
+      selection: TextSelection.collapsed(offset: newString.length),
+    );
+  }
+}
+
+class OrderFormScreen extends HookConsumerWidget {
+  const OrderFormScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cartItems = ref.watch(cartProvider);
+    final cartNotifier = ref.read(cartProvider.notifier);
+
+    // 폼 상태 및 입력 컨트롤러
+    final formKey = useMemoized(() => GlobalKey<FormState>());
+    final nameController = useTextEditingController();
+    final phoneController = useTextEditingController();
+    final addressController = useTextEditingController();
+
+    final isCombinedShipping = useState<bool>(false); // 기존건합배 여부
+
+    final formatCurrency =
+        NumberFormat.currency(locale: "ko_KR", symbol: "", decimalDigits: 0);
+
+    // 금액 계산
+    final productTotalPrice = cartItems.fold<int>(
+      0,
+      (sum, item) => sum + (item.price * item.quantity),
+    );
+
+    // 고정 배송비 3,500원 (합배송 시 0원)
+    final shippingFee = isCombinedShipping.value ? 0 : 3500;
+    final finalTotalPrice = productTotalPrice + shippingFee;
+
+    // 🚀 채널톡 전송용 텍스트 양식 생성 함수 (양식 포맷 완벽 준수)
+    String generateOrderText() {
+      final buffer = StringBuffer();
+      buffer.writeln('이름 : ${nameController.text.trim()}');
+      buffer.writeln('핸드폰 : ${phoneController.text.trim()}');
+      buffer.writeln('주소 : ${addressController.text.trim()}');
+      buffer.writeln('………………………………');
+
+      // 🚀 실제 장바구니 상품들은 ex) 밑의 구분선 위치에 배치
+      for (var item in cartItems) {
+        final itemTotal = item.price * item.quantity;
+        buffer.writeln(
+            '- ${item.name}/${item.color}/${item.size}/${item.quantity}/${formatCurrency.format(itemTotal)}');
+      }
+
+      buffer.writeln('………………………………');
+      buffer.writeln('상품 총 금액');
+      buffer.writeln('₩ ${formatCurrency.format(productTotalPrice)}');
+      buffer.writeln('');
+      buffer.writeln('배송비');
+      if (isCombinedShipping.value) {
+        buffer.writeln('기존건합배');
+      } else {
+        buffer.writeln('₩ ${formatCurrency.format(shippingFee)}');
+      }
+      buffer.writeln('>합배송은 배송비 0원입니다.');
+      buffer.writeln(' "기존건합배" 기재');
+      buffer.writeln('');
+      buffer.writeln('배송비포함 총 입금금액');
+      buffer.writeln('₩ ${formatCurrency.format(finalTotalPrice)}');
+      buffer.writeln('………………………………');
+      buffer.write('예금주)3333377919709 카카오뱅크 문은미');
+
+      return buffer.toString();
+    }
+
+    // 🚀 주문서 복사 및 채널톡 안내 로직 (화면 이동 없음!)
+    void copyAndProcessOrder() {
+      if (cartItems.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('주문서에 담긴 상품이 없습니다.')),
+        );
+        return;
+      }
+
+      if (formKey.currentState!.validate()) {
+        final orderText = generateOrderText();
+
+        // 1. 클립보드에 주문서 텍스트 복사
+        Clipboard.setData(ClipboardData(text: orderText));
+
+        // 2. 안내 다이얼로그 (화면전환 Navigator.pop 없이 복사 완료만 알림)
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: const [
+                Icon(Icons.content_copy_rounded,
+                    color: Colors.black87, size: 24),
+                SizedBox(width: 8),
+                Text('주문서 복사 완료',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '양식에 맞춘 주문서 텍스트가 복사되었습니다!\n모아픽 채널톡 상담창에 붙여넣기(Ctrl+V / 긴 터치) 해주세요.',
+                  style: TextStyle(height: 1.4, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  height: 180,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      orderText,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext), // 다이얼로그만 닫음
+                child: const Text('닫기',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.grey)),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFEE500),
+                ),
+                onPressed: () {
+                  // Navigator.pop(dialogContext); // 다이얼로그 닫기
+                  // ChannelTalk 플로팅 버튼 동작 실행 (채널톡 문의창 열기)
+                  html.window.open(kakaoUrl, '_blank');
+                },
+                icon: const Icon(Icons.chat_bubble_rounded,
+                    color: Colors.black, size: 18),
+                label: const Text('채널톡 열기',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      // letterSpacing: -0.3,
+                    )),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    return CustomScaffold(
+      category: '주문서 작성',
+      showSearchIcon: true,
+      bodyBuilder: (context, scrollController) {
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 서브 헤더 안내 박스
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.assignment_outlined,
+                                  color: Colors.black87, size: 24),
+                              SizedBox(width: 8),
+                              Text(
+                                '주문서 작성',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '주문자 정보를 입력 후 주문서를 복사하여 채널톡으로 전달해 주세요.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 장바구니가 비어있는 경우
+                    if (cartItems.isEmpty) ...[
+                      const SizedBox(height: 60),
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.remove_shopping_cart_outlined,
+                                size: 64, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              '주문서에 담긴 상품이 없습니다.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      // 1. 주문자 정보
+                      const Text(
+                        '주문자 정보',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const Divider(),
+                      const SizedBox(height: 8),
+
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: '이름 :',
+                          hintText: '성함을 입력해 주세요',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return '이름을 입력해 주세요.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      TextFormField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          PhoneInputFormatter(),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: '핸드폰 :',
+                          hintText: '010-0000-0000',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return '핸드폰 번호를 입력해 주세요.';
+                          }
+                          if (value.trim().length < 12) {
+                            return '올바른 전화번호를 입력해 주세요.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      TextFormField(
+                        controller: addressController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: '주소 :',
+                          hintText: '배송 받으실 전체 주소를 입력해 주세요',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on_outlined),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return '주소를 입력해 주세요.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 28),
+
+                      // 2. 주문LIST 영역
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            '주문LIST',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => cartNotifier.clearCart(),
+                            icon: const Icon(Icons.delete_outline,
+                                size: 18, color: Colors.grey),
+                            label: const Text('전체 비우기',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '[상품명/색상/사이즈/수량/금액]',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500),
+                      ),
+                      const Divider(),
+
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: cartItems.length,
+                        separatorBuilder: (context, index) =>
+                            const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = cartItems[index];
+                          final itemTotal = item.price * item.quantity;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              children: [
+                                const Text('• ',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16)),
+                                Expanded(
+                                  child: Text(
+                                    '${item.name}/${item.color}/${item.size}/${item.quantity}/${formatCurrency.format(itemTotal)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                          Icons.remove_circle_outline,
+                                          size: 18),
+                                      onPressed: () {
+                                        if (item.quantity > 1) {
+                                          cartNotifier.updateQuantity(
+                                              item.id, item.quantity - 1);
+                                        }
+                                      },
+                                    ),
+                                    Text('${item.quantity}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    IconButton(
+                                      icon: const Icon(Icons.add_circle_outline,
+                                          size: 18),
+                                      onPressed: () {
+                                        cartNotifier.updateQuantity(
+                                            item.id, item.quantity + 1);
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close,
+                                          size: 16, color: Colors.grey),
+                                      onPressed: () =>
+                                          cartNotifier.removeItem(item.id),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 28),
+
+                      // 3. 금액 정보
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('상품 총 금액',
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                  '₩ ${formatCurrency.format(productTotalPrice)}',
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text('배송비',
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 8),
+                                    // InkWell(
+                                    //   onTap: () {
+                                    //     isCombinedShipping.value =
+                                    //         !isCombinedShipping.value;
+                                    //   },
+                                    //   child: Row(
+                                    //     children: [
+                                    //       SizedBox(
+                                    //         width: 24,
+                                    //         height: 24,
+                                    //         child: Checkbox(
+                                    //           value: isCombinedShipping.value,
+                                    //           activeColor: Colors.black,
+                                    //           onChanged: (val) {
+                                    //             isCombinedShipping.value =
+                                    //                 val ?? false;
+                                    //           },
+                                    //         ),
+                                    //       ),
+                                    //       const SizedBox(width: 4),
+                                    //       const Text(
+                                    //         '기존건합배 (배송비 0원)',
+                                    //         style: TextStyle(
+                                    //             fontSize: 12,
+                                    //             color: Colors.blueAccent,
+                                    //             fontWeight: FontWeight.w600),
+                                    //       ),
+                                    //     ],
+                                    //   ),
+                                    // ),
+                                  ],
+                                ),
+                                Text(
+                                  isCombinedShipping.value
+                                      ? '₩ 0'
+                                      : '₩ ${formatCurrency.format(shippingFee)}',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: isCombinedShipping.value
+                                        ? Colors.blueAccent
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Padding(
+                            //   padding: const EdgeInsets.only(top: 4),
+                            //   child: Text(
+                            //     '>합배송은 배송비 0원입니다. "기존건합배" 기재',
+                            //     style: TextStyle(
+                            //         fontSize: 12, color: Colors.grey.shade600),
+                            //   ),
+                            // ),
+                            const Divider(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  '배송비포함 총 입금금액',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '₩ ${formatCurrency.format(finalTotalPrice)}',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 입금 계좌 안내
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              '입금 계좌 안내',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            SelectableText(
+                              '예금주)3333377919709 카카오뱅크 문은미',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+
+                      // 🚀 주문서 복사 버튼 (화면 이동 없음)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: copyAndProcessOrder,
+                          icon: const Icon(Icons.copy, size: 20),
+                          label: const Text(
+                            '주문서 작성 완료 (복사하기)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

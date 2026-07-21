@@ -11,6 +11,7 @@ import 'package:more_pic/global/custom_widget/recently_viewed_floationg_bar.dart
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
+import 'package:more_pic/provider/cart_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/secret.dart';
@@ -80,6 +81,8 @@ class MorePicWebService extends HookConsumerWidget {
       data: (stateData) => stateData.items.cast<ProductModel>(),
       orElse: () => const <ProductModel>[],
     );
+
+    final cartCount = ref.watch(cartProvider).length;
 
     useEffect(() {
       paginatedStateAsync.whenData((stateData) {
@@ -254,6 +257,8 @@ class MorePicWebService extends HookConsumerWidget {
                                       onPressed: () => ref
                                           .read(searchBarOpenProvider.notifier)
                                           .open()),
+                                  // CustomWidget.buildCartBadgeIcon(
+                                  //     context, cartCount),
                                 ],
                               ),
                           ],
@@ -276,6 +281,8 @@ class MorePicWebService extends HookConsumerWidget {
                                       onPressed: () => ref
                                           .read(searchBarOpenProvider.notifier)
                                           .open()),
+                                  CustomWidget.buildCartBadgeIcon(
+                                      context, cartCount),
                                   const SizedBox(width: 4),
                                   IconButton(
                                     onPressed: () async {

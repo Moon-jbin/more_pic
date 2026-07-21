@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/global/custom_widget/product_detail_bottom_bar.dart';
 import 'package:more_pic/provider/product_db_provider.dart'; // 🌟 ProductModel 및 가방 프로바이더 위치
 import 'package:flutter/services.dart';
 import 'package:more_pic/provider/recently_viewed_provider.dart';
@@ -74,9 +75,34 @@ class ProductDetailScreen extends HookConsumerWidget {
       return null;
     }, [product]);
 
+    // 🚀 [추가] DB에 문자열로 저장된 color와 size를 모달에서 사용할 수 있게 List로 변환
+    List<String> parsedColors = product.color.isNotEmpty && product.color != "-"
+        ? product.color
+            .split(RegExp(r'[,/|]'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : ['단일 색상'];
+
+    List<String> parsedSizes = product.size.isNotEmpty && product.size != "-"
+        ? product.size
+            .split(RegExp(r'[,/|]'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : ['Free'];
+
     return CustomScaffold(
       category: category,
       showSearchIcon: false,
+      // 🚀 [추가] 하단 고정 바 연동!
+      bottomNavigationBar: ProductDetailBottomBar(
+        productId: product.id,
+        productName: product.name,
+        price: product.price,
+        colors: parsedColors,
+        sizes: parsedSizes,
+      ),
       bodyBuilder: (context, scrollController) {
         return SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
