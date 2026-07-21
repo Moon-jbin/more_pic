@@ -87,7 +87,142 @@ Widget _buildMobileWidget(
   );
 }
 
-// 💻 데스크톱 위젯 (40px 패밀리 룩 높이 세팅)
+// // 💻 데스크톱 위젯 (우측 정렬 및 너비 제한 처리)
+// Widget _buildDesktopWidget(BuildContext context,
+//     List<ProductModel> recentProducts, ValueNotifier<bool> isExpanded) {
+//   return Align(
+//     alignment: Alignment.centerRight, // 🌟 전체 폭을 차지하지 않고 우측 정렬
+//     child: Material(
+//       elevation: 4,
+//       borderRadius: BorderRadius.circular(14),
+//       color: Colors.white,
+//       child: AnimatedContainer(
+//         duration: const Duration(milliseconds: 250),
+//         curve: Curves.easeOutCubic,
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(14),
+//           border: Border.all(color: Colors.grey.shade200),
+//         ),
+//         child: IntrinsicWidth(
+//           // 🌟 콘텐츠 크기에 맞춰 너비 자동 축소
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             crossAxisAlignment: CrossAxisAlignment.end, // 우측 정렬
+//             children: [
+//               // 40px 높이의 캡슐형 헤더
+//               InkWell(
+//                 borderRadius: BorderRadius.circular(14),
+//                 onTap: () => isExpanded.value = !isExpanded.value,
+//                 child: Container(
+//                   width: 155,
+//                   height: 40,
+//                   padding: const EdgeInsets.symmetric(horizontal: 16),
+//                   child: Row(
+//                     // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     mainAxisSize: MainAxisSize.min, // 🌟 최소 폭만 차지
+//                     children: [
+//                       Row(
+//                         children: [
+//                           const Icon(Icons.history,
+//                               size: 18, color: Color(0xFF6B4EAD)),
+//                           const SizedBox(width: 6),
+//                           Text(
+//                             '최근 본 상품 (${recentProducts.length})',
+//                             style: const TextStyle(
+//                               fontSize: 12,
+//                               fontWeight: FontWeight.bold,
+//                               color: Colors.black87,
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+
+//                       // const SizedBox(width: 4),
+//                       Icon(
+//                         isExpanded.value
+//                             ? Icons.keyboard_arrow_down
+//                             : Icons.keyboard_arrow_up,
+//                         size: 16,
+//                         color: Colors.grey.shade600,
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ),
+//               // 펼쳤을 때 나오는 아코디언 목록
+//               if (isExpanded.value) ...[
+//                 const Divider(height: 1, thickness: 1),
+//                 Container(
+//                   width: 180, // 🌟 열렸을 때의 고정/최대 너비 지정
+//                   padding: const EdgeInsets.all(8),
+//                   constraints: const BoxConstraints(maxHeight: 220),
+//                   child: SingleChildScrollView(
+//                     child: Column(
+//                       mainAxisSize: MainAxisSize.min,
+//                       children: recentProducts.map((product) {
+//                         return InkWell(
+//                           borderRadius: BorderRadius.circular(8),
+//                           onTap: () {
+//                             context.pushNamed(
+//                               'productDetail',
+//                               params: {
+//                                 'category': product.categoryNames.isNotEmpty
+//                                     ? product.categoryNames.first
+//                                     : 'all',
+//                                 'id': product.id,
+//                               },
+//                             );
+//                           },
+//                           child: Padding(
+//                             padding: const EdgeInsets.symmetric(
+//                                 vertical: 4, horizontal: 4),
+//                             child: Row(
+//                               children: [
+//                                 ClipRRect(
+//                                   borderRadius: BorderRadius.circular(6),
+//                                   child: SizedBox(
+//                                     width: 32,
+//                                     height: 32,
+//                                     child: product.images.isNotEmpty
+//                                         ? CachedNetworkImage(
+//                                             imageUrl: product.images.first,
+//                                             fit: BoxFit.cover,
+//                                           )
+//                                         : Container(
+//                                             color: Colors.grey.shade200),
+//                                   ),
+//                                 ),
+//                                 const SizedBox(width: 8),
+//                                 Expanded(
+//                                   child: Text(
+//                                     product.name,
+//                                     style: const TextStyle(
+//                                       fontSize: 11,
+//                                       color: Colors.black87,
+//                                     ),
+//                                     maxLines: 1,
+//                                     overflow: TextOverflow.ellipsis,
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         );
+//                       }).toList(),
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             ],
+//           ),
+//         ),
+//       ),
+//     ),
+//   );
+// }
+
+// 💻 데스크톱 위젯 (고정 너비 + 부드러운 아코디언 애니메이션)
 Widget _buildDesktopWidget(BuildContext context,
     List<ProductModel> recentProducts, ValueNotifier<bool> isExpanded) {
   return Material(
@@ -97,6 +232,7 @@ Widget _buildDesktopWidget(BuildContext context,
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
+      width: 170, // 🌟 펼쳐지거나 닫혀있을 때 항상 일정한 width 유지
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -104,6 +240,7 @@ Widget _buildDesktopWidget(BuildContext context,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 40px 높이의 캡슐형 헤더
           InkWell(
@@ -111,21 +248,27 @@ Widget _buildDesktopWidget(BuildContext context,
             onTap: () => isExpanded.value = !isExpanded.value,
             child: Container(
               height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween, // 🌟 양끝 정렬로 형태 균형 유지
                 children: [
-                  const Icon(Icons.history, size: 18, color: Color(0xFF6B4EAD)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '최근 본 상품 (${recentProducts.length})',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.history,
+                          size: 18, color: Color(0xFF6B4EAD)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '최근 본 상품 (${recentProducts.length})',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
                   Icon(
                     isExpanded.value
                         ? Icons.keyboard_arrow_down
@@ -137,68 +280,80 @@ Widget _buildDesktopWidget(BuildContext context,
               ),
             ),
           ),
-          // 펼쳤을 때 나오는 아코디언 목록
-          if (isExpanded.value) ...[
-            const Divider(height: 1, thickness: 1),
-            Container(
-              width: 160,
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(maxHeight: 220),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: recentProducts.map((product) {
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () {
-                        context.pushNamed(
-                          'productDetail',
-                          params: {
-                            'category': product.categoryNames.isNotEmpty
-                                ? product.categoryNames.first
-                                : 'all',
-                            'id': product.id,
-                          },
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 4, horizontal: 4),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: product.images.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: product.images.first,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(color: Colors.grey.shade200),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                product.name,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.black87,
+          // 🌟 펼침 애니메이션 (높이가 부드럽게 조절됨)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            child: isExpanded.value
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Divider(height: 1, thickness: 1),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        constraints: const BoxConstraints(maxHeight: 220),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: recentProducts.map((product) {
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () {
+                                  context.pushNamed(
+                                    'productDetail',
+                                    params: {
+                                      'category':
+                                          product.categoryNames.isNotEmpty
+                                              ? product.categoryNames.first
+                                              : 'all',
+                                      'id': product.id,
+                                    },
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 4, horizontal: 4),
+                                  child: Row(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: SizedBox(
+                                          width: 32,
+                                          height: 32,
+                                          child: product.images.isNotEmpty
+                                              ? CachedNetworkImage(
+                                                  imageUrl:
+                                                      product.images.first,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : Container(
+                                                  color: Colors.grey.shade200),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          product.name,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-          ],
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     ),
