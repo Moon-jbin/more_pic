@@ -7,6 +7,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:more_pic/db/product_repository.dart';
+import 'package:more_pic/global/component/tag_input_widget.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:cross_file/cross_file.dart';
@@ -19,10 +20,13 @@ class ProductUploadDlg extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nameController = useTextEditingController();
     final priceController = useTextEditingController();
-    final sizeController = useTextEditingController();
+    // final sizeController = useTextEditingController();
     final descriptionController = useTextEditingController();
-    final colorController = useTextEditingController();
+    // final colorController = useTextEditingController();
     final shippingMethodController = useTextEditingController();
+
+    final sizeTags = useState<List<String>>([]);
+    final colorTags = useState<List<String>>([]);
 
     final productImages = useState<List<XFile>>([]);
     final isLoading = useState<bool>(false);
@@ -325,9 +329,9 @@ class ProductUploadDlg extends HookConsumerWidget {
               name: nameController.text.trim(),
               price: int.parse(priceController.text.trim()),
               categories: finalCategories,
-              size: sizeController.text.trim(),
+              size: sizeTags.value.join(', '),
               productDetail: descriptionController.text.trim(),
-              color: colorController.text.trim(),
+              color: colorTags.value.join(', '),
               shippingType: shippingType.value,
               shippingMethod: shippingMethodController.text.trim(),
               imageFiles: productImages.value,
@@ -624,16 +628,20 @@ class ProductUploadDlg extends HookConsumerWidget {
                               labelText: '판매 가격(원) *',
                               border: OutlineInputBorder())),
                       const SizedBox(height: 12),
-                      TextField(
-                          controller: sizeController,
-                          decoration: const InputDecoration(
-                              labelText: '사이즈', border: OutlineInputBorder())),
+                      Text('개발자: 사이즈를 한 개 입력 후 엔터를 눌러주세요.'),
+                      TagInputWidget(
+                        labelText: '사이즈 규격 (입력 후 Enter 또는 쉼표)',
+                        hintText: '예: S, M, L, JS, JM',
+                        prefixIcon: Icons.straighten_outlined,
+                        tagsNotifier: sizeTags,
+                      ),
                       const SizedBox(height: 12),
-                      TextField(
-                          controller: colorController,
-                          decoration: const InputDecoration(
-                              labelText: '상품 색상 (예: 크림, 민트, 차콜)',
-                              border: OutlineInputBorder())),
+                      TagInputWidget(
+                        labelText: '상품 색상 (입력 후 Enter 또는 쉼표)',
+                        hintText: '예: 크림, 민트, 차콜',
+                        prefixIcon: Icons.palette_outlined,
+                        tagsNotifier: colorTags,
+                      ),
                       const SizedBox(height: 12),
                       TextField(
                           controller: descriptionController,
