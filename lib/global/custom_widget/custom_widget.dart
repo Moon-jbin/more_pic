@@ -89,6 +89,19 @@ class CustomScaffold extends HookConsumerWidget {
             CustomScrollView(
               controller: scrollController,
               slivers: [
+                SliverToBoxAdapter(
+                  child: Container(
+                    alignment: Alignment.center,
+                    color: Colors.deepPurple[100],
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: const Text(
+                      '♥ 로그인 시 회원가 확인 가능 ♥',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: SliverHeaderDelegate(
