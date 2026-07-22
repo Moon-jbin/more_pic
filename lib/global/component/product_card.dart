@@ -107,8 +107,8 @@ class ProductCard extends HookConsumerWidget {
                               padding: const EdgeInsets.all(6),
                               icon: const Icon(Icons.edit_outlined,
                                   color: Color(0xFF4A6FA5), size: 18),
-                              onPressed: () {
-                                showProductEditDlgFn(
+                              onPressed: () async {
+                                await showProductEditDlgFn(
                                   context,
                                   product: product,
                                   currentCategory: currentCategory,
@@ -126,6 +126,9 @@ class ProductCard extends HookConsumerWidget {
                               padding: const EdgeInsets.all(6),
                               icon: const Icon(Icons.delete_outline,
                                   color: Colors.red, size: 18),
+
+                              // FILE: lib/global/component/product_card.dart 내 삭제 버튼 onPressed 부분
+
                               onPressed: () async {
                                 await showOkCancelDlg(
                                   width: 400,
@@ -135,24 +138,83 @@ class ProductCard extends HookConsumerWidget {
                                   onCancel: () => Navigator.pop(context),
                                   onTap: () async {
                                     final String targetCat = currentCategory;
-                                    await ref
-                                        .read(
-                                            paginatedProductProvider(targetCat)
-                                                .notifier)
-                                        .deleteProduct(
-                                          productId: product.id,
-                                          targetCategory: targetCat,
-                                          productCategories:
-                                              product.categoryNames,
-                                        );
+                                    Navigator.pop(context); // 1. 기존 삭제 확인 팝업 닫기
 
-                                    ref.invalidate(
-                                        paginatedProductProvider('all'));
-                                    for (var cat in product.categoryNames) {
+                                    // 🚀 2. '삭제 중...' 로딩 다이얼로그 즉시 출력
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (dialogCtx) => AlertDialog(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12)),
+                                        content: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 12),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: const [
+                                              CircularProgressIndicator(
+                                                  color: Colors.redAccent),
+                                              SizedBox(height: 20),
+                                              Text(
+                                                '상품 데이터 및 이미지 삭제 중...',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              SizedBox(height: 6),
+                                              Text(
+                                                '잠시만 기다려 주세요.',
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+
+                                    try {
+                                      // 🚀 3. 실제 DB & Storage 병렬 삭제 수행
+                                      await ref
+                                          .read(paginatedProductProvider(
+                                                  targetCat)
+                                              .notifier)
+                                          .deleteProduct(
+                                            productId: product.id,
+                                            targetCategory: targetCat,
+                                            productCategories:
+                                                product.categoryNames,
+                                          );
+
                                       ref.invalidate(
-                                          paginatedProductProvider(cat));
+                                          paginatedProductProvider('all'));
+                                      for (var cat in product.categoryNames) {
+                                        ref.invalidate(
+                                            paginatedProductProvider(cat));
+                                      }
+                                    } finally {
+                                      // 🚀 4. 삭제 완료 후 로딩 팝업 닫기 및 완료 안내
+                                      if (context.mounted) {
+                                        Navigator.of(context,
+                                                rootNavigator: true)
+                                            .pop(); // 로딩 팝업 닫기
+                                        ScaffoldMessenger.of(context)
+                                            .clearSnackBars();
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                '🗑️ 상품과 관련 이미지가 깔끔하게 삭제되었습니다.'),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
                                     }
-                                    Navigator.pop(context);
                                   },
                                 );
                               },

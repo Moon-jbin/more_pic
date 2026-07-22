@@ -104,7 +104,7 @@ showOkCancelDlg(BuildContext context,
 }
 
 // 🌟 [새 기능 도킹]: 상품 정보 수정 팝업 호출 가이드
-void showProductEditDlgFn(BuildContext context,
+showProductEditDlgFn(BuildContext context,
     {required dynamic product, required String currentCategory}) {
   showCustomDialog(
     context,

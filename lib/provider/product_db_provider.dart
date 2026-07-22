@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/provider/product_filter_provider.dart';
 
@@ -153,6 +154,10 @@ class PaginatedProductNotifier
     });
   }
 
+  // FILE: lib/provider/product_db_provider.dart
+
+  // FILE: lib/provider/product_db_provider.dart
+
   Future<void> deleteProduct({
     required String productId,
     required String targetCategory,
@@ -163,9 +168,32 @@ class PaginatedProductNotifier
       final docRef =
           FirebaseFirestore.instance.collection('products').doc(productId);
 
+      // 삭제 전 스토리지 이미지 URL 추출
+      final docSnapshot = await docRef.get();
+      List<String> imageUrlsToDelete = [];
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data() as Map<String, dynamic>;
+        imageUrlsToDelete = List<String>.from(data['images'] ?? []);
+      }
+
       if (targetCategory == 'all') {
+        // 1. Firestore 문서 삭제
         await docRef.delete();
+
+        // 🚀 2. Future.wait로 스토리지 이미지들을 '동시 병렬 삭제' (속도 대폭 향상!)
+        if (imageUrlsToDelete.isNotEmpty) {
+          await Future.wait(
+            imageUrlsToDelete.map((url) async {
+              try {
+                await FirebaseStorage.instance.refFromURL(url).delete();
+              } catch (e) {
+                print("스토리지 이미지 삭제 중 에러 (무시 가능): $e");
+              }
+            }),
+          );
+        }
       } else {
+        // 특정 카테고리에서만 제거 시도
         await docRef.update({
           'categories': FieldValue.arrayRemove([targetCategory]),
         });
@@ -173,7 +201,21 @@ class PaginatedProductNotifier
         if (updatedDoc.exists) {
           final updatedData = updatedDoc.data() as Map<String, dynamic>;
           final List remainingCategories = updatedData['categories'] ?? [];
-          if (remainingCategories.isEmpty) await docRef.delete();
+
+          if (remainingCategories.isEmpty) {
+            await docRef.delete();
+            if (imageUrlsToDelete.isNotEmpty) {
+              await Future.wait(
+                imageUrlsToDelete.map((url) async {
+                  try {
+                    await FirebaseStorage.instance.refFromURL(url).delete();
+                  } catch (e) {
+                    print("스토리지 이미지 삭제 중 에러: $e");
+                  }
+                }),
+              );
+            }
+          }
         }
       }
 
