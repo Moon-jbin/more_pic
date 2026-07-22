@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:more_pic/data/new_born_clothes_data.dart';
@@ -26,3 +27,7 @@ String numberFormat(int number) {
 
 const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
 const String accountNumber = '3333-37-7919709';
+
+final bool isDesktopOrWeb = defaultTargetPlatform == TargetPlatform.macOS ||
+    defaultTargetPlatform == TargetPlatform.windows ||
+    defaultTargetPlatform == TargetPlatform.linux;

@@ -99,6 +99,60 @@ class ProductRepository {
       throw Exception('상품 정보 수정 중 서버 통신 실패: $e');
     }
   }
+
+  // 📌 [신규 추가]: 텍스트 + 이미지 혼합 수정 (순서 변경, 삭제, 신규 추가 완벽 반영)
+  Future<void> updateProductWithImages({
+    required String productId,
+    required String name,
+    required int price,
+    required String size,
+    required String color,
+    required List<dynamic> mixedImages, // String(기존 URL)과 XFile(새 이미지) 혼합 배열
+    required Function(double, String) onProgress,
+  }) async {
+    List<String> finalImageUrls = [];
+    onProgress(0.1, "데이터 분석 및 업로드 준비 중...");
+
+    try {
+      for (int i = 0; i < mixedImages.length; i++) {
+        final item = mixedImages[i];
+        final progressRatio = 0.1 + ((i / mixedImages.length) * 0.7);
+        onProgress(progressRatio, "이미지 처리 중 (${i + 1}/${mixedImages.length})...");
+
+        if (item is String) {
+          // 기존에 있던 이미지 URL은 새로 업로드할 필요 없이 그대로 유지
+          finalImageUrls.add(item);
+        } else if (item is XFile) {
+          // 새로 추가된 파일은 Storage에 업로드 후 URL 추출
+          final ref = FirebaseStorage.instance
+              .ref()
+              .child('products')
+              .child('${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
+          final uploadTask = ref.putData(await item.readAsBytes());
+          final snapshot = await uploadTask;
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+          finalImageUrls.add(downloadUrl);
+        }
+      }
+
+      onProgress(0.9, "데이터베이스 최종 업데이트 중...");
+
+      // 텍스트 정보와 재정렬된 이미지 배열을 한 번에 업데이트!
+      await _db.collection('products').doc(productId).update({
+        'name': name,
+        'price': price,
+        'size': size,
+        'color': color,
+        'images': finalImageUrls, 
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      onProgress(1.0, "수정 완료!");
+    } catch (e) {
+      onProgress(0.0, "이미지 처리 중 에러 발생: $e");
+      rethrow;
+    }
+  }
 }
 
 // 리버팟 프로바이더 도킹 (기존 변수명과 일치)

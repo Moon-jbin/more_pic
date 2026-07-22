@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/global/component/tag_input_widget.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:more_pic/provider/search_provider.dart';
@@ -20,13 +21,13 @@ class ProductUploadDlg extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nameController = useTextEditingController();
     final priceController = useTextEditingController();
-    // final sizeController = useTextEditingController();
+    final sizeController = useTextEditingController();
     final descriptionController = useTextEditingController();
-    // final colorController = useTextEditingController();
+    final colorController = useTextEditingController();
     final shippingMethodController = useTextEditingController();
 
-    final sizeTags = useState<List<String>>([]);
-    final colorTags = useState<List<String>>([]);
+    // final sizeTags = useState<List<String>>([]);
+    // final colorTags = useState<List<String>>([]);
 
     final productImages = useState<List<XFile>>([]);
     final isLoading = useState<bool>(false);
@@ -329,9 +330,9 @@ class ProductUploadDlg extends HookConsumerWidget {
               name: nameController.text.trim(),
               price: int.parse(priceController.text.trim()),
               categories: finalCategories,
-              size: sizeTags.value.join(', '),
+              size: sizeController.text,
               productDetail: descriptionController.text.trim(),
-              color: colorTags.value.join(', '),
+              color: colorController.text,
               shippingType: shippingType.value,
               shippingMethod: shippingMethodController.text.trim(),
               imageFiles: productImages.value,
@@ -628,19 +629,22 @@ class ProductUploadDlg extends HookConsumerWidget {
                               labelText: '판매 가격(원) *',
                               border: OutlineInputBorder())),
                       const SizedBox(height: 12),
-                      Text('개발자: 사이즈를 한 개 입력 후 엔터를 눌러주세요.'),
-                      TagInputWidget(
-                        labelText: '사이즈 규격 (입력 후 Enter 또는 쉼표)',
-                        hintText: '예: S, M, L, JS, JM',
-                        prefixIcon: Icons.straighten_outlined,
-                        tagsNotifier: sizeTags,
+                      TextField(
+                        controller: sizeController,
+                        decoration: const InputDecoration(
+                          labelText: '권장 사이즈 (예: S, M, L / 3M)',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.straighten_outlined),
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      TagInputWidget(
-                        labelText: '상품 색상 (입력 후 Enter 또는 쉼표)',
-                        hintText: '예: 크림, 민트, 차콜',
-                        prefixIcon: Icons.palette_outlined,
-                        tagsNotifier: colorTags,
+                      TextField(
+                        controller: colorController,
+                        decoration: const InputDecoration(
+                          labelText: '상품 색상 (예: 크림, 민트, 차콜)',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.palette_outlined),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -656,6 +660,15 @@ class ProductUploadDlg extends HookConsumerWidget {
                           child: Divider()),
                       const Text('📸 사입처 통이미지 등록 *',
                           style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'PC는 마우스로 드래그, 모바일은 사진을 1초간 꾹~ 눌러서 이동하세요.\n맨 앞의 사진이 자동으로 [대표 이미지]가 됩니다.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
+                      ),
                       const SizedBox(height: 4),
                       const Text('첫 번째 조각이 자동으로 메인 대표 썸네일로 지정됩니다.',
                           style: TextStyle(color: Colors.grey, fontSize: 12)),
@@ -675,39 +688,128 @@ class ProductUploadDlg extends HookConsumerWidget {
                       ),
                       const SizedBox(height: 12),
 
+                      // 🔥 [이미지 드래그 앤 드롭 기능 적용]
                       if (productImages.value.isNotEmpty)
                         Container(
                           height: 110,
                           margin: const EdgeInsets.only(bottom: 12),
-                          child: ListView.builder(
+                          child: ReorderableListView.builder(
                             scrollDirection: Axis.horizontal,
+                            // 데스크탑 환경에서는 기본적으로 클릭+드래그가 작동하도록 설정
+                            buildDefaultDragHandles: true,
                             itemCount: productImages.value.length,
+                            onReorder: (oldIndex, newIndex) {
+                              if (newIndex > oldIndex) newIndex -= 1;
+                              final items =
+                                  List<XFile>.from(productImages.value);
+                              final item = items.removeAt(oldIndex);
+                              items.insert(newIndex, item);
+                              productImages.value = items; // 순서가 바뀐 리스트로 업데이트!
+                            },
                             itemBuilder: (context, index) {
                               final file = productImages.value[index];
                               final isFirst = index == 0;
-                              return Padding(
+
+                              // 💡 2. 이미지를 그리는 Container를 변수로 분리 (코드를 깔끔하게 하기 위해)
+                              final Widget imageContainer = Container(
+                                width: 90,
+                                height: 90,
+                                margin: const EdgeInsets.only(top: 8, right: 8),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isFirst
+                                        ? const Color(0xFF4A6FA5)
+                                        : Colors.grey.shade300,
+                                    width: isFirst ? 2.5 : 1,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Image.network(file.path,
+                                      fit: BoxFit.cover),
+                                ),
+                              );
+
+                              // // ReorderableListView의 자식은 반드시 고유한 Key가 필요합니다.
+                              // return Container(
+                              //   key: ValueKey(file.path + index.toString()),
+                              //   padding: const EdgeInsets.only(right: 12),
+                              //   child: Stack(
+                              //     children: [
+                              //       Container(
+                              //         width: 90,
+                              //         height: 90,
+                              //         margin: const EdgeInsets.only(
+                              //             top: 8, right: 8),
+                              //         decoration: BoxDecoration(
+                              //           borderRadius: BorderRadius.circular(6),
+                              //           border: Border.all(
+                              //               color: isFirst
+                              //                   ? const Color(0xFF4A6FA5)
+                              //                   : Colors.grey.shade300,
+                              //               width: isFirst ? 2.5 : 1),
+                              //         ),
+                              //         child: ClipRRect(
+                              //           borderRadius: BorderRadius.circular(4),
+                              //           child: Image.network(file.path,
+                              //               fit: BoxFit.cover),
+                              //         ),
+                              //       ),
+                              //       if (isFirst)
+                              //         Positioned(
+                              //           top: 12,
+                              //           left: 4,
+                              //           child: Container(
+                              //             padding: const EdgeInsets.symmetric(
+                              //                 horizontal: 4, vertical: 2),
+                              //             color: const Color(0xFF4A6FA5),
+                              //             child: const Text('대표',
+                              //                 style: TextStyle(
+                              //                     color: Colors.white,
+                              //                     fontSize: 9,
+                              //                     fontWeight: FontWeight.bold)),
+                              //           ),
+                              //         ),
+                              //       Positioned(
+                              //         top: 0,
+                              //         right: 0,
+                              //         child: InkWell(
+                              //           onTap: () {
+                              //             final updatedList = List<XFile>.from(
+                              //                 productImages.value);
+                              //             updatedList.removeAt(index);
+                              //             productImages.value = updatedList;
+                              //           },
+                              //           child: Container(
+                              //             decoration: const BoxDecoration(
+                              //                 color: Colors.red,
+                              //                 shape: BoxShape.circle),
+                              //             padding: const EdgeInsets.all(4),
+                              //             child: const Icon(Icons.close,
+                              //                 color: Colors.white, size: 12),
+                              //           ),
+                              //         ),
+                              //       ),
+                              //     ],
+                              //   ),
+                              // );
+                              // ReorderableListView의 자식은 반드시 고유한 Key가 필요합니다.
+                              // 💡 3. Stack의 첫 번째 요소에 조건부 렌더링 적용
+                              return Container(
+                                key: ValueKey(file.path + index.toString()),
                                 padding: const EdgeInsets.only(right: 12),
                                 child: Stack(
                                   children: [
-                                    Container(
-                                      width: 90,
-                                      height: 90,
-                                      margin: const EdgeInsets.only(
-                                          top: 8, right: 8),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                            color: isFirst
-                                                ? const Color(0xFF4A6FA5)
-                                                : Colors.grey.shade300,
-                                            width: isFirst ? 2.5 : 1),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Image.network(file.path,
-                                            fit: BoxFit.cover),
-                                      ),
-                                    ),
+                                    // PC면 즉시 반응, 모바일이면 꾹 눌러야 반응하도록 분기 처리
+                                    isDesktopOrWeb
+                                        ? ReorderableDragStartListener(
+                                            index: index, child: imageContainer)
+                                        : ReorderableDelayedDragStartListener(
+                                            index: index,
+                                            child: imageContainer),
+
+                                    // 대표 뱃지 (기존과 동일)
                                     if (isFirst)
                                       Positioned(
                                         top: 12,
@@ -723,6 +825,8 @@ class ProductUploadDlg extends HookConsumerWidget {
                                                   fontWeight: FontWeight.bold)),
                                         ),
                                       ),
+
+                                    // 삭제 버튼 (기존과 동일)
                                     Positioned(
                                       top: 0,
                                       right: 0,

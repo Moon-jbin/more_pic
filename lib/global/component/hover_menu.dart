@@ -121,8 +121,8 @@ class DesktopHoverMenu extends HookConsumerWidget {
         );
       }
 
-      // 2️⃣ [중간 그룹]: 자식이 있는 중간 노드 (예: 'OUTER', 'TOP', 'BOTTOM')
-      // 🌟 [완치]: 불필요한 InkWell과 클릭 가드를 싹 지워서, 클릭해도 절대 페이지가 강제 이동하지 않습니다.
+      // 2단계 [중간 그룹]: 자식이 있는 중간 노드 (예: 'OUTER', 'TOP', 'BOTTOM')
+      // 🔥 [위치]: 텍스트를 클릭하면 페이지 이동이 가능하도록 GestureDetector 추가
       return MouseRegion(
         onEnter: (_) {
           if (isMouseConnected(context)) incrementHover();
@@ -162,11 +162,24 @@ class DesktopHoverMenu extends HookConsumerWidget {
               ),
             )
           ],
-          child: Text(itemTitle,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black)),
+          // 🔥 여기서 Text를 GestureDetector로 감싸줍니다.
+          child: GestureDetector(
+            onTap: () {
+              String targetPath = item['path'] ?? '/';
+              if (targetPath.startsWith('/category')) {
+                targetPath = targetPath.replaceFirst('/category', '');
+              }
+              if (targetPath.isEmpty) targetPath = '/';
+              controller.close();
+              context.go(targetPath);
+              searchContentRead.initState();
+            },
+            child: Text(itemTitle,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black)),
+          ),
         ),
       );
     }

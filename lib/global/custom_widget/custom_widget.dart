@@ -394,8 +394,7 @@ class CustomWidget {
   static Widget buildFooterSectionTitle(String title) => Text(title,
       style: const TextStyle(
           fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black));
-
-  // 🌟 [이전 작동 코드 구조 100% 복구 이식]: 타입 꼬임 방벽 및 파이어베이스 트리 재귀 순회 파싱
+// 🔥 기존 buildDrawerMenu 함수를 아래와 같이 수정합니다.
   static Widget buildDrawerMenu(
       BuildContext context, WidgetRef ref, Map<String, dynamic> menu) {
     final searchContentRead = ref.read(searchContentProvider.notifier);
@@ -412,9 +411,28 @@ class CustomWidget {
           });
     }
     return ExpansionTile(
-      title: Text(menu['title'] ?? '',
-          style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black)),
+      // 🔥 ExpansionTile의 title을 InkWell로 감싸서 터치 이벤트를 가져갑니다.
+      title: InkWell(
+        onTap: () {
+          String targetPath = menu['path'] ?? '/';
+          if (targetPath.startsWith('/category')) {
+            targetPath = targetPath.replaceFirst('/category', '');
+          }
+          if (targetPath.isEmpty) targetPath = '/';
+
+          context.go(targetPath);
+          searchContentRead.initState();
+          Navigator.pop(context); // 페이지 이동 후 드로어 닫기
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Text(menu['title'] ?? '',
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black)),
+        ),
+      ),
       shape: const Border(),
       collapsedShape: const Border(),
       childrenPadding: const EdgeInsets.only(left: 16.0),

@@ -84,10 +84,6 @@ class OrderFormScreen extends HookConsumerWidget {
       buffer.writeln('핸드폰 : ${phoneController.text.trim()}');
       buffer.writeln('주소 : ${addressController.text.trim()}');
       buffer.writeln('………………………………');
-      buffer.writeln('주문LIST');
-      buffer.writeln('[상품명/색상/사이즈/수량/금액]');
-      buffer.writeln('ex) 미니로브 샤인상하세트/블루/xs/1/17000');
-      buffer.writeln('………………………………');
 
       for (var item in cartItems) {
         final itemDisplayPrice =

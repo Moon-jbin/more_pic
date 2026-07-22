@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/provider/product_filter_provider.dart';
+import 'package:more_pic/provider/search_provider.dart';
 
 class ProductModel {
   final String id;
@@ -81,15 +82,74 @@ class PaginatedProductNotifier
     extends FamilyAsyncNotifier<PaginationState, String> {
   final int _limit = 10;
 
-  // 🌟 공통 쿼리 생성 함수 (필터/정렬 적용)
+  // 🔥 [새로 추가] 상위 카테고리 코드가 들어왔을 때, 해당 카테고리와 자식 카테고리들을 모두 모아주는 함수
+  List<String> _expandCategoryWithChildren(
+      String targetCategory, List<Map<String, dynamic>> menuTree) {
+    Set<String> categorySet = {targetCategory};
+
+    // 경로(path) 문자열을 카테고리 키값으로 변환하는 동일 로직
+    String pathToCat(String path) {
+      if (path == '/') return 'newProduct';
+      if (path.isEmpty) return 'unknown';
+      final parts = path.split('/').where((p) => p.isNotEmpty).toList();
+      if (parts.isEmpty) return 'unknown';
+      String result = parts[0];
+      for (int i = 1; i < parts.length; i++) {
+        String word = parts[i];
+        final subParts = word.split('_');
+        for (var sub in subParts) {
+          if (sub.isNotEmpty) result += sub[0].toUpperCase() + sub.substring(1);
+        }
+      }
+      return result;
+    }
+
+    // 트리 구조 재귀 탐색
+    void searchAndCollect(List menuList, bool isMatchingTarget) {
+      for (var item in menuList) {
+        final Map<String, dynamic> mapItem = Map<String, dynamic>.from(item);
+        final String path = mapItem['path'] ?? '';
+        final String catKey = pathToCat(path);
+
+        bool isCurrentMatch = isMatchingTarget || (catKey == targetCategory);
+
+        if (isCurrentMatch) {
+          categorySet.add(catKey);
+        }
+
+        final List? children = mapItem['children'];
+        if (children != null && children.isNotEmpty) {
+          searchAndCollect(children, isCurrentMatch);
+        }
+      }
+    }
+
+    searchAndCollect(menuTree, false);
+    return categorySet.toList();
+  }
+
+  // 🛠️ [기존 _buildQuery 함수 수정]
   Query _buildQuery(String arg, ProductFilterState filter) {
     Query query = FirebaseFirestore.instance.collection('products');
 
     // 1. 카테고리 필터
     if (arg != 'all') {
-      query = query.where('categories', arrayContains: arg);
+      final menuTree = ref.read(globalMenuProvider).value ?? [];
+      // 선택된 카테고리 및 그 아래의 자식 카테고리 키값 목록을 확보 (예: ['babyOuter', 'babyOuterJumperJacket', ...])
+      final List<String> targetCategories =
+          _expandCategoryWithChildren(arg, menuTree);
+
+      if (targetCategories.length == 1) {
+        // 단일 카테고리인 경우 (최하위)
+        query = query.where('categories', arrayContains: arg);
+      } else {
+        // 🔥 하위 그룹을 포함하는 상위 카테고리인 경우!
+        // Firestore의 arrayContainsAny를 사용하여 자식 카테고리 중 하나라도 포함된 상품을 전부 끌어옴
+        query = query.where('categories', arrayContainsAny: targetCategories);
+      }
     }
-    // 3. 정렬 옵션
+
+    // 2. 정렬 옵션
     switch (filter.sortOption) {
       case ProductSortOption.priceLow:
         query = query.orderBy('price', descending: false);
