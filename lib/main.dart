@@ -148,17 +148,20 @@ class MorePicWebService extends HookConsumerWidget {
           CustomScrollView(
             controller: scrollController,
             slivers: [
-              if (isMasterAdmin)
-                SliverToBoxAdapter(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    color:
-                        isEditMode ? Colors.deepPurple[100] : Colors.grey[800],
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+              SliverToBoxAdapter(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  color: isMasterAdmin
+                      ? (isEditMode ? Colors.deepPurple[100] : Colors.grey[800])
+                      : Colors.deepPurple[100],
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: isMasterAdmin
+                        ? MainAxisAlignment.spaceBetween
+                        : MainAxisAlignment.center,
+                    children: [
+                      if (isMasterAdmin)
                         Row(children: [
                           if (isEditMode) ...[
                             IconButton(
@@ -178,26 +181,26 @@ class MorePicWebService extends HookConsumerWidget {
                             )
                           ]
                         ]),
-                        Row(
-                          children: [
-                            if (isEditMode) ...[
-                              TextButton.icon(
-                                onPressed: () {
-                                  adminSettingsController.toggleEditMode();
-                                  ScaffoldMessenger.of(context)
-                                      .clearSnackBars();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('👉 조회 모드로 전환되었습니다.'),
-                                        duration: Duration(seconds: 1)),
-                                  );
-                                },
-                                icon: const Icon(Icons.check_circle_outline,
-                                    color: Colors.red, size: 18),
-                                label: const Text('편집 종료',
-                                    style: TextStyle(color: Colors.red)),
-                              ),
-                            ] else ...[
+                      Row(
+                        children: [
+                          if (isEditMode) ...[
+                            TextButton.icon(
+                              onPressed: () {
+                                adminSettingsController.toggleEditMode();
+                                ScaffoldMessenger.of(context).clearSnackBars();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('👉 조회 모드로 전환되었습니다.'),
+                                      duration: Duration(seconds: 1)),
+                                );
+                              },
+                              icon: const Icon(Icons.check_circle_outline,
+                                  color: Colors.red, size: 18),
+                              label: const Text('편집 종료',
+                                  style: TextStyle(color: Colors.red)),
+                            ),
+                          ] else ...[
+                            if (isMasterAdmin)
                               TextButton.icon(
                                 onPressed: () {
                                   adminSettingsController.toggleEditMode();
@@ -214,14 +217,20 @@ class MorePicWebService extends HookConsumerWidget {
                                 label: const Text('편집 시작',
                                     style:
                                         TextStyle(color: Colors.orangeAccent)),
+                              )
+                            else
+                              Text(
+                                '♥ 로그인 시 회원가 확인 가능 ♥',
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.bold),
                               ),
-                            ],
                           ],
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
+              ),
               SliverPersistentHeader(
                 pinned: true,
                 delegate: SliverHeaderDelegate(
@@ -233,35 +242,58 @@ class MorePicWebService extends HookConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            if (mobileMode)
-                              Builder(
-                                builder: (BuildContext innerContext) {
-                                  return IconButton(
-                                    icon: const Icon(Icons.menu,
-                                        color: Colors.black, size: 28),
-                                    onPressed: () {
-                                      Scaffold.of(innerContext).openDrawer();
-                                    },
-                                  );
-                                },
-                              ),
-                            CustomWidget.customLogo(context, ref, fontSize: 38),
-                            if (mobileMode)
+                        SizedBox(
+                          height: 56, // 상단 바 적절한 높이 설정
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // 1. 가운데 로고 (모바일/데스크톱 모두 중앙 고정)
+                              CustomWidget.customLogo(context, ref,
+                                  fontSize: 38),
+
+                              // 2. 양쪽 버튼 레이아웃
                               Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  IconButton(
-                                      icon: const Icon(Icons.search),
-                                      onPressed: () => ref
-                                          .read(searchBarOpenProvider.notifier)
-                                          .open()),
-                                  // CustomWidget.buildCartBadgeIcon(
-                                  //     context, cartCount),
+                                  // 왼쪽: 메뉴 버튼
+                                  if (mobileMode)
+                                    Builder(
+                                      builder: (BuildContext innerContext) {
+                                        return IconButton(
+                                          icon: const Icon(Icons.menu,
+                                              color: Colors.black, size: 28),
+                                          onPressed: () {
+                                            Scaffold.of(innerContext)
+                                                .openDrawer();
+                                          },
+                                        );
+                                      },
+                                    )
+                                  else
+                                    const SizedBox.shrink(),
+
+                                  // 오른쪽: 검색 및 장바구니 버튼
+                                  if (mobileMode)
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.search),
+                                          onPressed: () => ref
+                                              .read(searchBarOpenProvider
+                                                  .notifier)
+                                              .open(),
+                                        ),
+                                        CustomWidget.buildCartBadgeIcon(
+                                            context, cartCount), // 주석 해제
+                                      ],
+                                    )
+                                  else
+                                    const SizedBox.shrink(),
                                 ],
                               ),
-                          ],
+                            ],
+                          ),
                         ),
                         if (!mobileMode) ...[
                           const SizedBox(height: 10),

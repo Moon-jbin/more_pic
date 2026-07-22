@@ -423,14 +423,6 @@ class _OptionModalContent extends HookConsumerWidget {
                       content: const Text('주문서에 상품이 담겼습니다.'),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
-                      action: SnackBarAction(
-                        label: '주문서 가기',
-                        textColor: const Color(0xFFFEE500),
-                        onPressed: () {
-                          NavigationService()
-                              .routerGo(context, OrderFormScreenRoute);
-                        },
-                      ),
                       duration: const Duration(seconds: 4),
                     ),
                   );

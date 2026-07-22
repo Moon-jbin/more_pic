@@ -5,7 +5,7 @@ import 'package:more_pic/model/product_item.dart';
 
 bool isMobile(BuildContext context) {
   final double screenWidth = MediaQuery.of(context).size.width;
-  bool isMobile = screenWidth < 900;
+  bool isMobile = screenWidth < 960;
 
   return isMobile;
 }

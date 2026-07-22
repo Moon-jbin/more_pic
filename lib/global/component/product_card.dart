@@ -297,7 +297,7 @@ class ProductCard extends HookConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
-              '로그인 시 도매가 혜택',
+              '로그인 시 할인가 적용 !',
               style: TextStyle(
                 fontSize: isMobileSize ? 9 : 10,
                 color: Colors.redAccent,
