@@ -233,7 +233,7 @@ class OrderFormScreen extends HookConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                '로그인 시 파격적인 도매가 혜택을 받을 수 있습니다!',
+                                '로그인 시 파격적인 할인가 적용이 됩니다!',
                                 style: TextStyle(
                                   color: Colors.red.shade700,
                                   fontSize: 13,

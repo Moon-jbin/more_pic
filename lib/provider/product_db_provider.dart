@@ -287,9 +287,36 @@ class PaginatedProductNotifier
       return future;
     });
   }
+
+  
 }
 
 final paginatedProductProvider = AsyncNotifierProviderFamily<
     PaginatedProductNotifier, PaginationState, String>(() {
   return PaginatedProductNotifier();
+});
+
+
+
+// 📌 [신규 추가]: 카테고리별 전체 상품 개수(Count) 전용 Provider
+final categoryItemCountProvider = FutureProvider.family<int, String>((ref, category) async {
+  Query query = FirebaseFirestore.instance.collection('products');
+
+  if (category != 'all') {
+    final menuTree = ref.watch(globalMenuProvider).value ?? [];
+    
+    // 기존에 만드셨던 하위 카테고리 확장 메서드 활용
+    final notifier = PaginatedProductNotifier();
+    final List<String> targetCategories = notifier._expandCategoryWithChildren(category, menuTree);
+
+    if (targetCategories.length == 1) {
+      query = query.where('categories', arrayContains: category);
+    } else {
+      query = query.where('categories', arrayContainsAny: targetCategories);
+    }
+  }
+
+  // Firestore의 count() API를 사용하여 읽기 비용 1회만 소모하고 빠르게 개수 산출
+  final AggregateQuerySnapshot snapshot = await query.count().get();
+  return snapshot.count ?? 0;
 });

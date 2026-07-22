@@ -53,6 +53,12 @@ class MorePicWebService extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
 
+    const String currentCategory = 'all';
+
+    final itemCountAsync =
+        ref.watch(categoryItemCountProvider(currentCategory));
+    final int totalCategoryCount = itemCountAsync.value ?? 0;
+
     final authState = ref.watch(authStateProvider);
     final bool isLoggedIn = authState.value != null;
     final bool isMasterAdmin =
@@ -73,7 +79,6 @@ class MorePicWebService extends HookConsumerWidget {
     final currentMenuData = menuAsync.value ?? [];
 
     final bool mobileMode = isMobile(context);
-    const String currentCategory = 'all';
 
     final paginatedStateAsync =
         ref.watch(paginatedProductProvider(currentCategory));
@@ -377,9 +382,9 @@ class MorePicWebService extends HookConsumerWidget {
 
                       // 🌟 메인 화면용 필터 & 정렬 위젯 부착 🌟
                       ProductFilterBar(
-                        totalCount: searchContentWatch.searchContent.isEmpty
-                            ? items.length
-                            : globalSearchWatch.length,
+                        totalCount: searchContentWatch.searchContent.isNotEmpty
+                            ? globalSearchWatch.length
+                            : totalCategoryCount,
                       ),
                     ],
                   ),

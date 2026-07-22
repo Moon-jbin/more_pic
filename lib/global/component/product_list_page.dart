@@ -26,6 +26,10 @@ class ProductListPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final paginatedStateAsync = ref.watch(paginatedProductProvider(category));
 
+    // 📌 [추가]: 카테고리 전체 개수 비동기 조회
+    final itemCountAsync = ref.watch(categoryItemCountProvider(category));
+    final int totalCategoryCount = itemCountAsync.value ?? 0;
+
     final globalSearchWatch = ref.watch(globalSearchProvider);
     final searchContentRead = ref.read(searchContentProvider.notifier);
     final searchContentWatch = ref.watch(searchContentProvider);
@@ -91,7 +95,7 @@ class ProductListPage extends HookConsumerWidget {
     //   }
 
     //   final String? matchedTitle = findKoreanTitle(currentMenuData, "");
-    //   if (matchedTitle != null) {
+    //   if (matchedTitle != null) {paginatedStateAsync
     //     return matchedTitle;
     //   }
 
@@ -441,14 +445,13 @@ class ProductListPage extends HookConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 40),
-                      
-                      // 🌟 필터바 추가 🌟
-                      ProductFilterBar(
-                        totalCount: searchContentWatch.searchContent.isEmpty
-                            ? items.length
-                            : globalSearchWatch.length,
-                      ),
+                    const SizedBox(height: 40),
+
+                    // 🌟 필터바 추가 🌟
+                    ProductFilterBar(
+                        totalCount: searchContentWatch.searchContent.isNotEmpty
+                            ? globalSearchWatch.length // 검색 중일 때는 검색 결과 개수
+                            : totalCategoryCount),
 
                     // 🏎️ [상품 그리드 섹션 - 1280px 여백 가이드라인 내에 정렬 가동]
                     if (items.isNotEmpty && !isLoading.value) ...[
