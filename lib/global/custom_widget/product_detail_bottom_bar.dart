@@ -421,7 +421,6 @@ class _OptionModalContent extends HookConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('주문서에 상품이 담겼습니다.'),
-                      behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                       action: SnackBarAction(

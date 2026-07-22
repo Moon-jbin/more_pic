@@ -581,37 +581,37 @@ class OrderFormScreen extends HookConsumerWidget {
                                         style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600)),
-                                    const SizedBox(width: 8),
-                                    InkWell(
-                                      onTap: () {
-                                        isCombinedShipping.value =
-                                            !isCombinedShipping.value;
-                                      },
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: Checkbox(
-                                              value: isCombinedShipping.value,
-                                              activeColor: Colors.black,
-                                              onChanged: (val) {
-                                                isCombinedShipping.value =
-                                                    val ?? false;
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          const Text(
-                                            '기존건합배 (배송비 0원)',
-                                            style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.blueAccent,
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                    // const SizedBox(width: 8),
+                                    // InkWell(
+                                    //   onTap: () {
+                                    //     isCombinedShipping.value =
+                                    //         !isCombinedShipping.value;
+                                    //   },
+                                    //   child: Row(
+                                    //     children: [
+                                    //       SizedBox(
+                                    //         width: 24,
+                                    //         height: 24,
+                                    //         child: Checkbox(
+                                    //           value: isCombinedShipping.value,
+                                    //           activeColor: Colors.black,
+                                    //           onChanged: (val) {
+                                    //             isCombinedShipping.value =
+                                    //                 val ?? false;
+                                    //           },
+                                    //         ),
+                                    //       ),
+                                    //       const SizedBox(width: 4),
+                                    //       const Text(
+                                    //         '기존건합배 (배송비 0원)',
+                                    //         style: TextStyle(
+                                    //             fontSize: 12,
+                                    //             color: Colors.blueAccent,
+                                    //             fontWeight: FontWeight.w600),
+                                    //       ),
+                                    //     ],
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                                 Text(
@@ -628,14 +628,14 @@ class OrderFormScreen extends HookConsumerWidget {
                                 ),
                               ],
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                '>합배송은 배송비 0원입니다. "기존건합배" 기재',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ),
+                            // Padding(
+                            //   padding: const EdgeInsets.only(top: 4),
+                            //   child: Text(
+                            //     '>합배송은 배송비 0원입니다. "기존건합배" 기재',
+                            //     style: TextStyle(
+                            //         fontSize: 12, color: Colors.grey.shade600),
+                            //   ),
+                            // ),
                             const Divider(height: 24),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -670,8 +670,8 @@ class OrderFormScreen extends HookConsumerWidget {
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
+                          children: [
+                            const Text(
                               '입금 계좌 안내',
                               style: TextStyle(
                                 fontSize: 13,
@@ -679,14 +679,77 @@ class OrderFormScreen extends HookConsumerWidget {
                                 color: Colors.black87,
                               ),
                             ),
-                            SizedBox(height: 4),
-                            SelectableText(
-                              '예금주)3333377919709 카카오뱅크 문은미',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 4, // 가로 사이 간격
+                              runSpacing: 6, // 줄바꿈 시 세로 간격
+                              children: [
+                                const Text(
+                                  '카카오뱅크 ',
+                                  style: TextStyle(
+                                    color: Color(0xFF666666),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                // 💡 터치 복사 영역
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(4),
+                                  onTap: () async {
+                                    await Clipboard.setData(const ClipboardData(
+                                        text: accountNumber));
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .clearSnackBars();
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              '📋 계좌번호($accountNumber)가 클립보드에 복사되었습니다!'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4A6FA5)
+                                          .withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          accountNumber,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF4A6FA5),
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Icon(Icons.copy_rounded,
+                                            size: 13, color: Color(0xFF4A6FA5)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                const Text(
+                                  ' 문은미(원앤그레인)',
+                                  style: TextStyle(
+                                      color: Color(0xFF666666),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
                           ],
                         ),

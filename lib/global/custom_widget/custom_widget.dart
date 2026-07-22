@@ -530,90 +530,8 @@ class CustomWidget {
     );
   }
 
-// // 🌟 [완치]: 계좌번호를 클릭하면 자동으로 클립보드에 복사해 주는 스마트 컴포넌트 개조
-//   static Widget buildPaymentInfoContent(BuildContext context) {
-//     const String accountNumber = '3333-37-7919709'; // 👈 복사될 순수 계좌번호 타깃
-
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//         const Text('무통장 계좌정보',
-//             style: TextStyle(color: Colors.grey, fontSize: 12)),
-//         const SizedBox(height: 12),
-//         Row(
-//           children: [
-//             const Text(
-//               '은행 ',
-//               style: TextStyle(color: Color(0xFF666666), fontSize: 12),
-//             ),
-//             const Text(
-//               '카카오뱅크 ',
-//               style: TextStyle(fontSize: 12),
-//             ),
-
-//             // 🌟 [핵심 가드]: 계좌번호 구역을 클릭(터치)할 수 있는 감지 레이어로 감쌉니다.
-//             InkWell(
-//               borderRadius: BorderRadius.circular(4),
-//               onTap: () async {
-//                 // 1️⃣ 구글 안드로이드 / iOS / 웹 브라우저 통합 클립보드에 계좌번호 강제 수혈!
-//                 await Clipboard.setData(
-//                     const ClipboardData(text: accountNumber));
-
-//                 // 2️⃣ 사용자에게 복사가 완료되었음을 친절하게 스낵바로 알림 전파
-//                 if (context.mounted) {
-//                   ScaffoldMessenger.of(context)
-//                       .clearSnackBars(); // 기존 스낵바 밀어내기 소독
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     const SnackBar(
-//                       content: Text('📋 계좌번호($accountNumber)가 클립보드에 복사되었습니다!'),
-//                       duration: Duration(seconds: 2),
-//                       behavior: SnackBarBehavior.floating, // 이쁘게 떠오르는 스타일 가드
-//                     ),
-//                   );
-//                 }
-//               },
-//               child: Container(
-//                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-//                 decoration: BoxDecoration(
-//                   color: const Color(0xFF4A6FA5)
-//                       .withOpacity(0.08), // 마우스 가져갔을 때 힌트 팁 색상
-//                   borderRadius: BorderRadius.circular(4),
-//                 ),
-//                 child: const Row(
-//                   mainAxisSize: MainAxisSize.min,
-//                   children: [
-//                     Text(
-//                       accountNumber,
-//                       style: TextStyle(
-//                         fontSize: 12,
-//                         fontWeight: FontWeight.bold,
-//                         color: Color(0xFF4A6FA5), // 💡 클릭 가능한 녀석임을 시각적으로 분리
-//                         decoration:
-//                             TextDecoration.underline, // 밑줄 쳐서 가독성 100점 튜닝
-//                       ),
-//                     ),
-//                     SizedBox(width: 4),
-//                     Icon(Icons.copy_rounded,
-//                         size: 12, color: Color(0xFF4A6FA5)), // 복사 유도 아이콘 도킹
-//                   ],
-//                 ),
-//               ),
-//             ),
-
-//             const Text(
-//               ' 문은미(원앤그레인)',
-//               style: TextStyle(fontSize: 12),
-//             ),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-
 // 🌟 [완치]: 화면 폭이 좁아져도 절대 오버플로우가 나지 않도록 'Wrap' 설계를 도입한 결제정보 섹션
   static Widget buildPaymentInfoContent(BuildContext context) {
-    const String accountNumber = '3333-37-7919709';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -648,7 +566,6 @@ class CustomWidget {
                     const SnackBar(
                       content: Text('📋 계좌번호($accountNumber)가 클립보드에 복사되었습니다!'),
                       duration: Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating,
                     ),
                   );
                 }
@@ -1193,8 +1110,4 @@ class CustomWidget {
       ],
     );
   }
-
-
-
-  
 }

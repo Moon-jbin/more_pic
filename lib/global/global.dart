@@ -25,3 +25,4 @@ String numberFormat(int number) {
 }
 
 const String kakaoUrl = 'https://pf.kakao.com/_xbyxdwX';
+const String accountNumber = '3333-37-7919709';
