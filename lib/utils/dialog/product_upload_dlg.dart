@@ -26,9 +26,6 @@ class ProductUploadDlg extends HookConsumerWidget {
     final colorController = useTextEditingController();
     final shippingMethodController = useTextEditingController();
 
-    // final sizeTags = useState<List<String>>([]);
-    // final colorTags = useState<List<String>>([]);
-
     final productImages = useState<List<XFile>>([]);
     final isLoading = useState<bool>(false);
 
@@ -39,7 +36,6 @@ class ProductUploadDlg extends HookConsumerWidget {
         .toList();
 
     // 🌟 [완치 포인트 1]: 무제한 깊이를 수용하기 위해 선택된 타이틀 경로를 '배열'로 관리합니다!
-    // 예: ['BABY', 'OUTER', 'JUMPER', 'HEAVY'] -> 4단계까지 실시간 누적
     final selectedPath1 = useState<List<String>>([]);
 
     // 🌟 [완치 포인트 2]: 더블 업로드용 추가 카테고리 역시 배열 경로로 무제한 관리합니다.
@@ -50,10 +46,10 @@ class ProductUploadDlg extends HookConsumerWidget {
     final progress = useState<double>(0.0);
     final progressMsg = useState<String>("");
 
-    // 🌟 [동적 트리 계산기]: 선택된 경로에 따라 현재 화면에 그려야 할 드롭다운 단계별 리스트 조각들을 추출합니다.
+    // 🌟 [동적 트리 계산기]
     List<List<Map<String, dynamic>>> getActiveDropdownLevels(
         List<String> currentPath) {
-      List<List<Map<String, dynamic>>> levels = [menuData]; // 1단계는 무조건 기본 제공
+      List<List<Map<String, dynamic>>> levels = [menuData];
 
       List<Map<String, dynamic>> currentLevelItems = menuData;
       for (String title in currentPath) {
@@ -81,7 +77,7 @@ class ProductUploadDlg extends HookConsumerWidget {
       return levels;
     }
 
-    // 🌟 [최종 말단 노드 추적기]: 사용자가 최종 선택한 가장 깊은 단계의 노드를 획득합니다.
+    // 🌟 [최종 말단 노드 추적기]
     Map<String, dynamic>? getFinalSelectedNode(List<String> path) {
       if (path.isEmpty) return null;
       List<Map<String, dynamic>> currentLevel = menuData;
@@ -230,7 +226,6 @@ class ProductUploadDlg extends HookConsumerWidget {
     Future<void> submitProduct() async {
       final finalTargetNode = getFinalSelectedNode(selectedPath1.value);
 
-      // 말단 자식까지 완벽히 선택했는지 검증하는 가드
       if (finalTargetNode == null ||
           (finalTargetNode.containsKey('children') &&
               finalTargetNode['children'] != null &&
@@ -376,13 +371,10 @@ class ProductUploadDlg extends HookConsumerWidget {
           child: CircularProgressIndicator(color: Color(0xFF4A6FA5)));
     }
 
-    // 🌟 1번 카테고리 실시간 생성 단계 계산
     final dropdownLevels1 = getActiveDropdownLevels(selectedPath1.value);
-
-    // 🌟 2번 카테고리 실시간 생성 단계 계산
     final dropdownLevels2 = getActiveDropdownLevels(selectedPath2.value);
 
-    // 📸 [완치]: 기존 팝업 다이얼로그 진행률 연동 메커니즘을 100% 복원한 이미지 픽커 엔진
+    // 📸 이미지 픽커 엔진
     final ImagePicker picker = ImagePicker();
     Future<void> pickCombinedProductImage() async {
       final List<XFile>? files = await picker.pickMultiImage();
@@ -392,7 +384,6 @@ class ProductUploadDlg extends HookConsumerWidget {
       progressMsg.value = "도매처 원본 해체 준비 중...";
       StateSetter? popupSetState;
 
-      // 1️⃣ [기존 팝업 복원]: 이미지 자르기 전용 프로그레스 바 팝업 가동
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -434,7 +425,6 @@ class ProductUploadDlg extends HookConsumerWidget {
         },
       );
 
-      // 팝업 내부 상태를 동기화 수혈하는 헬퍼 수식
       void updateStatus(double p, String m) {
         progress.value = p;
         progressMsg.value = m;
@@ -445,39 +435,29 @@ class ProductUploadDlg extends HookConsumerWidget {
       int fileCount = 0;
       await Future.delayed(const Duration(seconds: 1));
 
-      // 2️⃣ [슬라이싱 루프 가동]: 각 이미지 파일별로 정밀 분석 진입
       for (var file in files) {
         fileCount++;
         final Uint8List bytes = await file.readAsBytes();
 
-        // ⚡ 초광속 해상도 기하학 정보 판독
         final ui.Codec codec = await ui.instantiateImageCodec(bytes);
         final ui.FrameInfo frameInfo = await codec.getNextFrame();
         final ui.Image uiImage = frameInfo.image;
 
-        // 세로가 4000px을 넘어가는 무식하게 긴 이미지만 스마트 절삭기 구동
         if (uiImage.height > 4000) {
           List<XFile> chunks =
               await sliceLongImage(uiImage, bytes, (percent, msg) {
-            // 여러 장 올릴 때를 대비한 분할 백분율 연산 가드
             double fileBase = (fileCount - 1) / files.length;
             double currentFilePercent = percent / files.length;
-
-            // 기존에 작성하셨던 이쁜 리포트 형태 그대로 실시간 투사!
             updateStatus((fileBase + currentFilePercent).clamp(0.0, 1.0),
                 "[${fileCount}/${files.length}] $msg");
           });
           finalProcessedList.addAll(chunks);
         } else {
-          // 일반 규격의 이미지는 통으로 추가
           finalProcessedList.add(file);
         }
       }
 
-      // 3️⃣ 연산이 종료되면 열려있던 진행률 프로그레스 팝업 닫기
       if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-
-      // 최종 완성된 조각 리스트 상태 전사
       productImages.value = finalProcessedList;
     }
 
@@ -502,7 +482,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                               color: Colors.black87)),
                       const SizedBox(height: 8),
 
-                      // 🌟 [완치]: 1번 카테고리 동적 무제한 드롭다운 빌더 구역
                       ...List.generate(dropdownLevels1.length, (levelIndex) {
                         final itemsInLevel = dropdownLevels1[levelIndex];
                         final String? selectedVal =
@@ -530,7 +509,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                             }).toList(),
                             onChanged: (val) {
                               if (val != null) {
-                                // 현재 바뀐 단계 하위의 찌꺼기들 전부 버리고 새 하위 트랙 생성
                                 final newPath = selectedPath1.value
                                     .take(levelIndex)
                                     .toList();
@@ -542,7 +520,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                         );
                       }),
 
-                      // 🔥 [카테고리 더블 업로드 멀티 스위치]
                       const SizedBox(height: 12),
                       CheckboxListTile(
                         title: const Text('카테고리 더블 업로드 (다른 코너에도 동시에 진열하기)',
@@ -559,7 +536,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                         },
                       ),
 
-                      // 🌟 [완치]: 2번 카테고리 동적 무제한 드롭다운 빌더 구역
                       if (isDoubleCategoryEnabled.value) ...[
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -662,16 +638,13 @@ class ProductUploadDlg extends HookConsumerWidget {
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       const Text(
-                        'PC는 마우스로 드래그, 모바일은 사진을 1초간 꾹~ 눌러서 이동하세요.\n맨 앞의 사진이 자동으로 [대표 이미지]가 됩니다.',
+                        'PC는 사진을 마우스로 드래그, 모바일은 우측 하단 아이콘을 터치하여 이동하세요.\n맨 앞의 사진이 자동으로 [대표 이미지]가 됩니다.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: Colors.blueAccent,
                             fontSize: 12,
                             fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: 4),
-                      const Text('첫 번째 조각이 자동으로 메인 대표 썸네일로 지정됩니다.',
-                          style: TextStyle(color: Colors.grey, fontSize: 12)),
                       const SizedBox(height: 8),
 
                       ElevatedButton.icon(
@@ -695,8 +668,8 @@ class ProductUploadDlg extends HookConsumerWidget {
                           margin: const EdgeInsets.only(bottom: 12),
                           child: ReorderableListView.builder(
                             scrollDirection: Axis.horizontal,
-                            // 데스크탑 환경에서는 기본적으로 클릭+드래그가 작동하도록 설정
-                            buildDefaultDragHandles: true,
+                            buildDefaultDragHandles: false,
+                            physics: const ClampingScrollPhysics(),
                             itemCount: productImages.value.length,
                             onReorder: (oldIndex, newIndex) {
                               if (newIndex > oldIndex) newIndex -= 1;
@@ -704,13 +677,12 @@ class ProductUploadDlg extends HookConsumerWidget {
                                   List<XFile>.from(productImages.value);
                               final item = items.removeAt(oldIndex);
                               items.insert(newIndex, item);
-                              productImages.value = items; // 순서가 바뀐 리스트로 업데이트!
+                              productImages.value = items;
                             },
                             itemBuilder: (context, index) {
                               final file = productImages.value[index];
                               final isFirst = index == 0;
 
-                              // 💡 2. 이미지를 그리는 Container를 변수로 분리 (코드를 깔끔하게 하기 위해)
                               final Widget imageContainer = Container(
                                 width: 90,
                                 height: 90,
@@ -731,85 +703,19 @@ class ProductUploadDlg extends HookConsumerWidget {
                                 ),
                               );
 
-                              // // ReorderableListView의 자식은 반드시 고유한 Key가 필요합니다.
-                              // return Container(
-                              //   key: ValueKey(file.path + index.toString()),
-                              //   padding: const EdgeInsets.only(right: 12),
-                              //   child: Stack(
-                              //     children: [
-                              //       Container(
-                              //         width: 90,
-                              //         height: 90,
-                              //         margin: const EdgeInsets.only(
-                              //             top: 8, right: 8),
-                              //         decoration: BoxDecoration(
-                              //           borderRadius: BorderRadius.circular(6),
-                              //           border: Border.all(
-                              //               color: isFirst
-                              //                   ? const Color(0xFF4A6FA5)
-                              //                   : Colors.grey.shade300,
-                              //               width: isFirst ? 2.5 : 1),
-                              //         ),
-                              //         child: ClipRRect(
-                              //           borderRadius: BorderRadius.circular(4),
-                              //           child: Image.network(file.path,
-                              //               fit: BoxFit.cover),
-                              //         ),
-                              //       ),
-                              //       if (isFirst)
-                              //         Positioned(
-                              //           top: 12,
-                              //           left: 4,
-                              //           child: Container(
-                              //             padding: const EdgeInsets.symmetric(
-                              //                 horizontal: 4, vertical: 2),
-                              //             color: const Color(0xFF4A6FA5),
-                              //             child: const Text('대표',
-                              //                 style: TextStyle(
-                              //                     color: Colors.white,
-                              //                     fontSize: 9,
-                              //                     fontWeight: FontWeight.bold)),
-                              //           ),
-                              //         ),
-                              //       Positioned(
-                              //         top: 0,
-                              //         right: 0,
-                              //         child: InkWell(
-                              //           onTap: () {
-                              //             final updatedList = List<XFile>.from(
-                              //                 productImages.value);
-                              //             updatedList.removeAt(index);
-                              //             productImages.value = updatedList;
-                              //           },
-                              //           child: Container(
-                              //             decoration: const BoxDecoration(
-                              //                 color: Colors.red,
-                              //                 shape: BoxShape.circle),
-                              //             padding: const EdgeInsets.all(4),
-                              //             child: const Icon(Icons.close,
-                              //                 color: Colors.white, size: 12),
-                              //           ),
-                              //         ),
-                              //       ),
-                              //     ],
-                              //   ),
-                              // );
-                              // ReorderableListView의 자식은 반드시 고유한 Key가 필요합니다.
-                              // 💡 3. Stack의 첫 번째 요소에 조건부 렌더링 적용
                               return Container(
                                 key: ValueKey(file.path + index.toString()),
                                 padding: const EdgeInsets.only(right: 12),
                                 child: Stack(
                                   children: [
-                                    // PC면 즉시 반응, 모바일이면 꾹 눌러야 반응하도록 분기 처리
+                                    // 💡 PC면 사진 전체 즉시 드래그, 모바일이면 사진 영역은 스와이프(가로 스크롤) 허용
                                     isDesktopOrWeb
                                         ? ReorderableDragStartListener(
-                                            index: index, child: imageContainer)
-                                        : ReorderableDelayedDragStartListener(
                                             index: index,
-                                            child: imageContainer),
+                                            child: imageContainer,
+                                          )
+                                        : imageContainer,
 
-                                    // 대표 뱃지 (기존과 동일)
                                     if (isFirst)
                                       Positioned(
                                         top: 12,
@@ -825,8 +731,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                                                   fontWeight: FontWeight.bold)),
                                         ),
                                       ),
-
-                                    // 삭제 버튼 (기존과 동일)
                                     Positioned(
                                       top: 0,
                                       right: 0,
@@ -847,6 +751,27 @@ class ProductUploadDlg extends HookConsumerWidget {
                                         ),
                                       ),
                                     ),
+
+                                    // 🎯 모바일 전용 즉시 이동 손잡이 (우측 하단)
+                                    if (!isDesktopOrWeb)
+                                      Positioned(
+                                        bottom: 4,
+                                        right: 16, // 마진, 패딩 고려 위치
+                                        child: ReorderableDragStartListener(
+                                          index: index,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(0.6),
+                                              shape: BoxShape.circle,
+                                              boxShadow: [
+                                                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4)
+                                              ],
+                                            ),
+                                            child: const Icon(Icons.open_with_rounded, color: Colors.white, size: 16),
+                                          ),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               );

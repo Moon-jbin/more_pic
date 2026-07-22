@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
-import 'package:more_pic/global/global.dart'; // isDesktopOrWeb 사용을 위해 추가
+import 'package:more_pic/global/global.dart';
 
 class ProductEditDlg extends HookConsumerWidget {
   final ProductModel product;
@@ -28,19 +28,15 @@ class ProductEditDlg extends HookConsumerWidget {
     final colorController = useTextEditingController(text: product.color);
 
     final isSubmitting = useState<bool>(false);
-
-    // 🌟 [핵심 상태]: 사진 편집 모드 토글 및 이미지 혼합 리스트 (String + XFile)
     final isImageEditMode = useState<bool>(false);
     final mixedImages = useState<List<dynamic>>(product.images.toList());
 
-    // 로딩 팝업을 위한 상태
     final progress = useState<double>(0.0);
     final progressMsg = useState<String>("");
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final double dialogWidth = screenWidth < 600 ? (screenWidth - 40) : 450.0;
 
-    // 📸 새 사진 추가 함수
     Future<void> pickExtraImages() async {
       final ImagePicker picker = ImagePicker();
       final List<XFile>? files = await picker.pickMultiImage();
@@ -86,7 +82,6 @@ class ProductEditDlg extends HookConsumerWidget {
         isSubmitting.value = true;
 
         if (isImageEditMode.value) {
-          // 💡 [사진 수정 활성화 시]: 스토리지 업로드 및 DB 갱신 (로딩 팝업 띄움)
           StateSetter? submitPopupSetState;
           showDialog(
             context: context,
@@ -145,10 +140,8 @@ class ProductEditDlg extends HookConsumerWidget {
                 onProgress: updateSubmitStatus,
               );
 
-          if (context.mounted)
-            Navigator.of(context, rootNavigator: true).pop(); // 팝업 닫기
+          if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
         } else {
-          // 💡 [텍스트만 수정 시]: 빠르고 가볍게 기존 텍스트 로직만 태움 (로딩 팝업 없음)
           await ref.read(productRepositoryProvider).updateProductTextInfo(
                 productId: product.id,
                 name: editedName,
@@ -158,7 +151,6 @@ class ProductEditDlg extends HookConsumerWidget {
               );
         }
 
-        // 캐시 무효화 및 실시간 화면 갱신
         ref.invalidate(paginatedProductProvider('all'));
         ref.invalidate(paginatedProductProvider(currentCategory));
         for (var cat in product.categoryNames) {
@@ -186,7 +178,6 @@ class ProductEditDlg extends HookConsumerWidget {
       width: dialogWidth,
       child: CustomWidget.dialogCustomForm(
         width: dialogWidth,
-        // height: 속성을 제거하여 내부 컨텐츠 크기에 맞춰 스르륵 자연스럽게 늘어나게 만듦
         isScrollable: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -239,8 +230,6 @@ class ProductEditDlg extends HookConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-
-                  // 🌟 사진 편집 토글 스위치 및 확장 UI
                   AnimatedSize(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOutCubic,
@@ -296,7 +285,8 @@ class ProductEditDlg extends HookConsumerWidget {
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ReorderableListView.builder(
                                 scrollDirection: Axis.horizontal,
-                                buildDefaultDragHandles: true,
+                                buildDefaultDragHandles: false,
+                                physics: const ClampingScrollPhysics(),
                                 itemCount: mixedImages.value.length,
                                 onReorder: (oldIndex, newIndex) {
                                   if (newIndex > oldIndex) newIndex -= 1;
@@ -343,13 +333,14 @@ class ProductEditDlg extends HookConsumerWidget {
                                     padding: const EdgeInsets.only(right: 12),
                                     child: Stack(
                                       children: [
+                                        // 💡 PC면 사진 전체 즉시 드래그, 모바일이면 사진 영역은 스와이프(가로 스크롤) 허용
                                         isDesktopOrWeb
                                             ? ReorderableDragStartListener(
                                                 index: index,
-                                                child: imageContainer)
-                                            : ReorderableDelayedDragStartListener(
-                                                index: index,
-                                                child: imageContainer),
+                                                child: imageContainer,
+                                              )
+                                            : imageContainer,
+
                                         if (isFirst)
                                           Positioned(
                                             top: 12,
@@ -389,6 +380,35 @@ class ProductEditDlg extends HookConsumerWidget {
                                             ),
                                           ),
                                         ),
+
+                                        // 🎯 모바일 전용 즉시 이동 손잡이 (우측 하단)
+                                        if (!isDesktopOrWeb)
+                                          Positioned(
+                                            bottom: 4,
+                                            right: 16, // 마진, 패딩 고려 위치
+                                            child: ReorderableDragStartListener(
+                                              index: index,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withOpacity(0.6),
+                                                  shape: BoxShape.circle,
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.2),
+                                                        blurRadius: 4)
+                                                  ],
+                                                ),
+                                                child: const Icon(
+                                                    Icons.open_with_rounded,
+                                                    color: Colors.white,
+                                                    size: 16),
+                                              ),
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   );
@@ -399,10 +419,7 @@ class ProductEditDlg extends HookConsumerWidget {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // 5. 수정 완료 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 48,
