@@ -1,7 +1,9 @@
+// FILE: lib/global/component/product_card.dart
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart'; // 👉 useState를 위해 추가
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
@@ -9,7 +11,6 @@ import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/utils/dialog/dlg_function.dart';
-import 'package:shimmer/shimmer.dart';
 
 class ProductCard extends HookConsumerWidget {
   final ProductModel product;
@@ -26,8 +27,13 @@ class ProductCard extends HookConsumerWidget {
     final adminSettingsWatch = ref.watch(adminSettingsProvider);
     final bool isMobileSize = MediaQuery.of(context).size.width < 600;
 
-    // 👉 [추가] 마우스 호버 상태 관리
     final isHovered = useState<bool>(false);
+
+    // 🚀 로그인 상태 확인 및 소비자가(1.7배)/회원가 계산
+    final authState = ref.watch(authStateProvider);
+    final isLoggedIn = authState.value != null;
+    final int originalPrice = (product.price * 1.7).toInt(); // 1.7배 소비자가
+    final int memberPrice = product.price; // 실제 회원가(도매가)
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,26 +41,23 @@ class ProductCard extends HookConsumerWidget {
         Expanded(
           child: AspectRatio(
             aspectRatio: 1 / 1,
-            // 👉 [추가] 마우스 이벤트 감지
             child: MouseRegion(
               onEnter: (_) => isHovered.value = true,
               onExit: (_) => isHovered.value = false,
-              cursor: SystemMouseCursors.click, // 손가락 모양 커서
+              cursor: SystemMouseCursors.click,
               child: Stack(
                 children: [
                   Container(
                     width: double.infinity,
                     height: double.infinity,
-                    clipBehavior:
-                        Clip.hardEdge, // 👉 확대될 때 이미지가 둥근 모서리를 벗어나지 않도록 방어
+                    clipBehavior: Clip.hardEdge,
                     decoration: BoxDecoration(
                       color: const Color(0xFFF2F2F2),
                       borderRadius: BorderRadius.circular(2),
                     ),
-                    // 👉 [추가] AnimatedScale 적용
                     child: AnimatedScale(
-                      scale: isHovered.value ? 1.05 : 1.0, // 마우스 올리면 1.05배 줌
-                      duration: const Duration(milliseconds: 300), // 부드러운 속도
+                      scale: isHovered.value ? 1.05 : 1.0,
+                      duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
                       child: InkWell(
                         onTap: () {
@@ -70,10 +73,8 @@ class ProductCard extends HookConsumerWidget {
                             ? CachedNetworkImage(
                                 imageUrl: product.images.first,
                                 fit: BoxFit.cover,
-                                // 👉 이렇게 변경해 보세요!
                                 placeholder: (context, url) =>
                                     CustomWidget.buildShimmerPlaceholder(),
-                                  
                                 errorWidget: (context, url, error) =>
                                     const Center(
                                   child: Icon(Icons.broken_image_outlined,
@@ -88,10 +89,8 @@ class ProductCard extends HookConsumerWidget {
                       ),
                     ),
                   ),
-                  // 관리자 모드 아이콘들 (기존 코드와 동일)
                   if (adminSettingsWatch)
                     Positioned(
-                      // ... (기존 관리자 수정/삭제 버튼 코드 그대로 유지) ...
                       top: 4,
                       right: 4,
                       child: Row(
@@ -132,7 +131,7 @@ class ProductCard extends HookConsumerWidget {
                                   width: 400,
                                   context,
                                   title: '상품 삭제 확인',
-                                  msg: '정말 \'${product.name}\'를 삭제하시겠습니까?',
+                                  msg: '정말 \'${product.name}\'을(를) 삭제하시겠습니까?',
                                   onCancel: () => Navigator.pop(context),
                                   onTap: () async {
                                     final String targetCat = currentCategory;
@@ -153,7 +152,6 @@ class ProductCard extends HookConsumerWidget {
                                       ref.invalidate(
                                           paginatedProductProvider(cat));
                                     }
-
                                     Navigator.pop(context);
                                   },
                                 );
@@ -169,8 +167,6 @@ class ProductCard extends HookConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-
-        // 하단 텍스트 정보들 (기존 코드와 동일)
         Text(
           product.name,
           style: TextStyle(
@@ -200,16 +196,55 @@ class ProductCard extends HookConsumerWidget {
           ),
         ],
         const SizedBox(height: 4),
-        Text(
-          '${numberFormat(product.price)}원',
-          style: TextStyle(
-            fontSize: isMobileSize ? 11 : 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade700,
+
+        // 🚀 [가격 표시 로직 변경]: 로그인 시 기존가 취소선 + 회원가 강조 표시
+        if (isLoggedIn)
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            children: [
+              Text(
+                '₩ ${numberFormat(originalPrice)}',
+                style: TextStyle(
+                  fontSize: isMobileSize ? 10 : 11,
+                  color: Colors.grey.shade500,
+                  decoration: TextDecoration.lineThrough, // 👈 기존 소비자가 취소선!
+                ),
+              ),
+              Text(
+                '₩ ${numberFormat(memberPrice)}',
+                style: TextStyle(
+                  fontSize: isMobileSize ? 11 : 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.redAccent, // 👈 회원가 빨간색/볼드 강조
+                ),
+              ),
+            ],
+          )
+        else ...[
+          Text(
+            '₩ ${numberFormat(originalPrice)}',
+            style: TextStyle(
+              fontSize: isMobileSize ? 11 : 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              '로그인 시 도매가 혜택',
+              style: TextStyle(
+                fontSize: isMobileSize ? 9 : 10,
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

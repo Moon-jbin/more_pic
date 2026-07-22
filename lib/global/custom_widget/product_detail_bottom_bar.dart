@@ -9,11 +9,12 @@ import 'package:more_pic/provider/cart_provider.dart';
 import 'package:more_pic/screen/order_form_screen.dart';
 import 'package:more_pic/utils/routing/navigation_service.dart';
 import 'package:more_pic/utils/routing/router_name.dart';
+import 'package:more_pic/provider/admin_settings_provider.dart';
 
 class ProductDetailBottomBar extends HookConsumerWidget {
   final String productId;
   final String productName;
-  final int price;
+  final int basePrice;
   final List<String> colors;
   final List<String> sizes;
 
@@ -21,7 +22,7 @@ class ProductDetailBottomBar extends HookConsumerWidget {
     Key? key,
     required this.productId,
     required this.productName,
-    required this.price,
+    required this.basePrice,
     required this.colors,
     required this.sizes,
   }) : super(key: key);
@@ -30,16 +31,15 @@ class ProductDetailBottomBar extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cartCount = ref.watch(cartProvider).length;
 
-    // 옵션 모달 호출
     void showOptionModal() {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.transparent, // 모달 배경 투명 (커스텀 디자인 위해)
+        backgroundColor: Colors.transparent,
         builder: (modalContext) => _OptionModalContent(
           productId: productId,
           productName: productName,
-          price: price,
+          basePrice: basePrice,
           colors: colors,
           sizes: sizes,
         ),
@@ -50,11 +50,11 @@ class ProductDetailBottomBar extends HookConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
-          top: BorderSide(color: Colors.grey.shade200, width: 1), // 은은한 상단 테두리
+          top: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04), // 기존보다 더 부드럽고 고급스러운 그림자
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 16,
             offset: const Offset(0, -4),
           )
@@ -69,7 +69,6 @@ class ProductDetailBottomBar extends HookConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 600),
               child: Row(
                 children: [
-                  // 장바구니/주문서 바로가기 아이콘
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -112,8 +111,6 @@ class ProductDetailBottomBar extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(width: 12),
-
-                  // 주문서에 담기 버튼 (블랙 모던 스타일)
                   Expanded(
                     child: SizedBox(
                       height: 52,
@@ -147,13 +144,10 @@ class ProductDetailBottomBar extends HookConsumerWidget {
   }
 }
 
-// ---------------------------------------------------------
-// 💡 모던하고 세련된 옵션 선택 모달 UI
-// ---------------------------------------------------------
 class _OptionModalContent extends HookConsumerWidget {
   final String productId;
   final String productName;
-  final int price;
+  final int basePrice;
   final List<String> colors;
   final List<String> sizes;
 
@@ -161,12 +155,11 @@ class _OptionModalContent extends HookConsumerWidget {
     Key? key,
     required this.productId,
     required this.productName,
-    required this.price,
+    required this.basePrice,
     required this.colors,
     required this.sizes,
   }) : super(key: key);
 
-  // 커스텀 모던 옵션 버튼 위젯
   Widget _buildOptionButton({
     required String text,
     required bool isSelected,
@@ -202,6 +195,12 @@ class _OptionModalContent extends HookConsumerWidget {
     final selectedSize = useState<String?>(null);
     final quantity = useState<int>(1);
 
+    final authState = ref.watch(authStateProvider);
+    final isLoggedIn = authState.value != null;
+
+    final int originalTotal = ((basePrice * 1.7).toInt()) * quantity.value;
+    final int memberTotal = basePrice * quantity.value;
+
     final formatCurrency =
         NumberFormat.currency(locale: "ko_KR", symbol: "", decimalDigits: 0);
 
@@ -221,7 +220,6 @@ class _OptionModalContent extends HookConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 모달 상단 헤더 & 닫기
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -253,7 +251,6 @@ class _OptionModalContent extends HookConsumerWidget {
             const Divider(),
             const SizedBox(height: 16),
 
-            // 1. 색상 선택
             const Text(
               "색상 옵션",
               style: TextStyle(
@@ -276,7 +273,6 @@ class _OptionModalContent extends HookConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // 2. 사이즈 선택
             const Text(
               "사이즈 옵션",
               style: TextStyle(
@@ -299,14 +295,12 @@ class _OptionModalContent extends HookConsumerWidget {
             ),
             const SizedBox(height: 28),
 
-            // 3. 수량 조절기 (모던 박스 스타일)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "수량",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
+                const Text("수량",
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey.shade300),
@@ -328,9 +322,7 @@ class _OptionModalContent extends HookConsumerWidget {
                         child: Text(
                           '${quantity.value}',
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                       IconButton(
@@ -345,7 +337,7 @@ class _OptionModalContent extends HookConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // 4. 총 상품 금액 (주문서 스타일의 은은한 회색 박스 강조)
+            // 🚀 [총 상품 금액 영역]: 로그인 시 취소선 및 회원가 명시
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -356,24 +348,44 @@ class _OptionModalContent extends HookConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    '총 상품 금액',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '₩ ${formatCurrency.format(price * quantity.value)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.redAccent,
+                  const Text('총 상품 금액',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  if (isLoggedIn)
+                    Row(
+                      children: [
+                        Text(
+                          '₩ ${formatCurrency.format(originalTotal)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade500,
+                            decoration: TextDecoration.lineThrough, // 👈 취소선
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '₩ ${formatCurrency.format(memberTotal)}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      '₩ ${formatCurrency.format(originalTotal)}',
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87),
                     ),
-                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // 5. 주문서 담기 최종 버튼
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -383,8 +395,7 @@ class _OptionModalContent extends HookConsumerWidget {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () {
                   if (selectedColor.value == null ||
@@ -401,22 +412,21 @@ class _OptionModalContent extends HookConsumerWidget {
                     color: selectedColor.value!,
                     size: selectedSize.value!,
                     quantity: quantity.value,
-                    price: price,
+                    price: basePrice, // 👈 DB에는 항상 순수 도매가 저장
                   );
 
                   ref.read(cartProvider.notifier).addItem(item);
                   Navigator.pop(context);
 
-                  // 스낵바도 트렌디하게 알림
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('주문서에 상품이 담겼습니다.'),
-                      behavior: SnackBarBehavior.floating, // 플로팅 스타일
+                      behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                       action: SnackBarAction(
                         label: '주문서 가기',
-                        textColor: const Color(0xFFFEE500), // 카카오 노란색 포인트
+                        textColor: const Color(0xFFFEE500),
                         onPressed: () {
                           NavigationService()
                               .routerGo(context, OrderFormScreenRoute);
@@ -426,10 +436,9 @@ class _OptionModalContent extends HookConsumerWidget {
                     ),
                   );
                 },
-                child: const Text(
-                  '주문서에 담기',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                child: const Text('주문서에 담기',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

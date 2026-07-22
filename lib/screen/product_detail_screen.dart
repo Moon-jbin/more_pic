@@ -1,3 +1,5 @@
+// FILE: lib/screen/product_detail_screen.dart
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -5,9 +7,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/custom_widget/product_detail_bottom_bar.dart';
-import 'package:more_pic/provider/product_db_provider.dart'; // 🌟 ProductModel 및 가방 프로바이더 위치
+import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:more_pic/provider/recently_viewed_provider.dart';
+import 'package:more_pic/provider/admin_settings_provider.dart';
 
 class ProductDetailScreen extends HookConsumerWidget {
   final String category;
@@ -23,28 +26,21 @@ class ProductDetailScreen extends HookConsumerWidget {
     return MediaQuery.of(context).size.width < 768;
   }
 
-  // 가격 컴포넌트용 정석 천 단위 포맷터 내장
   String _formatPrice(int price) {
     return NumberFormat('#,###').format(price);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 1️⃣ 리버팟 상태 구독
     final productListAsync = ref.watch(paginatedProductProvider(category));
 
-    // 🌟 [완치 포인트 1]: 반환 객체가 PaginationState이므로 .items 가방을 정확히 명시해 꺼냅니다!
     final List<ProductModel> productList =
         productListAsync.value?.items ?? <ProductModel>[];
 
-    // 2️⃣ 🎯 [완치 포인트 2]: ProductItem 레거시 명칭을 신형 ProductModel로 완벽하게 깔 맞춤 교체
-// 🌟 [완치 포인트]: String과 int 타입이 꼬여서 firstWhere가 상품을 놓치던 버그를 완벽하게 차단합니다.
     final product = productList.firstWhere(
       (item) => item.id.toString().trim() == productId.toString().trim(),
       orElse: () {
-        // 백그라운드 로딩 중이거나 아직 리스트가 안 올라왔을 때를 위한 안전한 방어선
         if (productList.isNotEmpty) {
-          // 혹시라도 리스트는 있는데 ID 매칭만 실패한 경우, 첫 번째 상품이라도 가드로 물려줍니다.
           return productList.first;
         }
         return ProductModel(
@@ -59,7 +55,6 @@ class ProductDetailScreen extends HookConsumerWidget {
       },
     );
 
-    // 🌟 [완치 가드]: 진짜로 상품을 못 찾았거나 로딩 중일 때만 스피너를 돌립니다.
     if (productListAsync.isLoading && product.id == "-1") {
       return const Scaffold(
         body: Center(
@@ -75,7 +70,6 @@ class ProductDetailScreen extends HookConsumerWidget {
       return null;
     }, [product]);
 
-    // 🚀 [추가] DB에 문자열로 저장된 color와 size를 모달에서 사용할 수 있게 List로 변환
     List<String> parsedColors = product.color.isNotEmpty && product.color != "-"
         ? product.color
             .split(RegExp(r'[,/|]'))
@@ -92,14 +86,19 @@ class ProductDetailScreen extends HookConsumerWidget {
             .toList()
         : ['Free'];
 
+    // 🚀 가격 연산
+    final authState = ref.watch(authStateProvider);
+    final isLoggedIn = authState.value != null;
+    final int originalPrice = (product.price * 1.7).toInt(); // 1.7배 소비자 정가
+    final int memberPrice = product.price; // 회원 도매가
+
     return CustomScaffold(
       category: category,
       showSearchIcon: false,
-      // 🚀 [추가] 하단 고정 바 연동!
       bottomNavigationBar: ProductDetailBottomBar(
         productId: product.id,
         productName: product.name,
-        price: product.price,
+        basePrice: product.price, // 원본 회원가 전달
         colors: parsedColors,
         sizes: parsedSizes,
       ),
@@ -116,7 +115,6 @@ class ProductDetailScreen extends HookConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 🖼️ 대표 이미지 락업
                       AspectRatio(
                         aspectRatio: 1 / 1,
                         child: Container(
@@ -142,8 +140,6 @@ class ProductDetailScreen extends HookConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 32),
-
-                      // 📋 스펙 정보 테이블 매핑 구역
                       Container(
                         decoration: BoxDecoration(
                           border: Border.all(
@@ -156,8 +152,6 @@ class ProductDetailScreen extends HookConsumerWidget {
                                 fontSize: 17,
                                 isBold: true,
                                 verticalPadding: 18),
-
-                            // 💡 [안전 가드]: 기존 레거시 필드가 소멸하더라도 뷰가 깨지지 않게 방어선 처리
                             _buildInfoRow(
                                 '사이즈',
                                 product.size.isEmpty
@@ -172,21 +166,45 @@ class ProductDetailScreen extends HookConsumerWidget {
                                 isBold: true,
                                 verticalPadding: 18),
 
-                            // 🌟 [완치 포인트 3]: 백화점식 가격 콤마 자동 변환 함수 완벽 매핑 도킹!
-                            _buildInfoRow(
-                              '판매가',
-                              '${_formatPrice(product.price)}원',
-                              fontSize: 15,
-                              isBold: true,
-                              fontWeight: FontWeight.w900,
-                              isLast: true,
-                            ),
+                            // 🚀 [로그인/비로그인 분기 표 출력]
+                            if (isLoggedIn) ...[
+                              _buildInfoRow(
+                                '판매가',
+                                '₩ ${_formatPrice(originalPrice)}',
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                                isLineThrough: true, // 👈 싹 긋는 취소선 적용!
+                              ),
+                              _buildInfoRow(
+                                '회원할인가',
+                                '₩ ${_formatPrice(memberPrice)}',
+                                fontSize: 17,
+                                isBold: true,
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.w900,
+                                isLast: true,
+                              ),
+                            ] else ...[
+                              _buildInfoRow(
+                                '판매가',
+                                '₩ ${_formatPrice(originalPrice)}',
+                                fontSize: 16,
+                                isBold: true,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              _buildInfoRow(
+                                '회원 혜택',
+                                '로그인 시 훨씬 저렴한 도매가로 구매 가능합니다 🎉',
+                                fontSize: 13,
+                                color: Colors.redAccent,
+                                isBold: true,
+                                isLast: true,
+                              ),
+                            ],
                           ],
                         ),
                       ),
                       const SizedBox(height: 40),
-
-                      // 구분 레이어 선
                       Row(
                         children: [
                           Expanded(child: Divider(color: Colors.grey.shade300)),
@@ -206,8 +224,6 @@ class ProductDetailScreen extends HookConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 32),
-
-                      // 📸 상세 분할 컷 2번째 조각부터 폭포수 렌더링
                       if (product.images.length > 1)
                         ListView.builder(
                           shrinkWrap: true,
@@ -260,7 +276,6 @@ class ProductDetailScreen extends HookConsumerWidget {
     );
   }
 
-  // 🛡️ [완치 포인트 4]: 터치 시 즉시 복사 및 변색 제로(투명화) 가드가 장착된 테이블 로우 팩토리
   Widget _buildInfoRow(
     String label,
     String value, {
@@ -313,14 +328,14 @@ class ProductDetailScreen extends HookConsumerWidget {
                             ScaffoldMessenger.of(context).clearSnackBars();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('📋 상품명이 클립보드에 복사되었습니다!'),
+                                content: Text('✔️ 상품명이 클립보드에 복사되었습니다.'),
                                 duration: Duration(seconds: 2),
                               ),
                             );
                           }
                         },
                         borderRadius: BorderRadius.circular(4),
-                        splashColor: Colors.transparent, // 🧼 변색 차단 3신기 주입 완료
+                        splashColor: Colors.transparent,
                         highlightColor: Colors.transparent,
                         hoverColor: Colors.transparent,
                         child: Padding(
@@ -372,7 +387,6 @@ class ProductDetailScreen extends HookConsumerWidget {
     );
   }
 
-  // 데이터의 무결성을 판별하기 위한 가드 메서드
   bool productMeshLoadingCheck(AsyncValue<PaginationState> state, String id) {
     if (id == "-1") return false;
     return state.isLoading;
