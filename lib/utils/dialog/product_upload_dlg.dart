@@ -97,30 +97,18 @@ class ProductUploadDlg extends HookConsumerWidget {
       return (finalNode != null && finalNode.isNotEmpty) ? finalNode : null;
     }
 
-    // 이미지 슬라이서 보존
-    Future<List<XFile>> sliceLongImage(ui.Image uiImage,
-        Uint8List originalBytes, Function(double, String) onProgress) async {
+    // 👇 [변경됨] 플러터 ui.Image 대신 브라우저 네이티브 html.ImageElement를 직접 받습니다.
+    Future<List<XFile>> sliceLongImageWeb(
+        html.ImageElement htmlImgElement,
+        int originalWidth,
+        int originalHeight,
+        Function(double, String) onProgress) async {
       List<XFile> slicedFiles = [];
-      int originalWidth = uiImage.width;
-      int originalHeight = uiImage.height;
       int maxSliceHeight = 3500;
       int minSliceHeight = 100;
       int currentY = 0;
       int index = 0;
       int scanStride = 10;
-
-      onProgress(0.01, "브라우저 하드웨어 가속 이미지 준비 중...");
-      final html.ImageElement htmlImgElement = html.ImageElement();
-      final imgLoadCompleter = Completer<void>();
-
-      htmlImgElement.onLoad.listen((_) => imgLoadCompleter.complete());
-      htmlImgElement.onError
-          .listen((e) => imgLoadCompleter.completeError("원본 이미지 로드 실패"));
-
-      final blob = html.Blob([originalBytes]);
-      final blobUrl = html.Url.createObjectUrlFromBlob(blob);
-      htmlImgElement.src = blobUrl;
-      await imgLoadCompleter.future;
 
       final html.CanvasElement scanCanvas =
           html.CanvasElement(width: originalWidth, height: originalHeight);
@@ -153,7 +141,7 @@ class ProductUploadDlg extends HookConsumerWidget {
 
       while (currentY < originalHeight) {
         double percent = (currentY / originalHeight).clamp(0.1, 0.85);
-        onProgress(percent, "상세 페이지 [${index + 1}번째 조각] 여백 분석 중...");
+        onProgress(percent, "상세 이미지 [${index + 1}번째 조각] 여백 분석 중...");
 
         int searchLimitY = (currentY + maxSliceHeight).clamp(0, originalHeight);
         int bestCutY = searchLimitY;
@@ -203,7 +191,6 @@ class ProductUploadDlg extends HookConsumerWidget {
         currentY = bestCutY;
         index++;
       }
-      html.Url.revokeObjectUrl(blobUrl);
       return slicedFiles;
     }
 
@@ -440,23 +427,39 @@ class ProductUploadDlg extends HookConsumerWidget {
         fileCount++;
         final Uint8List bytes = await file.readAsBytes();
 
-        final ui.Codec codec = await ui.instantiateImageCodec(bytes);
-        final ui.FrameInfo frameInfo = await codec.getNextFrame();
-        final ui.Image uiImage = frameInfo.image;
+        // 👇 [핵심 변경] 에러가 나던 플러터 코덱(ui.instantiateImageCodec)을 지우고
+        // 브라우저의 강력한 네이티브 ImageElement를 이용해 우회하여 디코딩합니다.
+        final blob = html.Blob([bytes]);
+        final blobUrl = html.Url.createObjectUrlFromBlob(blob);
 
-        // if (uiImage.height > 4000) {
-        if (uiImage.height > 1500) {
-          List<XFile> chunks =
-              await sliceLongImage(uiImage, bytes, (percent, msg) {
+        final html.ImageElement htmlImgElement = html.ImageElement();
+        final imgLoadCompleter = Completer<void>();
+
+        htmlImgElement.onLoad.listen((_) => imgLoadCompleter.complete());
+        htmlImgElement.onError
+            .listen((e) => imgLoadCompleter.completeError("이미지 디코딩 실패"));
+        htmlImgElement.src = blobUrl;
+
+        await imgLoadCompleter.future; // 브라우저가 안전하게 이미지를 읽을 때까지 대기
+
+        int imgWidth = htmlImgElement.naturalWidth;
+        int imgHeight = htmlImgElement.naturalHeight;
+
+        if (imgHeight > 1500) {
+          List<XFile> chunks = await sliceLongImageWeb(
+              htmlImgElement, imgWidth, imgHeight, (percent, msg) {
             double fileBase = (fileCount - 1) / files.length;
             double currentFilePercent = percent / files.length;
             updateStatus((fileBase + currentFilePercent).clamp(0.0, 1.0),
-                "[${fileCount}/${files.length}] $msg");
+                "[$fileCount/${files.length}] $msg");
           });
           finalProcessedList.addAll(chunks);
         } else {
           finalProcessedList.add(file);
         }
+
+        // 메모리 누수 방지
+        html.Url.revokeObjectUrl(blobUrl);
       }
 
       if (context.mounted) Navigator.of(context, rootNavigator: true).pop();

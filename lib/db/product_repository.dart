@@ -91,38 +91,49 @@ class ProductRepository {
     required List<XFile> imageFiles,
     required Function(double, String) onProgress,
   }) async {
-    onProgress(0.1, "이미지 분석 및 스토리지 업로드 중..");
+    onProgress(0.1, "이미지 분석 및 스토리지 업로드 준비 중..");
 
-    List<String> imageUrls = [];
+    List<String> imageUrls = List.filled(imageFiles.length, '');
     try {
       if (imageFiles.isNotEmpty) {
-        for (int i = 0; i < imageFiles.length; i++) {
-          final file = imageFiles[i];
-          final progressRatio = 0.1 + ((i / imageFiles.length) * 0.5);
-          onProgress(
-              progressRatio, "이미지 (${i + 1}/${imageFiles.length}) 업로드 중..");
+        int completedCount = 0;
 
-          final ref = FirebaseStorage.instance
-              .ref()
-              .child('products')
-              .child('${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-          final metadata = SettableMetadata(
-            contentType: 'image/jpg', // WebP로 압축하셨으니 webp로 명시
-            cacheControl:
-                'public, max-age=31536000', // 🚀 핵심: 1년(31,536,000초) 동안 브라우저에 캐시 저장!
-          );
-          final uploadTask = ref.putData(await file.readAsBytes(), metadata);
-          final snapshot = await uploadTask;
-          final downloadUrl = await snapshot.ref.getDownloadURL();
-          imageUrls.add(downloadUrl);
-        }
+        // ⚡ 핵심: 모든 이미지를 동시에 동시(병렬) 업로드 처리!
+        await Future.wait(
+          imageFiles.asMap().entries.map((entry) async {
+            int index = entry.key;
+            XFile file = entry.value;
+
+            final ref = FirebaseStorage.instance
+                .ref()
+                .child('products')
+                .child('${DateTime.now().millisecondsSinceEpoch}_${index}.jpg');
+
+            final metadata = SettableMetadata(
+              contentType: 'image/jpg',
+              cacheControl: 'public, max-age=31536000',
+            );
+
+            final bytes = await file.readAsBytes();
+            final uploadTask = ref.putData(bytes, metadata);
+            final snapshot = await uploadTask;
+            final downloadUrl = await snapshot.ref.getDownloadURL();
+
+            imageUrls[index] = downloadUrl; // 순서 보장
+
+            completedCount++;
+            double ratio = 0.1 + ((completedCount / imageFiles.length) * 0.6);
+            onProgress(
+                ratio, "이미지 초속업로드 중 ($completedCount/${imageFiles.length})...");
+          }),
+        );
       }
     } catch (e) {
       onProgress(0.0, "이미지 업로드 중 에러 발생: $e");
       rethrow;
     }
 
-    onProgress(0.7, "파이어베이스 매대 등록 데이터 조립 중..");
+    onProgress(0.7, "파이어베이스 매물 등록 데이터 조립 중..");
 
     // ① 본 문서 저장
     final docRef = await _db.collection('products').add({
