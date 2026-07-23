@@ -9,6 +9,7 @@ import 'package:more_pic/global/component/product_card.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/custom_widget/product_filter_bar.dart';
 import 'package:more_pic/global/custom_widget/recently_viewed_floationg_bar.dart';
+import 'package:more_pic/global/custom_widget/scrollable_category_bar.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
@@ -137,7 +138,10 @@ class MorePicWebService extends HookConsumerWidget {
       return () => scrollController.removeListener(listener);
     }, [scrollController]);
 
-    final double headerHeight = mobileMode ? 70 : 120;
+    // final double headerHeight = mobileMode ? 70 : 120;
+    // double screenWidth = MediaQuery.of(context).size.width;
+
+    final double headerHeight = mobileMode ? 110 : 130;
     double screenWidth = MediaQuery.of(context).size.width;
 
     double horizontalPadding = mobileMode ? 16 : 40;
@@ -300,70 +304,96 @@ class MorePicWebService extends HookConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // 1. 상단 줄: 로고 및 아이콘
                         SizedBox(
-                          height: 56, // 상단 바 적절한 높이 설정
+                          height: 56,
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              // 1. 가운데 로고 (모바일/데스크톱 모두 중앙 고정)
+                              if (mobileMode)
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Builder(
+                                    builder: (context) => IconButton(
+                                      icon: const Icon(Icons.menu,
+                                          color: Colors.black, size: 28),
+                                      onPressed: () =>
+                                          Scaffold.of(context).openDrawer(),
+                                    ),
+                                  ),
+                                ),
+                              // 가운데 로고 (모바일/PC 동일)
                               CustomWidget.customLogo(context, ref,
-                                  fontSize: 38),
+                                  fontSize: mobileMode ? 28 : 38),
 
-                              // 2. 양쪽 버튼 레이아웃
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // 왼쪽: 메뉴 버튼
-                                  if (mobileMode)
-                                    Builder(
-                                      builder: (BuildContext innerContext) {
-                                        return IconButton(
-                                          icon: const Icon(Icons.menu,
-                                              color: Colors.black, size: 28),
-                                          onPressed: () {
-                                            Scaffold.of(innerContext)
-                                                .openDrawer();
-                                          },
-                                        );
-                                      },
-                                    )
-                                  else
-                                    const SizedBox.shrink(),
-
-                                  // 오른쪽: 검색 및 장바구니 버튼
-                                  if (mobileMode)
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.search),
-                                          onPressed: () => ref
-                                              .read(searchBarOpenProvider
-                                                  .notifier)
-                                              .open(),
-                                        ),
-                                        CustomWidget.buildCartBadgeIcon(
-                                            context, cartCount), // 주석 해제
-                                      ],
-                                    )
-                                  else
-                                    const SizedBox.shrink(),
-                                ],
-                              ),
+                              // 우측 아이콘 (모바일일 때는 상단 줄에 배치)
+                              if (mobileMode)
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.search,
+                                            color: Colors.black),
+                                        onPressed: () => ref
+                                            .read(
+                                                searchBarOpenProvider.notifier)
+                                            .open(),
+                                      ),
+                                      CustomWidget.buildCartBadgeIcon(
+                                          context, cartCount),
+                                      // IconButton(
+                                      //   icon: Icon(
+                                      //     isLoggedIn
+                                      //         ? Icons.logout
+                                      //         : Icons.person_outline,
+                                      //     color: Colors.black87,
+                                      //   ),
+                                      //   onPressed: () async {
+                                      //     if (isLoggedIn) {
+                                      //       await adminSettingsController
+                                      //           .logout();
+                                      //       if (context.mounted) {
+                                      //         ScaffoldMessenger.of(context)
+                                      //             .clearSnackBars();
+                                      //         ScaffoldMessenger.of(context)
+                                      //             .showSnackBar(
+                                      //           const SnackBar(
+                                      //               content:
+                                      //                   Text('로그아웃 되었습니다 👋'),
+                                      //               duration:
+                                      //                   Duration(seconds: 1)),
+                                      //         );
+                                      //       }
+                                      //     } else {
+                                      //       showAdminLoginDialog(context);
+                                      //     }
+                                      //   },
+                                      // ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ),
-                        if (!mobileMode) ...[
-                          const SizedBox(height: 10),
+                        const SizedBox(height: 10),
+
+                        // 2. 하단 줄: 카테고리 메뉴 바 (Drawer 대신 여기서 렌더링)
+                        if (mobileMode)
+                          ScrollableCategoryBar(menuData: currentMenuData)
+                        else
+                          // PC는 카테고리와 아이콘을 같은 줄에 배치
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
-                                  children: currentMenuData
-                                      .map((menu) => DesktopHoverMenu(
-                                          title: menu['title'],
-                                          items: menu['children'] ?? []))
-                                      .toList()),
+                                children: currentMenuData
+                                    .map((menu) => DesktopHoverMenu(
+                                        title: menu['title'],
+                                        items: menu['children'] ?? []))
+                                    .toList(),
+                              ),
                               Row(
                                 children: [
                                   IconButton(
@@ -384,7 +414,7 @@ class MorePicWebService extends HookConsumerWidget {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             const SnackBar(
-                                                content: Text('로그아웃 되었습니다. 👋'),
+                                                content: Text('로그아웃 되었습니다 👋'),
                                                 duration: Duration(seconds: 1)),
                                           );
                                         }
@@ -404,7 +434,6 @@ class MorePicWebService extends HookConsumerWidget {
                               ),
                             ],
                           ),
-                        ]
                       ],
                     ),
                   ),

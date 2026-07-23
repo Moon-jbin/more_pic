@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'dart:html' as html;
 
@@ -187,7 +188,7 @@ class DesktopHoverMenu extends HookConsumerWidget {
     // 단독 루트 카테고리 (자식이 없는 대분류)
     if (items.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.only(right: 25),
+        padding: EdgeInsets.only(right: isMobile(context) ? 16 : 25),
         child: InkWell(
           onTap: () {
             String targetPath = '/';
@@ -276,7 +277,7 @@ class DesktopHoverMenu extends HookConsumerWidget {
               }
             },
             child: Padding(
-              padding: const EdgeInsets.only(right: 25),
+              padding: EdgeInsets.only(right: isMobile(context) ? 16 : 25),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 decoration: BoxDecoration(

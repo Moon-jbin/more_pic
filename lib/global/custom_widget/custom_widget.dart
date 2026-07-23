@@ -2,7 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:more_pic/global/component/hover_menu.dart';
 import 'package:more_pic/global/custom_widget/recently_viewed_floationg_bar.dart';
+import 'package:more_pic/global/custom_widget/scrollable_category_bar.dart';
 import 'package:more_pic/global/custom_widget/sliding_search_bar.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/cart_provider.dart';
@@ -106,77 +108,126 @@ class CustomScaffold extends HookConsumerWidget {
                   pinned: true,
                   delegate: SliverHeaderDelegate(
                     isScrolled: isScrolled.value,
-                    height: isMobile(context) ? 70 : 110,
+                    height: isMobile(context) ? 110 : 130, // main.dart와 통일
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      padding: EdgeInsets.symmetric(
+                          horizontal: isMobile(context) ? 10 : 40),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Builder(
-                            builder: (context) => IconButton(
-                              icon: const Icon(Icons.menu,
-                                  color: Colors.black, size: 28),
-                              onPressed: () =>
-                                  Scaffold.of(context).openDrawer(),
-                            ),
-                          ),
-                          CustomWidget.customLogo(context, ref,
-                              fontSize: 24, letterSpacing: 1.5),
-
-                          // 🚀 우측 아이콘 그룹 (검색 + 장바구니)
-                          Row(
-                            children: [
-                              if (showSearchIcon)
-                                IconButton(
-                                  icon: const Icon(Icons.search,
-                                      color: Colors.black),
-                                  onPressed: () => ref
-                                      .read(searchBarOpenProvider.notifier)
-                                      .open(),
-                                ),
-
-                              // 🛒 주문서 바로가기 (뱃지)
-                              Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.assignment_outlined,
-                                        color: Colors.black, size: 26),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                const OrderFormScreen()),
-                                      );
-                                    },
-                                  ),
-                                  if (cartCount > 0)
-                                    Positioned(
-                                      right: 4,
-                                      top: 4,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: const BoxDecoration(
-                                            color: Colors.redAccent,
-                                            shape: BoxShape.circle),
-                                        constraints: const BoxConstraints(
-                                            minWidth: 16, minHeight: 16),
-                                        child: Text(
-                                          '$cartCount',
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.center,
-                                        ),
+                          SizedBox(
+                            height: 56,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (isMobile(context))
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Builder(
+                                      builder: (context) => IconButton(
+                                        icon: const Icon(Icons.menu,
+                                            color: Colors.black, size: 28),
+                                        onPressed: () =>
+                                            Scaffold.of(context).openDrawer(),
                                       ),
                                     ),
-                                ],
-                              ),
-                            ],
+                                  ),
+                                CustomWidget.customLogo(context, ref,
+                                    fontSize: isMobile(context) ? 28 : 38,
+                                    letterSpacing: 1.5),
+                                if (isMobile(context))
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (showSearchIcon)
+                                          IconButton(
+                                            icon: const Icon(Icons.search,
+                                                color: Colors.black),
+                                            onPressed: () => ref
+                                                .read(searchBarOpenProvider
+                                                    .notifier)
+                                                .open(),
+                                          ),
+                                        CustomWidget.buildCartBadgeIcon(
+                                            context, cartCount),
+                                        // if (!isMobile(context))
+                                        //   IconButton(
+                                        //     icon: Icon(
+                                        //       ref
+                                        //                   .watch(
+                                        //                       authStateProvider)
+                                        //                   .value !=
+                                        //               null
+                                        //           ? Icons.logout
+                                        //           : Icons.person_outline,
+                                        //       color: Colors.black87,
+                                        //     ),
+                                        //     onPressed: () async {
+                                        //       final adminRead = ref.read(
+                                        //           adminSettingsProvider
+                                        //               .notifier);
+                                        //       if (adminRead.isLoggedIn) {
+                                        //         await adminRead.logout();
+                                        //       } else {
+                                        //         showAdminLoginDialog(context);
+                                        //       }
+                                        //     },
+                                        //   ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(height: 10),
+                          if (isMobile(context))
+                            ScrollableCategoryBar(menuData: currentMenuData)
+                          else
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                    children: currentMenuData
+                                        .map((menu) => DesktopHoverMenu(
+                                            title: menu['title'],
+                                            items: menu['children'] ?? []))
+                                        .toList()),
+                                Row(
+                                  children: [
+                                    if (showSearchIcon)
+                                      IconButton(
+                                          icon: const Icon(Icons.search),
+                                          onPressed: () => ref
+                                              .read(searchBarOpenProvider
+                                                  .notifier)
+                                              .open()),
+                                    CustomWidget.buildCartBadgeIcon(
+                                        context, cartCount),
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      onPressed: () async {
+                                        final adminRead = ref.read(
+                                            adminSettingsProvider.notifier);
+                                        if (adminRead.isLoggedIn) {
+                                          await adminRead.logout();
+                                        } else {
+                                          showAdminLoginDialog(context);
+                                        }
+                                      },
+                                      icon: Icon(
+                                        ref.watch(authStateProvider).value !=
+                                                null
+                                            ? Icons.logout
+                                            : Icons.person_outline,
+                                        color: Colors.black87,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),

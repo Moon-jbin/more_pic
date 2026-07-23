@@ -94,7 +94,7 @@ class ShippingSettingDlg extends HookConsumerWidget {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: const InputDecoration(
-                    labelText: '기본 배송비 (원)',
+                    labelText: '배송비 (원)',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.local_shipping_outlined),
                   ),
@@ -103,16 +103,21 @@ class ShippingSettingDlg extends HookConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isEvent.value ? Colors.red.shade50 : Colors.grey.shade100,
+                    color: isEvent.value
+                        ? Colors.red.shade50
+                        : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: isEvent.value ? Colors.red.shade200 : Colors.grey.shade300),
+                        color: isEvent.value
+                            ? Colors.red.shade200
+                            : Colors.grey.shade300),
                   ),
                   child: Column(
                     children: [
                       SwitchListTile(
                         title: const Text('배송비 이벤트 활성화',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold)),
                         subtitle: const Text('주문서 화면에 특별 문구가 노출됩니다.',
                             style: TextStyle(fontSize: 12)),
                         value: isEvent.value,
@@ -128,7 +133,8 @@ class ShippingSettingDlg extends HookConsumerWidget {
                             labelText: '이벤트 강조 문구',
                             hintText: '예: 이번 이벤트 기간! 배송비 2000원!',
                             border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.campaign_outlined, color: Colors.redAccent),
+                            prefixIcon: Icon(Icons.campaign_outlined,
+                                color: Colors.redAccent),
                           ),
                         ),
                       ]
@@ -150,10 +156,12 @@ class ShippingSettingDlg extends HookConsumerWidget {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
                         )
                       : const Text('저장하기',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               ],
             ),
