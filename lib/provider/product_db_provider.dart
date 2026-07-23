@@ -287,8 +287,6 @@ class PaginatedProductNotifier
       return future;
     });
   }
-
-  
 }
 
 final paginatedProductProvider = AsyncNotifierProviderFamily<
@@ -296,18 +294,18 @@ final paginatedProductProvider = AsyncNotifierProviderFamily<
   return PaginatedProductNotifier();
 });
 
-
-
 // 📌 [신규 추가]: 카테고리별 전체 상품 개수(Count) 전용 Provider
-final categoryItemCountProvider = FutureProvider.family<int, String>((ref, category) async {
+final categoryItemCountProvider =
+    FutureProvider.family<int, String>((ref, category) async {
   Query query = FirebaseFirestore.instance.collection('products');
 
   if (category != 'all') {
     final menuTree = ref.watch(globalMenuProvider).value ?? [];
-    
+
     // 기존에 만드셨던 하위 카테고리 확장 메서드 활용
     final notifier = PaginatedProductNotifier();
-    final List<String> targetCategories = notifier._expandCategoryWithChildren(category, menuTree);
+    final List<String> targetCategories =
+        notifier._expandCategoryWithChildren(category, menuTree);
 
     if (targetCategories.length == 1) {
       query = query.where('categories', arrayContains: category);
@@ -319,4 +317,22 @@ final categoryItemCountProvider = FutureProvider.family<int, String>((ref, categ
   // Firestore의 count() API를 사용하여 읽기 비용 1회만 소모하고 빠르게 개수 산출
   final AggregateQuerySnapshot snapshot = await query.count().get();
   return snapshot.count ?? 0;
+});
+
+// 파일 맨 아래에 아래 코드 추가
+final singleProductProvider =
+    FutureProvider.family<ProductModel?, String>((ref, productId) async {
+  if (productId == "-1" || productId.isEmpty) return null;
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId)
+        .get();
+    if (doc.exists) {
+      return ProductModel.fromDocument(doc);
+    }
+  } catch (e) {
+    print("단건 상품 조회 실패: $e");
+  }
+  return null;
 });

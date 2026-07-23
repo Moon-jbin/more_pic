@@ -1,7 +1,7 @@
 // FILE: lib/global/component/product_card.dart
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -60,19 +60,62 @@ class ProductCard extends HookConsumerWidget {
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
                       child: InkWell(
+                        // InkWell의 onTap 내부 수정
                         onTap: () {
                           context.pushNamed(
                             'productDetail',
                             params: {
-                              'category': product.categoryNames.first,
+                              // 🔥 카테고리가 비어있을 경우 방어 코드 추가
+                              'category': product.categoryNames.isNotEmpty
+                                  ? product.categoryNames.first
+                                  : 'all',
                               'id': product.id.toString(),
                             },
+                            extra: product, // 🔥 상세 페이지로 상품 객체 자체를 직배송!
                           );
                         },
                         child: (product.images.isNotEmpty)
-                            ? CachedNetworkImage(
+                            ?
+                            // (kIsWeb
+                            //     // 🌐 1. 웹(Web) 접속 시: 기린 쇼핑몰과 똑같이 브라우저 네이티브 캐싱 엔진 사용 (가장 빠름!)
+                            //     ? Image.network(
+                            //         getCdnImageUrl(product.images.first),
+                            //         fit: BoxFit.cover,
+                            //         headers: const {
+                            //           'Accept': 'image/webp,image/*'
+                            //         },
+                            //         // 웹 브라우저가 자체적으로 캐시하고 즉시 띄우게 됨
+                            //         frameBuilder: (context, child, frame,
+                            //             wasSynchronouslyLoaded) {
+                            //           if (wasSynchronouslyLoaded) return child;
+                            //           return AnimatedOpacity(
+                            //             // 0.1초 페이드인으로 자연스럽고 빠르게 노출
+                            //             opacity: frame == null ? 0 : 1,
+                            //             duration:
+                            //                 const Duration(milliseconds: 100),
+                            //             curve: Curves.easeOut,
+                            //             child: child,
+                            //           );
+                            //         },
+                            //         errorBuilder:
+                            //             (context, error, stackTrace) =>
+                            //                 const Center(
+                            //                     child: Icon(
+                            //                         Icons.broken_image_outlined,
+                            //                         color: Colors.grey,
+                            //                         size: 28)),
+                            //       )
+
+                            // 📱 2. 모바일(App) 접속 시: 기존처럼 CachedNetworkImage 사용 (디바이스 저장소 최적화)
+                            // :
+                            CachedNetworkImage(
                                 imageUrl: product.images.first,
                                 fit: BoxFit.cover,
+                                filterQuality: FilterQuality
+                                    .none, // 이전 답변에서 알려드린 GPU 과부하 차단
+                                memCacheWidth: isMobileSize ? 400 : 800,
+                                fadeInDuration:
+                                    const Duration(milliseconds: 100), // 지연 최소화
                                 placeholder: (context, url) =>
                                     CustomWidget.buildShimmerPlaceholder(),
                                 errorWidget: (context, url, error) =>
@@ -80,8 +123,8 @@ class ProductCard extends HookConsumerWidget {
                                   child: Icon(Icons.broken_image_outlined,
                                       color: Colors.grey, size: 28),
                                 ),
-                                filterQuality: FilterQuality.high,
                               )
+                            // )
                             : const Center(
                                 child: Icon(Icons.image_outlined,
                                     color: Colors.black26, size: 32),

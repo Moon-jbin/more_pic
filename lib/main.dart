@@ -171,7 +171,9 @@ class MorePicWebService extends HookConsumerWidget {
                         Row(children: [
                           if (isEditMode) ...[
                             IconButton(
-                              onPressed: () => showProductUploadDlgFn(context),
+                              onPressed: () =>
+                                  // migrateProductImageUrlsParallel(),
+                                  showProductUploadDlgFn(context),
                               icon: const Icon(
                                 Icons.add_a_photo,
                                 color: Colors.red,
@@ -413,6 +415,7 @@ class MorePicWebService extends HookConsumerWidget {
                                   ? items[index]
                                   : globalSearchWatch[index];
                           return ProductCard(
+                              key: ValueKey(product.id),
                               product: product,
                               currentCategory: currentCategory);
                         },

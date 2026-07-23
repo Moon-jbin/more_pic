@@ -15,11 +15,13 @@ import 'package:more_pic/provider/admin_settings_provider.dart';
 class ProductDetailScreen extends HookConsumerWidget {
   final String category;
   final String productId;
+  final ProductModel? productExtra; // 🔥 추가
 
   const ProductDetailScreen({
     super.key,
     required this.category,
     required this.productId,
+    this.productExtra,
   });
 
   bool _isMobile(BuildContext context) {
@@ -36,14 +38,28 @@ class ProductDetailScreen extends HookConsumerWidget {
 
     final List<ProductModel> productList =
         productListAsync.value?.items ?? <ProductModel>[];
+    ProductModel? targetProduct = productExtra;
 
-    final product = productList.firstWhere(
-      (item) => item.id.toString().trim() == productId.toString().trim(),
-      orElse: () {
-        if (productList.isNotEmpty) {
-          return productList.first;
-        }
-        return ProductModel(
+    // 2. 만약 없다면 (새로고침 등으로 직접 주소 접속 시) 기존 리스트에서 찾기
+    if (targetProduct == null) {
+      try {
+        targetProduct = productList.firstWhere(
+          (item) => item.id.toString().trim() == productId.toString().trim(),
+        );
+      } catch (_) {
+        targetProduct = null; // 리스트에도 없으면 null
+      }
+    }
+
+    // 3. 리스트에도 없으면 DB에서 직접 가져오기 (방금 만든 Provider 사용)
+    final singleProductAsync = (targetProduct == null)
+        ? ref.watch(singleProductProvider(productId))
+        : null;
+
+    // 🚀 최종 상품 결정!
+    final product = targetProduct ??
+        singleProductAsync?.value ??
+        ProductModel(
           id: "-1",
           name: '상품 정보를 불러오는 중입니다...',
           size: '-',
@@ -52,10 +68,9 @@ class ProductDetailScreen extends HookConsumerWidget {
           categoryNames: [category],
           color: "-",
         );
-      },
-    );
 
-    if (productListAsync.isLoading && product.id == "-1") {
+    // 로딩 중이거나 못 찾았을 때의 화면 처리
+    if (product.id == "-1") {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(color: Color(0xFF4A6FA5)),

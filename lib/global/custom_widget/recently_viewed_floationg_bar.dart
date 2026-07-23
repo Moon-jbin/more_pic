@@ -163,7 +163,9 @@ Widget _buildDesktopWidget(BuildContext context,
                             children: recentProducts.map((product) {
                               return InkWell(
                                 borderRadius: BorderRadius.circular(8),
+                                // 모바일 & PC 데스크톱 위젯 각각의 onTap 내부 수정
                                 onTap: () {
+                                  // 모바일 버전의 경우 Navigator.pop(context); 유지
                                   context.pushNamed(
                                     'productDetail',
                                     params: {
@@ -173,6 +175,7 @@ Widget _buildDesktopWidget(BuildContext context,
                                               : 'all',
                                       'id': product.id,
                                     },
+                                    extra: product, // 🔥 추가
                                   );
                                 },
                                 child: Padding(

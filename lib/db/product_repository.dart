@@ -106,8 +106,12 @@ class ProductRepository {
               .ref()
               .child('products')
               .child('${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-
-          final uploadTask = ref.putData(await file.readAsBytes());
+          final metadata = SettableMetadata(
+            contentType: 'image/jpg', // WebP로 압축하셨으니 webp로 명시
+            cacheControl:
+                'public, max-age=31536000', // 🚀 핵심: 1년(31,536,000초) 동안 브라우저에 캐시 저장!
+          );
+          final uploadTask = ref.putData(await file.readAsBytes(), metadata);
           final snapshot = await uploadTask;
           final downloadUrl = await snapshot.ref.getDownloadURL();
           imageUrls.add(downloadUrl);
@@ -217,7 +221,12 @@ class ProductRepository {
               .ref()
               .child('products')
               .child('${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-          final uploadTask = ref.putData(await item.readAsBytes());
+          final metadata = SettableMetadata(
+            contentType: 'image/jpg',
+            cacheControl:
+                'public, max-age=31536000', // 🚀 핵심: 1년(31,536,000초) 동안 브라우저에 캐시 저장!
+          );
+          final uploadTask = ref.putData(await item.readAsBytes(), metadata);
           final snapshot = await uploadTask;
           final downloadUrl = await snapshot.ref.getDownloadURL();
           finalImageUrls.add(downloadUrl);

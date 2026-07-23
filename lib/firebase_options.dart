@@ -46,7 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '770986243442',
     projectId: 'more-pic',
     authDomain: 'more-pic.firebaseapp.com',
-    storageBucket: 'more-pic.firebasestorage.app',
+    storageBucket: 'more_pick',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -54,7 +54,7 @@ class DefaultFirebaseOptions {
     appId: '1:770986243442:android:3843deefeda80ecaf919eb',
     messagingSenderId: '770986243442',
     projectId: 'more-pic',
-    storageBucket: 'more-pic.firebasestorage.app',
+    storageBucket: 'more_pick',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -62,7 +62,7 @@ class DefaultFirebaseOptions {
     appId: '1:770986243442:ios:621abbb09e33185cf919eb',
     messagingSenderId: '770986243442',
     projectId: 'more-pic',
-    storageBucket: 'more-pic.firebasestorage.app',
+    storageBucket: 'more_pick',
     iosBundleId: 'com.example.morePic',
   );
 
@@ -71,7 +71,7 @@ class DefaultFirebaseOptions {
     appId: '1:770986243442:ios:621abbb09e33185cf919eb',
     messagingSenderId: '770986243442',
     projectId: 'more-pic',
-    storageBucket: 'more-pic.firebasestorage.app',
+    storageBucket: 'more_pick',
     iosBundleId: 'com.example.morePic',
   );
 
@@ -81,6 +81,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '770986243442',
     projectId: 'more-pic',
     authDomain: 'more-pic.firebaseapp.com',
-    storageBucket: 'more-pic.firebasestorage.app',
+    storageBucket: 'more_pick',
   );
 }

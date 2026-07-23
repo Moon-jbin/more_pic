@@ -474,6 +474,7 @@ class ProductListPage extends HookConsumerWidget {
                                   : globalSearchWatch[index] as dynamic;
 
                           return ProductCard(
+                            key: ValueKey(product.id),
                             product: product,
                             currentCategory: category,
                             // onDelete: () async {

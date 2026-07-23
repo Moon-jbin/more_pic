@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:more_pic/main.dart';
 import 'package:more_pic/global/component/product_list_page.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
+import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/screen/order_form_screen.dart';
 import 'package:more_pic/screen/product_detail_screen.dart';
 import 'package:more_pic/utils/routing/router_name.dart';
@@ -59,17 +60,25 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // 2. 아이템 상세 페이지
+  // 2. 아이템 상세 페이지
     GoRoute(
       path: '/product/:category/:id',
       name: 'productDetail',
       pageBuilder: (context, state) {
         String category = state.params['category'] ?? '';
         String productId = state.params['id'] ?? '-1';
+        
+        // 🔥 핵심: ProductCard에서 보낸 extra를 꺼냅니다!
+        ProductModel? extraProduct = state.extra as ProductModel?;
+
         return buildPageWithTransition(
           context: context,
           state: state,
-          child: ProductDetailScreen(category: category, productId: productId),
+          child: ProductDetailScreen(
+            category: category, 
+            productId: productId,
+            productExtra: extraProduct, // 🔥 화면으로 전달!
+          ),
         );
       },
     ),

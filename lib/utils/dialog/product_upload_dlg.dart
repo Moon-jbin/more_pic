@@ -193,13 +193,13 @@ class ProductUploadDlg extends HookConsumerWidget {
         chunkCtx.drawImage(htmlImgElement, 0, 0);
         chunkCtx.translate(0, currentY);
 
-        final chunkBlob = await chunkCanvas.toBlob('image/webp', 0.35);
+        final chunkBlob = await chunkCanvas.toBlob('image/jpg', 0.35);
         final String chunkBlobUrl = html.Url.createObjectUrlFromBlob(chunkBlob);
 
         slicedFiles.add(XFile(chunkBlobUrl,
-            mimeType: 'image/webp',
+            mimeType: 'image/jpg',
             name:
-                'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.webp'));
+                'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.jpg'));
         currentY = bestCutY;
         index++;
       }
@@ -455,24 +455,7 @@ class ProductUploadDlg extends HookConsumerWidget {
           });
           finalProcessedList.addAll(chunks);
         } else {
-          // finalProcessedList.add(file);
-
-// 🗜️ 자르지 않는 이미지도 강제로 압축 후 WebP로 변환!
-          final compressedBytes = await FlutterImageCompress.compressWithList(
-            bytes,
-            minHeight: 1920,
-            minWidth: 1080,
-            quality: 70, // 70% 퀄리티로 타협 (화질 저하 체감 거의 없음)
-            format: CompressFormat.webp, // 🚀 차세대 압축 포맷 적용
-          );
-
-          final compressedXFile = XFile.fromData(
-            compressedBytes,
-            mimeType: 'image/webp',
-            name: 'compressed_${DateTime.now().millisecondsSinceEpoch}.webp',
-          );
-
-          finalProcessedList.add(compressedXFile);
+          finalProcessedList.add(file);
         }
       }
 
