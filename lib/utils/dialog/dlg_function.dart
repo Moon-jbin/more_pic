@@ -19,8 +19,10 @@ import 'package:more_pic/utils/dialog/menu_edit_dlg.dart';
 import 'package:more_pic/utils/dialog/ok_cancel_dialog.dart';
 import 'package:more_pic/utils/dialog/ok_dialog.dart';
 import 'package:more_pic/utils/dialog/password_check_dlg.dart';
+import 'package:more_pic/utils/dialog/popup_setting_dlg.dart';
 import 'package:more_pic/utils/dialog/product_edit_dlg.dart';
 import 'package:more_pic/utils/dialog/product_upload_dlg.dart';
+import 'package:more_pic/utils/dialog/shipping_setting_dlg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 showProductUploadDlgFn(BuildContext context,
@@ -121,4 +123,14 @@ showProductEditDlgFn(BuildContext context,
 showAdminLoginDialog(BuildContext context) {
   return showCustomDialog(
       context, (context) => customDialogForm(content: const LoginDlg()));
+}
+
+showShippingSettingDialog(BuildContext context) {
+  return showCustomDialog(context,
+      (context) => customDialogForm(content: const ShippingSettingDlg()));
+}
+
+showPopupSettingDialog(BuildContext context) {
+  return showCustomDialog(context,
+      (context) => customDialogForm(content: const PopupSettingDlg()));
 }

@@ -112,7 +112,7 @@ class ProductCard extends HookConsumerWidget {
                                 imageUrl: product.images.first,
                                 fit: BoxFit.cover,
                                 filterQuality: FilterQuality
-                                    .none, // 이전 답변에서 알려드린 GPU 과부하 차단
+                                    .high, // 이전 답변에서 알려드린 GPU 과부하 차단
                                 memCacheWidth: isMobileSize ? 400 : 800,
                                 fadeInDuration:
                                     const Duration(milliseconds: 100), // 지연 최소화

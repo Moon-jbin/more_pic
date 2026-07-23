@@ -15,11 +15,13 @@ import 'package:more_pic/provider/admin_settings_provider.dart';
 import 'package:more_pic/provider/cart_provider.dart';
 import 'package:more_pic/provider/search_provider.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
+import 'package:more_pic/provider/system_config_provider.dart';
 import 'package:more_pic/secret.dart';
 import 'package:more_pic/utils/delegate/sliverHeaderDelegate.dart';
 import 'package:more_pic/utils/dialog/dlg_function.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:more_pic/utils/routing/router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +77,7 @@ class MorePicWebService extends HookConsumerWidget {
     final globalSearchWatch = ref.watch(globalSearchProvider);
     // final globalSearchRead = ref.read(globalSearchProvider.notifier);
     final searchContentWatch = ref.watch(searchContentProvider);
+    final popupConfigAsync = ref.watch(popupConfigProvider);
 
     final menuAsync = ref.watch(globalMenuProvider);
     final currentMenuData = menuAsync.value ?? [];
@@ -136,12 +139,46 @@ class MorePicWebService extends HookConsumerWidget {
 
     final double headerHeight = mobileMode ? 70 : 120;
     double screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount = 3;
 
     double horizontalPadding = mobileMode ? 16 : 40;
     if (!mobileMode && screenWidth > 1360) {
       horizontalPadding = (screenWidth - 1280) / 2;
     }
+
+    // PC 화면은 4열, 모바일/태블릿은 3열로 반응형 분기
+    int crossAxisCount = 4;
+    if (mobileMode || screenWidth < 768) {
+      crossAxisCount = 3;
+    } else if (screenWidth < 1200) {
+      crossAxisCount = 3;
+    }
+
+    useEffect(() {
+      Future.microtask(() async {
+        if (popupConfigAsync.value == null) return;
+        final isActive = popupConfigAsync.value!['isActive'] as bool? ?? false;
+        final title = popupConfigAsync.value!['title'] as String? ?? '';
+        final content = popupConfigAsync.value!['content'] as String? ?? '';
+
+        if (isActive && (title.isNotEmpty || content.isNotEmpty)) {
+          final prefs = await SharedPreferences.getInstance();
+          final int? hideUntil = prefs.getInt('hide_popup_until');
+          final currentTime = DateTime.now().millisecondsSinceEpoch;
+
+          if (hideUntil == null || currentTime > hideUntil) {
+            if (context.mounted) {
+              showDialog(
+                context: context,
+                barrierColor: Colors.black.withOpacity(0.4),
+                builder: (context) =>
+                    _TextPopupDialog(title: title, content: content),
+              );
+            }
+          }
+        }
+      });
+      return null;
+    }, [popupConfigAsync.value?['isActive']]);
 
     return Scaffold(
       key: scaffoldKey,
@@ -186,7 +223,20 @@ class MorePicWebService extends HookConsumerWidget {
                               icon: const Icon(Icons.category,
                                   color: Colors.blue),
                               tooltip: '카테고리 메뉴 편집',
-                            )
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  showShippingSettingDialog(context),
+                              icon: const Icon(Icons.local_shipping,
+                                  color: Colors.green),
+                              tooltip: '배송비 설정',
+                            ),
+                            IconButton(
+                              onPressed: () => showPopupSettingDialog(context),
+                              icon: const Icon(Icons.campaign,
+                                  color: Colors.deepPurple),
+                              tooltip: '메인 팝업창 설정',
+                            ),
                           ]
                         ]),
                       Row(
@@ -451,6 +501,133 @@ class MorePicWebService extends HookConsumerWidget {
             scrollController: scrollController,
           ),
         ],
+      ),
+    );
+  }
+}
+// FILE: lib/main.dart 하단에 추가
+
+class _TextPopupDialog extends HookWidget {
+  final String title;
+  final String content;
+
+  const _TextPopupDialog({required this.title, required this.content});
+
+  @override
+  Widget build(BuildContext context) {
+    final isChecked = useState(false);
+
+    void closePopup() async {
+      if (isChecked.value) {
+        final prefs = await SharedPreferences.getInstance();
+        // 24시간 뒤로 설정
+        final hideUntil = DateTime.now()
+            .add(const Duration(hours: 24))
+            .millisecondsSinceEpoch;
+        await prefs.setInt('hide_popup_until', hideUntil);
+      }
+      if (context.mounted) Navigator.pop(context);
+    }
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: Container(
+        width: 450,
+        constraints: const BoxConstraints(maxHeight: 600), // 화면 넘어가지 않게 제한
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9F9F9), // 사진과 유사한 은은한 회백색 배경
+          borderRadius: BorderRadius.circular(0), // 각진 디자인
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 본문 영역 (스크롤 가능하게 처리)
+            Flexible(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (title.isNotEmpty) ...[
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                    ],
+                    if (content.isNotEmpty)
+                      Text(
+                        content,
+                        textAlign: TextAlign.center, // 가운데 정렬
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.8, // 줄간격을 넓혀서 읽기 쉽게
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF444444),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            // 하단 컨트롤 바 (검정색)
+            Container(
+              height: 55,
+              color: const Color(0xFF191919),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: isChecked.value,
+                          activeColor: Colors.white,
+                          checkColor: Colors.black,
+                          side:
+                              const BorderSide(color: Colors.white, width: 1.5),
+                          onChanged: (val) => isChecked.value = val ?? false,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => isChecked.value = !isChecked.value,
+                        child: const Text(
+                          '24시간 동안 다시 열람하지 않습니다.',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: closePopup,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: Size.zero,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('닫기',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold)),
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

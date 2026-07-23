@@ -10,6 +10,7 @@ import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/cart_provider.dart';
 import 'package:more_pic/provider/admin_settings_provider.dart';
 import 'package:more_pic/utils/dialog/dlg_function.dart';
+import 'package:more_pic/provider/system_config_provider.dart';
 import 'dart:html' as html;
 
 class PhoneInputFormatter extends TextInputFormatter {
@@ -49,6 +50,11 @@ class OrderFormScreen extends HookConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final isLoggedIn = authState.value != null;
 
+    final shippingConfigAsync = ref.watch(shippingConfigProvider);
+    final int baseShippingFee = shippingConfigAsync.value?['fee'] ?? 3000;
+    final String shippingMessage = shippingConfigAsync.value?['message'] ?? '';
+    final bool isEvent = shippingConfigAsync.value?['isEvent'] ?? false;
+
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final nameController = useTextEditingController();
     final phoneController = useTextEditingController();
@@ -74,7 +80,7 @@ class OrderFormScreen extends HookConsumerWidget {
       },
     );
 
-    final shippingFee = isCombinedShipping.value ? 0 : 3500;
+    final shippingFee = isCombinedShipping.value ? 0 : baseShippingFee;
     final finalTotalPrice = productTotalPrice + shippingFee;
 
     // 카톡 전송용 텍스트 (완성형)
@@ -577,61 +583,82 @@ class OrderFormScreen extends HookConsumerWidget {
                                         style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600)),
-                                    // const SizedBox(width: 8),
-                                    // InkWell(
-                                    //   onTap: () {
-                                    //     isCombinedShipping.value =
-                                    //         !isCombinedShipping.value;
-                                    //   },
-                                    //   child: Row(
-                                    //     children: [
-                                    //       SizedBox(
-                                    //         width: 24,
-                                    //         height: 24,
-                                    //         child: Checkbox(
-                                    //           value: isCombinedShipping.value,
-                                    //           activeColor: Colors.black,
-                                    //           onChanged: (val) {
-                                    //             isCombinedShipping.value =
-                                    //                 val ?? false;
-                                    //           },
-                                    //         ),
-                                    //       ),
-                                    //       const SizedBox(width: 4),
-                                    //       const Text(
-                                    //         '기존건합배 (배송비 0원)',
-                                    //         style: TextStyle(
-                                    //             fontSize: 12,
-                                    //             color: Colors.blueAccent,
-                                    //             fontWeight: FontWeight.w600),
-                                    //       ),
-                                    //     ],
-                                    //   ),
-                                    // ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: () {
+                                        isCombinedShipping.value =
+                                            !isCombinedShipping.value;
+                                      },
+                                      child: Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: Checkbox(
+                                              value: isCombinedShipping.value,
+                                              activeColor: Colors.black,
+                                              onChanged: (val) {
+                                                isCombinedShipping.value =
+                                                    val ?? false;
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Text(
+                                            '기존건합배 (배송비 0원)',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.blueAccent,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
-                                Text(
-                                  isCombinedShipping.value
-                                      ? '₩ 0'
-                                      : '₩ ${formatCurrency.format(shippingFee)}',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: isCombinedShipping.value
-                                        ? Colors.blueAccent
-                                        : Colors.black,
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      isCombinedShipping.value
+                                          ? '₩0'
+                                          : '₩${formatCurrency.format(shippingFee)}',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: isCombinedShipping.value
+                                            ? Colors.blueAccent
+                                            : Colors.black,
+                                      ),
+                                    ),
+                                    // 이벤트 문구 조건부 노출 UI 추가
+                                    if (isEvent &&
+                                        shippingMessage.isNotEmpty &&
+                                        !isCombinedShipping.value)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          shippingMessage,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors
+                                                .redAccent, // 이벤트 느낌을 주는 빨간색
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ],
                             ),
-                            // Padding(
-                            //   padding: const EdgeInsets.only(top: 4),
-                            //   child: Text(
-                            //     '>합배송은 배송비 0원입니다. "기존건합배" 기재',
-                            //     style: TextStyle(
-                            //         fontSize: 12, color: Colors.grey.shade600),
-                            //   ),
-                            // ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '>합배송 (체크 시 기존주문건 입고 시 합쳐서 한번에 배송됩니다. ) ',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                            ),
                             const Divider(height: 24),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,

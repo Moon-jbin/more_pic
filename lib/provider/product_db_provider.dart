@@ -128,28 +128,24 @@ class PaginatedProductNotifier
     return categorySet.toList();
   }
 
-  // 🛠️ [기존 _buildQuery 함수 수정]
-  Query _buildQuery(String arg, ProductFilterState filter) {
+  // 👇 파라미터에 List<Map<String, dynamic>> menuTree 추가!
+  Query _buildQuery(String arg, ProductFilterState filter,
+      List<Map<String, dynamic>> menuTree) {
     Query query = FirebaseFirestore.instance.collection('products');
 
-    // 1. 카테고리 필터
     if (arg != 'all') {
-      final menuTree = ref.read(globalMenuProvider).value ?? [];
-      // 선택된 카테고리 및 그 아래의 자식 카테고리 키값 목록을 확보 (예: ['babyOuter', 'babyOuterJumperJacket', ...])
+      // ❌ 삭제: final menuTree = ref.read(globalMenuProvider).value ?? [];
       final List<String> targetCategories =
           _expandCategoryWithChildren(arg, menuTree);
 
       if (targetCategories.length == 1) {
-        // 단일 카테고리인 경우 (최하위)
         query = query.where('categories', arrayContains: arg);
       } else {
-        // 🔥 하위 그룹을 포함하는 상위 카테고리인 경우!
-        // Firestore의 arrayContainsAny를 사용하여 자식 카테고리 중 하나라도 포함된 상품을 전부 끌어옴
         query = query.where('categories', arrayContainsAny: targetCategories);
       }
     }
 
-    // 2. 정렬 옵션
+    // 2. 정렬 옵션 (기존 코드와 동일)
     switch (filter.sortOption) {
       case ProductSortOption.priceLow:
         query = query.orderBy('price', descending: false);
@@ -170,10 +166,13 @@ class PaginatedProductNotifier
 
   @override
   FutureOr<PaginationState> build(String arg) async {
-    // 💡 필터 상태를 watch (필터가 변경되면 build가 다시 호출되어 1페이지부터 다시 불러옴!)
     final filter = ref.watch(productFilterProvider);
 
-    Query query = _buildQuery(arg, filter);
+    // 👇 핵심: 메뉴 트리가 완전히 로드될 때까지 기다립니다!
+    final menuTree = await ref.watch(globalMenuProvider.future);
+
+    // 👇 수정된 _buildQuery에 menuTree 전달
+    Query query = _buildQuery(arg, filter, menuTree);
     final snapshot = await query.limit(_limit).get();
 
     final fetchedItems =
@@ -195,7 +194,9 @@ class PaginatedProductNotifier
     await AsyncValue.guard(() async {
       // 💡 다음 페이지 로드 시에는 read로 현재 필터 상태만 가져옴
       final filter = ref.read(productFilterProvider);
-      Query query = _buildQuery(arg, filter);
+
+      final menuTree = await ref.read(globalMenuProvider.future);
+      Query query = _buildQuery(arg, filter, menuTree);
 
       query = query.startAfterDocument(currentState.lastDoc!).limit(_limit);
 
@@ -294,15 +295,15 @@ final paginatedProductProvider = AsyncNotifierProviderFamily<
   return PaginatedProductNotifier();
 });
 
-// 📌 [신규 추가]: 카테고리별 전체 상품 개수(Count) 전용 Provider
+// 파일 하단쯤에 위치한 categoryItemCountProvider 수정
 final categoryItemCountProvider =
     FutureProvider.family<int, String>((ref, category) async {
   Query query = FirebaseFirestore.instance.collection('products');
 
   if (category != 'all') {
-    final menuTree = ref.watch(globalMenuProvider).value ?? [];
+    // 👇 핵심: 개수를 셀 때도 메뉴 트리가 로드될 때까지 기다림
+    final menuTree = await ref.watch(globalMenuProvider.future);
 
-    // 기존에 만드셨던 하위 카테고리 확장 메서드 활용
     final notifier = PaginatedProductNotifier();
     final List<String> targetCategories =
         notifier._expandCategoryWithChildren(category, menuTree);
@@ -314,7 +315,6 @@ final categoryItemCountProvider =
     }
   }
 
-  // Firestore의 count() API를 사용하여 읽기 비용 1회만 소모하고 빠르게 개수 산출
   final AggregateQuerySnapshot snapshot = await query.count().get();
   return snapshot.count ?? 0;
 });
