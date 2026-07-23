@@ -1,7 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/model/search_content.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 final searchBarOpenProvider =
@@ -15,7 +15,9 @@ final searchContentProvider =
     NotifierProvider<SearchContentProvider, SearchContent>(
         SearchContentProvider.new);
 
-// 🌟 [원격 메뉴 실시간 바인딩 가방]
+// 검색 로딩 상태
+final isSearchingProvider = StateProvider<bool>((ref) => false);
+
 final globalMenuProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   return FirebaseFirestore.instance
       .collection('system_settings')
@@ -40,19 +42,25 @@ class GlobalSearchNotifier extends Notifier<List<ProductModel>> {
   @override
   List<ProductModel> build() => [];
 
-  void filterProducts(
-      {required String query, required List<ProductModel> targetList}) {
-    if (query.trim().isEmpty) {
+  // 📌 DB 전체 미니 사전 기반 실시간 검색 트리거
+  Future<void> performDbSearch(String query) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) {
       state = [];
       return;
     }
-    state = targetList.where((product) {
-      return product.name.toLowerCase().contains(query.toLowerCase());
-    }).toList();
-  }
 
-  void allProductsFn(List<ProductModel> targetList) {
-    state = targetList;
+    ref.read(isSearchingProvider.notifier).state = true;
+    try {
+      final repo = ref.read(productRepositoryProvider);
+      final results = await repo.searchProductsFromIndex(cleanQuery);
+      state = results;
+    } catch (e) {
+      print("검색 에러: $e");
+      state = [];
+    } finally {
+      ref.read(isSearchingProvider.notifier).state = false;
+    }
   }
 
   void clearSearch() => state = [];
@@ -72,7 +80,6 @@ class SearchContentProvider extends Notifier<SearchContent> {
   void initState() => state = const SearchContent(searchContent: '', page: 1);
 }
 
-// 🌟 [원격 데이터베이스 메뉴판 덮어쓰기 트랜잭션 수식]
 Future<void> updateRemoteMenuTree(
     List<Map<String, dynamic>> newMenuTree) async {
   await FirebaseFirestore.instance

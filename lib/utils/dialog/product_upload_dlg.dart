@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:more_pic/db/product_repository.dart';
@@ -192,13 +193,13 @@ class ProductUploadDlg extends HookConsumerWidget {
         chunkCtx.drawImage(htmlImgElement, 0, 0);
         chunkCtx.translate(0, currentY);
 
-        final chunkBlob = await chunkCanvas.toBlob('image/jpeg', 0.35);
+        final chunkBlob = await chunkCanvas.toBlob('image/webp', 0.35);
         final String chunkBlobUrl = html.Url.createObjectUrlFromBlob(chunkBlob);
 
         slicedFiles.add(XFile(chunkBlobUrl,
-            mimeType: 'image/jpeg',
+            mimeType: 'image/webp',
             name:
-                'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.jpg'));
+                'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.webp'));
         currentY = bestCutY;
         index++;
       }
@@ -443,7 +444,8 @@ class ProductUploadDlg extends HookConsumerWidget {
         final ui.FrameInfo frameInfo = await codec.getNextFrame();
         final ui.Image uiImage = frameInfo.image;
 
-        if (uiImage.height > 4000) {
+        // if (uiImage.height > 4000) {
+        if (uiImage.height > 1500) {
           List<XFile> chunks =
               await sliceLongImage(uiImage, bytes, (percent, msg) {
             double fileBase = (fileCount - 1) / files.length;
@@ -453,7 +455,24 @@ class ProductUploadDlg extends HookConsumerWidget {
           });
           finalProcessedList.addAll(chunks);
         } else {
-          finalProcessedList.add(file);
+          // finalProcessedList.add(file);
+
+// 🗜️ 자르지 않는 이미지도 강제로 압축 후 WebP로 변환!
+          final compressedBytes = await FlutterImageCompress.compressWithList(
+            bytes,
+            minHeight: 1920,
+            minWidth: 1080,
+            quality: 70, // 70% 퀄리티로 타협 (화질 저하 체감 거의 없음)
+            format: CompressFormat.webp, // 🚀 차세대 압축 포맷 적용
+          );
+
+          final compressedXFile = XFile.fromData(
+            compressedBytes,
+            mimeType: 'image/webp',
+            name: 'compressed_${DateTime.now().millisecondsSinceEpoch}.webp',
+          );
+
+          finalProcessedList.add(compressedXFile);
         }
       }
 
@@ -762,13 +781,20 @@ class ProductUploadDlg extends HookConsumerWidget {
                                           child: Container(
                                             padding: const EdgeInsets.all(6),
                                             decoration: BoxDecoration(
-                                              color: Colors.black.withOpacity(0.6),
+                                              color:
+                                                  Colors.black.withOpacity(0.6),
                                               shape: BoxShape.circle,
                                               boxShadow: [
-                                                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4)
+                                                BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.2),
+                                                    blurRadius: 4)
                                               ],
                                             ),
-                                            child: const Icon(Icons.open_with_rounded, color: Colors.white, size: 16),
+                                            child: const Icon(
+                                                Icons.open_with_rounded,
+                                                color: Colors.white,
+                                                size: 16),
                                           ),
                                         ),
                                       ),

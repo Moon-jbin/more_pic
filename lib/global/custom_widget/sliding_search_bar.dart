@@ -114,21 +114,24 @@ class SlidingSearchBar extends HookConsumerWidget {
                               BorderSide(color: Colors.black, width: 2.0),
                         ),
                       ),
-                      onSubmitted: (value) {
+                      // SlidingSearchBar 클래스 내부의 TextField onSubmitted 부분 수정:
+
+                      onSubmitted: (value) async {
                         final query = value.trim();
 
-                        // 1️⃣ [검색 필터 작동]: 현재 페이지에 안착된 실시간 리스트를 찌릅니다.
-                        globalSearchRead.filterProducts(
-                          query: query,
-                          targetList: currentScreenItems,
-                        );
+                        if (query.isNotEmpty) {
+                          // 💡 DB 미니 사전을 뒤져서 전체 상품 대상 검색 수행!
+                          await ref
+                              .read(globalSearchProvider.notifier)
+                              .performDbSearch(query);
+                        } else {
+                          ref.read(globalSearchProvider.notifier).clearSearch();
+                        }
 
-                        // 2️⃣ [무한스크롤 연동 핵심]: 장부에 내 검색어를 이식합니다. page는 무조건 1페이지로 리셋!
                         searchContentRead.setState(
                           SearchContent(searchContent: query, page: 1),
                         );
 
-                        // 3️⃣ 검색 주기를 마치고 서치바를 이쁘게 반전 슬라이딩 시킵니다.
                         ref.read(searchBarOpenProvider.notifier).close();
                       },
                     ),

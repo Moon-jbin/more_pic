@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/firebase_options.dart';
 import 'package:more_pic/global/component/hover_menu.dart';
 import 'package:more_pic/global/component/product_card.dart';
@@ -72,7 +73,7 @@ class MorePicWebService extends HookConsumerWidget {
     final isScrolled = useState(false);
 
     final globalSearchWatch = ref.watch(globalSearchProvider);
-    final globalSearchRead = ref.read(globalSearchProvider.notifier);
+    // final globalSearchRead = ref.read(globalSearchProvider.notifier);
     final searchContentWatch = ref.watch(searchContentProvider);
 
     final menuAsync = ref.watch(globalMenuProvider);
@@ -89,21 +90,21 @@ class MorePicWebService extends HookConsumerWidget {
 
     final cartCount = ref.watch(cartProvider).length;
 
-    useEffect(() {
-      paginatedStateAsync.whenData((stateData) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (searchContentWatch.searchContent.isNotEmpty) {
-            globalSearchRead.filterProducts(
-                query: searchContentWatch.searchContent,
-                targetList: stateData.items.cast<ProductModel>());
-          } else {
-            globalSearchRead
-                .allProductsFn(stateData.items.cast<ProductModel>());
-          }
-        });
-      });
-      return null;
-    }, [paginatedStateAsync.value?.items, searchContentWatch.searchContent]);
+    // useEffect(() {
+    //   paginatedStateAsync.whenData((stateData) {
+    //     WidgetsBinding.instance.addPostFrameCallback((_) {
+    //       if (searchContentWatch.searchContent.isNotEmpty) {
+    //         globalSearchRead.filterProducts(
+    //             query: searchContentWatch.searchContent,
+    //             targetList: stateData.items.cast<ProductModel>());
+    //       } else {
+    //         globalSearchRead
+    //             .allProductsFn(stateData.items.cast<ProductModel>());
+    //       }
+    //     });
+    //   });
+    //   return null;
+    // }, [paginatedStateAsync.value?.items, searchContentWatch.searchContent]);
 
     useEffect(() {
       void listener() {
