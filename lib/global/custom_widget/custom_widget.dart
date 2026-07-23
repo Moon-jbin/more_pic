@@ -276,6 +276,157 @@ class CustomWidget {
     );
   }
 
+  // static Widget customDrawer(BuildContext context, WidgetRef ref,
+  //     List<Map<String, dynamic>> menuData) {
+  //   final adminRead = ref.watch(adminSettingsProvider.notifier);
+  //   final adminSettingsWatch = ref.watch(adminSettingsProvider);
+  //   final adminSettingsRead = ref.watch(adminSettingsProvider.notifier);
+
+  //   // 🚀 장바구니 품목 수량 구독
+  //   final cartCount = ref.watch(cartProvider).length;
+
+  //   return Drawer(
+  //     backgroundColor: Colors.white,
+  //     child: Column(
+  //       children: [
+  //         SafeArea(
+  //           bottom: false,
+  //           child: Padding(
+  //             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+  //             child: Row(
+  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //               children: [
+  //                 customLogo(context, ref, isDrawer: true),
+  //                 IconButton(
+  //                   icon: const Icon(Icons.close, color: Colors.black),
+  //                   onPressed: () => Navigator.pop(context),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+
+  //         // 관리자 전용 메뉴 편집 버튼
+  //         if (adminSettingsWatch)
+  //           Padding(
+  //             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  //             child: ElevatedButton.icon(
+  //               style: ElevatedButton.styleFrom(
+  //                   backgroundColor: Colors.black,
+  //                   foregroundColor: Colors.white,
+  //                   minimumSize: const Size(double.infinity, 40)),
+  //               icon: const Icon(Icons.settings_suggest_rounded, size: 16),
+  //               label: const Text('카테고리 편집기'),
+  //               onPressed: () {
+  //                 Navigator.pop(context);
+  //                 showMenuEditDialog(context, menuData);
+  //               },
+  //             ),
+  //           ),
+
+  //         if (adminSettingsWatch) const Divider(height: 1),
+
+  //         // 🚀 [추가] 드로어 메뉴 목록 상단에 '주문서 작성 (장바구니)' 전용 타일 배치
+  //         if (cartCount > 0)
+  //           ListTile(
+  //             leading:
+  //                 const Icon(Icons.assignment_outlined, color: Colors.black87),
+  //             title: Row(
+  //               children: [
+  //                 const Text(
+  //                   '주문서 작성',
+  //                   style: TextStyle(
+  //                     fontSize: 15,
+  //                     fontWeight: FontWeight.bold,
+  //                     color: Colors.black87,
+  //                   ),
+  //                 ),
+  //                 if (cartCount > 0) ...[
+  //                   const SizedBox(width: 8),
+  //                   Container(
+  //                     padding: const EdgeInsets.symmetric(
+  //                         horizontal: 7, vertical: 2),
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.redAccent,
+  //                       borderRadius: BorderRadius.circular(10),
+  //                     ),
+  //                     child: Text(
+  //                       '$cartCount',
+  //                       style: const TextStyle(
+  //                         color: Colors.white,
+  //                         fontSize: 11,
+  //                         fontWeight: FontWeight.bold,
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ],
+  //             ),
+  //             trailing:
+  //                 const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+  //             onTap: () {
+  //               Navigator.pop(context); // 드로어 닫기
+  //               NavigationService().routerGo(context, OrderFormScreenRoute);
+  //             },
+  //           ),
+  //         if (cartCount > 0)
+  //           const Divider(height: 1, indent: 16, endIndent: 16),
+
+  //         // 카테고리 메뉴 리스트
+  //         Expanded(
+  //           child: ListView(
+  //             padding: EdgeInsets.zero,
+  //             children: menuData
+  //                 .map((menu) => buildDrawerMenu(context, ref, menu))
+  //                 .toList(),
+  //           ),
+  //         ),
+
+  //         // 하단 회원 관련 버튼
+  //         SafeArea(
+  //           top: false,
+  //           child: Padding(
+  //             padding: const EdgeInsets.only(right: 16, bottom: 16, top: 8),
+  //             child: Align(
+  //               alignment: Alignment.centerRight,
+  //               child: TextButton(
+  //                 style: TextButton.styleFrom(
+  //                   foregroundColor: Colors.grey.shade500,
+  //                   minimumSize: Size.zero,
+  //                   padding:
+  //                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  //                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  //                   splashFactory: NoSplash.splashFactory,
+  //                 ),
+  //                 onPressed: () async {
+  //                   if (adminSettingsRead.isLoggedIn) {
+  //                     await adminRead.logout();
+  //                     if (context.mounted) {
+  //                       ScaffoldMessenger.of(context).showSnackBar(
+  //                         const SnackBar(content: Text('안전하게 로그아웃 되었습니다.')),
+  //                       );
+  //                     }
+  //                   } else {
+  //                     showAdminLoginDialog(context);
+  //                   }
+  //                 },
+  //                 child: Text(
+  //                   adminSettingsRead.isLoggedIn ? '로그아웃' : '로그인 / 회원가입',
+  //                   style: const TextStyle(
+  //                     fontSize: 12,
+  //                     fontWeight: FontWeight.w500,
+  //                     letterSpacing: -0.5,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
   static Widget customDrawer(BuildContext context, WidgetRef ref,
       List<Map<String, dynamic>> menuData) {
     final adminRead = ref.watch(adminSettingsProvider.notifier);
@@ -377,7 +528,15 @@ class CustomWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: menuData
-                  .map((menu) => buildDrawerMenu(context, ref, menu))
+                  .asMap()
+                  .entries
+                  .map((entry) => buildDrawerMenu(
+                        context,
+                        ref,
+                        entry.value,
+                        isFirstRoot: entry.key == 0,
+                        isSubItem: false,
+                      ))
                   .toList(),
             ),
           ),
@@ -427,6 +586,81 @@ class CustomWidget {
     );
   }
 
+  static Widget buildDrawerMenu(
+      BuildContext context, WidgetRef ref, Map<String, dynamic> menu,
+      {required bool isFirstRoot, required bool isSubItem}) {
+    final searchContentRead = ref.read(searchContentProvider.notifier);
+    final List<dynamic> rawChildren = menu['children'] ?? [];
+
+    if (rawChildren.isEmpty) {
+      return ListTile(
+          title: Text(menu['title'] ?? '',
+              style: const TextStyle(fontSize: 14, color: Colors.black87)),
+          dense: true,
+          onTap: () {
+            String targetPath = menu['path'] ?? '/';
+            if (targetPath.startsWith('/category')) {
+              targetPath = targetPath.replaceFirst('/category', '');
+            }
+            if (targetPath.isEmpty) targetPath = '/';
+
+            context.go(targetPath);
+            searchContentRead.initState();
+            Navigator.pop(context);
+          });
+    }
+
+    List<Widget> drawerChildren = [];
+
+    // 👉 루트 대분류에는 전체보기가 안 생기고, 오직 하위 그룹(OUTER 등)이면서 첫 번째 루트가 아닐 때만 전체보기가 맨 위에 추가됨
+    if (isSubItem && !isFirstRoot) {
+      drawerChildren.add(
+        ListTile(
+          title: const Text('전체보기',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4A6FA5))),
+          dense: true,
+          onTap: () {
+            String targetPath = menu['path'] ?? '/';
+            if (targetPath.startsWith('/category')) {
+              targetPath = targetPath.replaceFirst('/category', '');
+            }
+            if (targetPath.isEmpty) targetPath = '/';
+
+            context.go(targetPath);
+            searchContentRead.initState();
+            Navigator.pop(context);
+          },
+        ),
+      );
+    }
+
+    drawerChildren.addAll(
+      rawChildren
+          .map<Widget>((child) => buildDrawerMenu(
+              context, ref, Map<String, dynamic>.from(child as Map),
+              isFirstRoot: isFirstRoot, isSubItem: true))
+          .toList(),
+    );
+
+    return ExpansionTile(
+      title: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Text(menu['title'] ?? '',
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black)),
+      ),
+      shape: const Border(),
+      collapsedShape: const Border(),
+      childrenPadding: const EdgeInsets.only(left: 16.0),
+      children: drawerChildren,
+    );
+  }
+
   static Widget buildTopMenu(String title) => InkWell(
       onTap: () {},
       child: Text(title,
@@ -445,54 +679,90 @@ class CustomWidget {
   static Widget buildFooterSectionTitle(String title) => Text(title,
       style: const TextStyle(
           fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black));
-// 🔥 기존 buildDrawerMenu 함수를 아래와 같이 수정합니다.
-  static Widget buildDrawerMenu(
-      BuildContext context, WidgetRef ref, Map<String, dynamic> menu) {
-    final searchContentRead = ref.read(searchContentProvider.notifier);
-    final List<dynamic> rawChildren = menu['children'] ?? [];
+// FILE: lib/global/custom_widget/custom_widget.dart (buildDrawerMenu 영역)
 
-    if (rawChildren.isEmpty) {
-      return ListTile(
-          title: Text(menu['title'] ?? '',
-              style: const TextStyle(fontSize: 14, color: Colors.black87)),
-          dense: true,
-          onTap: () {
-            context.go(menu['path'] ?? '/');
-            searchContentRead.initState();
-          });
-    }
-    return ExpansionTile(
-      // 🔥 ExpansionTile의 title을 InkWell로 감싸서 터치 이벤트를 가져갑니다.
-      title: InkWell(
-        onTap: () {
-          String targetPath = menu['path'] ?? '/';
-          if (targetPath.startsWith('/category')) {
-            targetPath = targetPath.replaceFirst('/category', '');
-          }
-          if (targetPath.isEmpty) targetPath = '/';
+  // static Widget buildDrawerMenu(
+  //     BuildContext context, WidgetRef ref, Map<String, dynamic> menu) {
+  //   final searchContentRead = ref.read(searchContentProvider.notifier);
+  //   final List<dynamic> rawChildren = menu['children'] ?? [];
 
-          context.go(targetPath);
-          searchContentRead.initState();
-          Navigator.pop(context); // 페이지 이동 후 드로어 닫기
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child: Text(menu['title'] ?? '',
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black)),
-        ),
-      ),
-      shape: const Border(),
-      collapsedShape: const Border(),
-      childrenPadding: const EdgeInsets.only(left: 16.0),
-      children: rawChildren
-          .map<Widget>((child) => buildDrawerMenu(
-              context, ref, Map<String, dynamic>.from(child as Map)))
-          .toList(),
-    );
-  }
+  //   if (rawChildren.isEmpty) {
+  //     return ListTile(
+  //         title: Text(menu['title'] ?? '',
+  //             style: const TextStyle(fontSize: 14, color: Colors.black87)),
+  //         dense: true,
+  //         onTap: () {
+  //           String targetPath = menu['path'] ?? '/';
+  //           if (targetPath.startsWith('/category')) {
+  //             targetPath = targetPath.replaceFirst('/category', '');
+  //           }
+  //           if (targetPath.isEmpty) targetPath = '/';
+
+  //           context.go(targetPath);
+  //           searchContentRead.initState();
+  //           Navigator.pop(context);
+  //         });
+  //   }
+
+  //   // 모바일 드로어에서도 하위 그룹 맨 위에 '전체보기' 삽입
+  //   List<Widget> drawerChildren = [];
+  //   drawerChildren.add(
+  //     ListTile(
+  //       title: const Text('전체보기',
+  //           style: TextStyle(
+  //               fontSize: 13,
+  //               fontWeight: FontWeight.bold,
+  //               color: Color(0xFF4A6FA5))),
+  //       dense: true,
+  //       onTap: () {
+  //         String targetPath = menu['path'] ?? '/';
+  //         if (targetPath.startsWith('/category')) {
+  //           targetPath = targetPath.replaceFirst('/category', '');
+  //         }
+  //         if (targetPath.isEmpty) targetPath = '/';
+
+  //         context.go(targetPath);
+  //         searchContentRead.initState();
+  //         Navigator.pop(context);
+  //       },
+  //     ),
+  //   );
+
+  //   drawerChildren.addAll(
+  //     rawChildren
+  //         .map<Widget>((child) => buildDrawerMenu(
+  //             context, ref, Map<String, dynamic>.from(child as Map)))
+  //         .toList(),
+  //   );
+
+  //   return ExpansionTile(
+  //     title: InkWell(
+  //       onTap: () {
+  //         String targetPath = menu['path'] ?? '/';
+  //         if (targetPath.startsWith('/category')) {
+  //           targetPath = targetPath.replaceFirst('/category', '');
+  //         }
+  //         if (targetPath.isEmpty) targetPath = '/';
+
+  //         context.go(targetPath);
+  //         searchContentRead.initState();
+  //         Navigator.pop(context);
+  //       },
+  //       child: Padding(
+  //         padding: const EdgeInsets.symmetric(vertical: 12.0),
+  //         child: Text(menu['title'] ?? '',
+  //             style: const TextStyle(
+  //                 fontSize: 15,
+  //                 fontWeight: FontWeight.w500,
+  //                 color: Colors.black)),
+  //       ),
+  //     ),
+  //     shape: const Border(),
+  //     collapsedShape: const Border(),
+  //     childrenPadding: const EdgeInsets.only(left: 16.0),
+  //     children: drawerChildren,
+  //   );
+  // }
 
   // 💻 [반응형 푸터 구조 사수]: 문구 100% 매핑
   static Widget buildInfoWrap() {

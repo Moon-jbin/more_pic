@@ -15,27 +15,22 @@ class ScrollableCategoryBar extends HookWidget {
     final showLeft = useState(false);
     final showRight = useState(false);
 
-    // 스크롤 위치 및 최대 크기를 바탕으로 화살표 노출 여부 계산
     void updateArrows() {
       if (!scrollController.hasClients) return;
       final maxScroll = scrollController.position.maxScrollExtent;
       final currentScroll = scrollController.position.pixels;
-
+      
       showLeft.value = currentScroll > 0;
-      // maxScroll이 0보다 크다는 것은 현재 화면보다 메뉴가 넘쳐서 스크롤이 가능하다는 뜻입니다!
       showRight.value = maxScroll > 0 && currentScroll < maxScroll;
     }
 
-    // 스크롤 리스너 등록
     useEffect(() {
       scrollController.addListener(updateArrows);
       return () => scrollController.removeListener(updateArrows);
     }, [scrollController]);
 
-    // ⚡ LayoutBuilder로 감싸서 데스크톱 창 크기가 조절(리사이즈)될 때마다 즉시 화살표를 재계산합니다.
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 화면 사이즈나 제약 조건이 바뀌면 프레임 종료 후 화살표 상태 갱신
         WidgetsBinding.instance.addPostFrameCallback((_) => updateArrows());
 
         return SizedBox(
@@ -79,8 +74,7 @@ class ScrollableCategoryBar extends HookWidget {
                     child: InkWell(
                       onTap: () {
                         scrollController.animateTo(
-                          (scrollController.offset - 150).clamp(
-                              0.0, scrollController.position.maxScrollExtent),
+                          (scrollController.offset - 150).clamp(0.0, scrollController.position.maxScrollExtent),
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
                         );
@@ -89,8 +83,7 @@ class ScrollableCategoryBar extends HookWidget {
                       highlightColor: Colors.transparent,
                       child: const Padding(
                         padding: EdgeInsets.only(left: 4.0),
-                        child: Icon(Icons.arrow_back_ios_rounded,
-                            size: 14, color: Colors.black54),
+                        child: Icon(Icons.arrow_back_ios_rounded, size: 14, color: Colors.black54),
                       ),
                     ),
                   ),
@@ -116,8 +109,7 @@ class ScrollableCategoryBar extends HookWidget {
                     child: InkWell(
                       onTap: () {
                         scrollController.animateTo(
-                          (scrollController.offset + 150).clamp(
-                              0.0, scrollController.position.maxScrollExtent),
+                          (scrollController.offset + 150).clamp(0.0, scrollController.position.maxScrollExtent),
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
                         );
@@ -126,8 +118,7 @@ class ScrollableCategoryBar extends HookWidget {
                       highlightColor: Colors.transparent,
                       child: const Padding(
                         padding: EdgeInsets.only(right: 4.0),
-                        child: Icon(Icons.arrow_forward_ios_rounded,
-                            size: 14, color: Colors.black54),
+                        child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.black54),
                       ),
                     ),
                   ),
