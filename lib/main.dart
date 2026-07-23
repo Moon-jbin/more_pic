@@ -212,9 +212,7 @@ class MorePicWebService extends HookConsumerWidget {
                         Row(children: [
                           if (isEditMode) ...[
                             IconButton(
-                              onPressed: () =>
-                                  // migrateProductImageUrlsParallel(),
-                                  showProductUploadDlgFn(context),
+                              onPressed: () => showProductUploadDlgFn(context),
                               icon: const Icon(
                                 Icons.add_a_photo,
                                 color: Colors.red,
