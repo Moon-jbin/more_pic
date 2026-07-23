@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/global/global.dart';
 import 'package:more_pic/provider/search_provider.dart';
-import 'package:more_pic/db/product_repository.dart';
 
 class ProductUploadDlg extends HookConsumerWidget {
   const ProductUploadDlg({super.key});
@@ -23,6 +23,9 @@ class ProductUploadDlg extends HookConsumerWidget {
     final colorController = useTextEditingController();
     final shippingMethodController = useTextEditingController();
 
+    // ✨ 새롭게 추가: 등록 완료 후 스크롤을 맨 위로 올려줄 컨트롤러
+    final dialogScrollController = useScrollController(); 
+
     final productImages = useState<List<XFile>>([]);
     final isLoading = useState<bool>(false);
 
@@ -34,7 +37,6 @@ class ProductUploadDlg extends HookConsumerWidget {
     final selectedPath1 = useState<List<String>>([]);
 
     final isDoubleCategoryEnabled = useState<bool>(false);
-    // 🚀 [추가됨] 하위 카테고리 동기화 체크박스 상태
     final isSyncSubCategory = useState<bool>(false); 
     final selectedPath2 = useState<List<String>>([]);
 
@@ -42,7 +44,6 @@ class ProductUploadDlg extends HookConsumerWidget {
     final progress = useState<double>(0.0);
     final progressMsg = useState<String>("");
 
-    // 🚀 [추가됨] 메인 카테고리(Path1)가 변경될 때 Path2를 동기화하는 핵심 로직
     useEffect(() {
       if (isDoubleCategoryEnabled.value && 
           isSyncSubCategory.value && 
@@ -51,12 +52,10 @@ class ProductUploadDlg extends HookConsumerWidget {
         final tier1 = selectedPath2.value.first;
         final syncPath = [tier1];
         
-        // 메인 카테고리의 2단계, 3단계가 있다면 그대로 복사
         if (selectedPath1.value.length > 1) {
           syncPath.addAll(selectedPath1.value.sublist(1));
         }
 
-        // 무한 루프 방지를 위해 값이 다를 때만 업데이트
         if (selectedPath2.value.join('_') != syncPath.join('_')) {
           Future.microtask(() {
             selectedPath2.value = syncPath;
@@ -158,7 +157,7 @@ class ProductUploadDlg extends HookConsumerWidget {
 
       while (currentY < originalHeight) {
         double percent = (currentY / originalHeight).clamp(0.1, 0.85);
-        onProgress(percent, "상세 이미지 [${index + 1}번째 조각] 여백 분석 중..");
+        onProgress(percent, "상세 이미지 [${index + 1}번째 조각] 여백 분석 중.");
 
         int searchLimitY = (currentY + maxSliceHeight).clamp(0, originalHeight);
         int bestCutY = searchLimitY;
@@ -235,7 +234,7 @@ class ProductUploadDlg extends HookConsumerWidget {
               finalTargetNode['children'] != null &&
               (finalTargetNode['children'] as List).isNotEmpty)) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('⚠️ [1차 카테고리] 가장 마지막 하위 단계까지 안전하게 선택해주세요')));
+            content: Text('⚠️ [1차 카테고리] 가장 마지막 하위 단계까지 온전하게 선택해주세요')));
         return;
       }
 
@@ -247,7 +246,7 @@ class ProductUploadDlg extends HookConsumerWidget {
                 finalDoubleTargetNode['children'] != null &&
                 (finalDoubleTargetNode['children'] as List).isNotEmpty)) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('⚠️ [추가 카테고리] 활성화하였으므로 마지막 하위 단계까지 선택해주세요')));
+              content: Text('⚠️ [추가 카테고리] 활성화하셨다면 마지막 하위 단계까지 선택해주세요')));
           return;
         }
       }
@@ -256,14 +255,14 @@ class ProductUploadDlg extends HookConsumerWidget {
           priceController.text.trim().isEmpty ||
           productImages.value.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('🛑 상품명, 가격, 등록 이미지는 필수 입력값입니다')));
+            const SnackBar(content: Text('❗️ 상품명, 가격, 대표 이미지는 필수 입력값입니다')));
         return;
       }
 
       try {
         isLoading.value = true;
         progress.value = 0.0;
-        progressMsg.value = "구름 클라우드 통신 연결 중..";
+        progressMsg.value = "구름 클라우드 통신 연결 중.";
         StateSetter? submitPopupSetState;
 
         showDialog(
@@ -281,7 +280,7 @@ class ProductUploadDlg extends HookConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("🚀 신상 상품 구름 클라우드 멀티 진열 중",
+                      const Text("새 신상 상품 구름 클라우드 멀티 진열 중",
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14)),
                       const SizedBox(height: 20),
@@ -336,7 +335,7 @@ class ProductUploadDlg extends HookConsumerWidget {
               shippingMethod: shippingMethodController.text.trim(),
               imageFiles: productImages.value,
               onProgress: (percent, message) {
-                updateSubmitStatus(percent, "구름 매대에 예쁘게 진열 중 $message");
+                updateSubmitStatus(percent, "구름 매장에 예쁘게 진열 중 $message");
               },
             );
 
@@ -349,22 +348,47 @@ class ProductUploadDlg extends HookConsumerWidget {
           ref.invalidate(paginatedProductProvider(mappedDoubleCategory));
         }
 
-        if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+        if (context.mounted) Navigator.of(context, rootNavigator: true).pop(); // 로딩 팝업 닫기
+        
         if (context.mounted) {
-          Navigator.of(context).pop();
-          String successMsg = '✨ [${finalTargetNode['title']}] 매대에 진열 완료!';
-          if (isDoubleCategoryEnabled.value) {
-            successMsg += ' & [${finalDoubleTargetNode['title']}] 동시 복사 완료!';
+          // ✨ 다이얼로그 닫기 코드(Navigator.pop) 제거! 
+
+          // ✨ 카테고리 정보는 그대로 두고, 글자와 이미지만 초기화
+          nameController.clear();
+          priceController.clear();
+          sizeController.clear();
+          colorController.clear();
+          descriptionController.clear();
+          shippingMethodController.clear();
+          productImages.value = []; // 이미지 비우기
+
+          // ✨ 등록 즉시 스크롤을 맨 위로 올려 다음 상품 입력을 돕습니다
+          if (dialogScrollController.hasClients) {
+            dialogScrollController.animateTo(
+              0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+            );
           }
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(successMsg)));
+
+          // 성공 메시지 띄우기
+          String successMsg = '🎉 [${finalTargetNode['title']}] 진열 완료! 바로 다음 상품을 등록하세요!';
+          if (isDoubleCategoryEnabled.value) {
+            successMsg += ' ([${finalDoubleTargetNode['title']}] 동시 등록 완료)';
+          }
+          
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(successMsg),
+            duration: const Duration(seconds: 3), // 편의상 조금 넉넉히 노출
+          ));
         }
       } catch (e) {
         if (context.mounted && ModalRoute.of(context)?.isCurrent == false) {
           Navigator.of(context, rootNavigator: true).pop();
         }
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('🔥 멀티 등록 실패: $e')));
+            .showSnackBar(SnackBar(content: Text('❗️ 멀티 등록 실패: $e')));
       } finally {
         isLoading.value = false;
       }
@@ -384,7 +408,7 @@ class ProductUploadDlg extends HookConsumerWidget {
       if (files == null || files.isEmpty) return;
 
       progress.value = 0.0;
-      progressMsg.value = "판매용 원본 해체 준비 중..";
+      progressMsg.value = "판매할 원본 본체 준비 중.";
       StateSetter? popupSetState;
 
       showDialog(
@@ -402,7 +426,7 @@ class ProductUploadDlg extends HookConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("🪄 통이미지 해체 및 자동 패널 추출",
+                    const Text("원 이미지를 신체 자동 분할 추출",
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 20),
@@ -484,16 +508,17 @@ class ProductUploadDlg extends HookConsumerWidget {
         child: Column(
           children: [
             CustomWidget.customDialogTitle(context, ref,
-                title: '스마트 상품 업로드', isShowCloseBtn: true),
+                title: '신상품 상품 업로드', isShowCloseBtn: true),
             Container(
               padding: const EdgeInsets.fromLTRB(10, 20, 10, 5),
               child: SizedBox(
                 height: 580,
                 child: SingleChildScrollView(
+                  controller: dialogScrollController, // ✨ 여기에 스크롤 컨트롤러 장착
                   physics: const ClampingScrollPhysics(),
                   child: Column(
                     children: [
-                      const Text('🎯 1차 카테고리 지정',
+                      const Text('제 1차 카테고리 지정',
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.black87)),
@@ -532,7 +557,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                                 newPath.add(val);
                                 selectedPath1.value = newPath;
                                 
-                                // 🚀 메인이 바뀌었는데 동기화 켜져있으면 두번째 카테고리도 갱신
                                 if (isDoubleCategoryEnabled.value && isSyncSubCategory.value && selectedPath2.value.isNotEmpty) {
                                   final tier1 = selectedPath2.value.first;
                                   final syncPath = [tier1];
@@ -549,7 +573,7 @@ class ProductUploadDlg extends HookConsumerWidget {
 
                       const SizedBox(height: 12),
                       CheckboxListTile(
-                        title: const Text('카테고리 더블 업로드 (다른 코너에도 동시에 진열하기)',
+                        title: const Text('카테고리 더블 업로드 (다른 코너에도 동시 진열하기)',
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -561,17 +585,16 @@ class ProductUploadDlg extends HookConsumerWidget {
                         onChanged: (val) {
                           isDoubleCategoryEnabled.value = val ?? false;
                           if (!isDoubleCategoryEnabled.value) {
-                             isSyncSubCategory.value = false; // 비활성화시 동기화도 끄기
+                             isSyncSubCategory.value = false; 
                           }
                         },
                       ),
 
                       if (isDoubleCategoryEnabled.value) ...[
-                        // 🚀 [추가됨] 하위 그룹 동일하게 설정 체크박스
                         Padding(
                           padding: const EdgeInsets.only(left: 12, bottom: 8),
                           child: CheckboxListTile(
-                            title: const Text('메인 카테고리와 하위 그룹 동일하게 자동 설정',
+                            title: const Text('메인 카테고리와 하위 그룹 동일하게 자동 지정',
                                 style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -586,7 +609,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                               isSyncSubCategory.value = val ?? false;
                               
                               if (isSyncSubCategory.value && selectedPath2.value.isNotEmpty) {
-                                // 켜는 순간 즉시 동기화 세팅
                                 final tier1 = selectedPath2.value.first;
                                 final syncPath = [tier1];
                                 if (selectedPath1.value.length > 1) {
@@ -615,7 +637,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                                       ? selectedPath2.value[levelIndex]
                                       : null;
 
-                              // 🚀 동기화 켜져있고 1단계 이상이면 클릭 비활성화 (시각적 처리 포함)
                               final bool isSyncDisabled = isSyncSubCategory.value && levelIndex > 0;
 
                               return Padding(
@@ -638,18 +659,15 @@ class ProductUploadDlg extends HookConsumerWidget {
                                       child: Text(node['title'] as String),
                                     );
                                   }).toList(),
-                                  // 🚀 동기화 중이면 onChanged를 null로 주어 선택 불가능하게 만듦
                                   onChanged: isSyncDisabled ? null : (val) {
                                     if (val != null) {
                                       if (isSyncSubCategory.value && levelIndex == 0) {
-                                        // 1단계 변경 시 동기화 모드라면 나머지 복사
                                         final newPath = [val];
                                         if (selectedPath1.value.length > 1) {
                                           newPath.addAll(selectedPath1.value.sublist(1));
                                         }
                                         selectedPath2.value = newPath;
                                       } else {
-                                        // 일반 모드
                                         final newPath = selectedPath2.value
                                             .take(levelIndex)
                                             .toList();
@@ -711,11 +729,11 @@ class ProductUploadDlg extends HookConsumerWidget {
                       const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: Divider()),
-                      const Text('📸 단입통 통이미지 등록 *',
+                      const Text('메인 도입부 및 상세이미지 등록 *',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       const Text(
-                        'PC는 사진을 마우스로 드래그, 모바일은 우측 상단 아이콘을 터치하여 이동하세요\n순서의 맨앞의 사진이 자동으로 [메인 썸네일]이 됩니다',
+                        'PC에서는 사진을 마우스로 드래그, 모바일은 우측 상단 아이콘을 터치하여 이동하세요\n순서상 맨앞의 사진이 자동으로 [메인 썸네일]이 됩니다.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             color: Colors.blueAccent,
@@ -728,8 +746,8 @@ class ProductUploadDlg extends HookConsumerWidget {
                         onPressed: pickCombinedProductImage,
                         icon: const Icon(Icons.cloud_upload_outlined),
                         label: Text(productImages.value.isEmpty
-                            ? '단입통 복사본 등록하기'
-                            : '사진 변경하기(${productImages.value.length}개 조각)'),
+                            ? '파일 복사해 등록하기'
+                            : '사진 변경하기 (${productImages.value.length}개 조각)'),
                         style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4A6FA5),
                             foregroundColor: Colors.white,
@@ -866,7 +884,7 @@ class ProductUploadDlg extends HookConsumerWidget {
                           TextButton(
                               onPressed: isLoading.value
                                   ? null
-                                  : () => Navigator.of(context).pop(),
+                                  : () => Navigator.of(context).pop(), // 취소 버튼으로만 닫을 수 있음
                               child: const Text('취소')),
                           ElevatedButton(
                             onPressed: isLoading.value ? null : submitProduct,
