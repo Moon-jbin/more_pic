@@ -435,88 +435,97 @@ class OrderFormScreen extends HookConsumerWidget {
                                   itemDisplayPrice * item.quantity;
 
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: Row(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('· ',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16)),
-                                    Expanded(
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              '${item.name}/${item.color}/${item.size}/${item.quantity}개',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                    // 1. 상품명 영역 (한 줄을 넓게 쓰도록 위로 배치)
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('· ',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16)),
+                                        Expanded(
+                                          child: Text(
+                                            '${item.name}/${item.color}/${item.size}/${item.quantity}개',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          if (isLoggedIn) ...[
-                                            Text(
-                                              '₩ ${formatCurrency.format(itemOrigPrice * item.quantity)}',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey.shade500,
-                                                decoration:
-                                                    TextDecoration.lineThrough,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '₩ ${formatCurrency.format(itemTotal)}',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.redAccent,
-                                              ),
-                                            ),
-                                          ] else
-                                            Text(
-                                              '₩ ${formatCurrency.format(itemTotal)}',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
+                                    const SizedBox(height: 8),
+                                    // 2. 가격 및 컨트롤 버튼 영역 (아래로 배치)
                                     Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.remove_circle_outline,
-                                              size: 18),
-                                          onPressed: () {
-                                            if (item.quantity > 1) {
-                                              cartNotifier.updateQuantity(
-                                                  item.id, item.quantity - 1);
-                                            }
-                                          },
+                                        // 가격 (점표시 '· ' 만큼 왼쪽 여백 줌)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 12),
+                                          child: Row(
+                                            children: [
+                                              if (isLoggedIn) ...[
+                                                Text(
+                                                  '₩ ${formatCurrency.format(itemOrigPrice * item.quantity)}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey.shade500,
+                                                    decoration: TextDecoration.lineThrough,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '₩ ${formatCurrency.format(itemTotal)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.redAccent,
+                                                  ),
+                                                ),
+                                              ] else
+                                                Text(
+                                                  '₩ ${formatCurrency.format(itemTotal)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
-                                        Text('${item.quantity}',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold)),
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.add_circle_outline,
-                                              size: 18),
-                                          onPressed: () {
-                                            cartNotifier.updateQuantity(
-                                                item.id, item.quantity + 1);
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.close,
-                                              size: 16, color: Colors.grey),
-                                          onPressed: () =>
-                                              cartNotifier.removeItem(item.id),
+                                        // 수량 조절 및 삭제 버튼
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              visualDensity: VisualDensity.compact,
+                                              icon: const Icon(Icons.remove_circle_outline, size: 20),
+                                              onPressed: () {
+                                                if (item.quantity > 1) {
+                                                  cartNotifier.updateQuantity(item.id, item.quantity - 1);
+                                                }
+                                              },
+                                            ),
+                                            Text('${item.quantity}',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                            IconButton(
+                                              visualDensity: VisualDensity.compact,
+                                              icon: const Icon(Icons.add_circle_outline, size: 20),
+                                              onPressed: () {
+                                                cartNotifier.updateQuantity(item.id, item.quantity + 1);
+                                              },
+                                            ),
+                                            const SizedBox(width: 4),
+                                            IconButton(
+                                              visualDensity: VisualDensity.compact,
+                                              icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                                              onPressed: () => cartNotifier.removeItem(item.id),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
