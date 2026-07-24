@@ -121,7 +121,7 @@ class DesktopHoverMenu extends HookConsumerWidget {
         );
       }
 
-      // 2단계 [중간 그룹]: 자식이 있는 그룹 (맨 위에 '전체보기' 자동 삽입 및 부모 자체 클릭 이동 차단)
+      // 2단계 [중간 그룹]: 자식이 있는 그룹 (맨 앞에 '전체보기' 자동 삽입 및 부모 자체 클릭 이동 차단)
       List<Widget> processedChildren = [];
 
       processedChildren.add(
@@ -201,7 +201,6 @@ class DesktopHoverMenu extends HookConsumerWidget {
               ),
             )
           ],
-          // 👉 부모 그룹 클릭 시 이동 로직 제거 (오직 하위 메뉴 창만 열림)
           child: Text(itemTitle,
               style: const TextStyle(
                   fontSize: 13,
@@ -284,10 +283,63 @@ class DesktopHoverMenu extends HookConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: items
-                    .map<Widget>((item) =>
-                        buildMenuChild(ref, Map<String, dynamic>.from(item)))
-                    .toList(),
+                children: [
+                  // ⭐️ [신규] 최상위 부모 메뉴의 '전체보기' 추가
+                  MouseRegion(
+                    onEnter: (_) {
+                      if (isMouseConnected(context)) incrementHover();
+                    },
+                    onExit: (_) {
+                      if (isMouseConnected(context)) decrementHover();
+                    },
+                    child: MenuItemButton(
+                      onPressed: () {
+                        String targetPath = '/';
+                        final List<Map<String, dynamic>> menuDataList =
+                            (menuAsync.value ?? [])
+                                .map((e) => Map<String, dynamic>.from(e))
+                                .toList();
+
+                        final matchingRootNode = menuDataList.firstWhere(
+                          (node) => node['title'] == title,
+                          orElse: () => {},
+                        );
+
+                        if (matchingRootNode.containsKey('path') &&
+                            matchingRootNode['path'].toString().isNotEmpty) {
+                          targetPath = matchingRootNode['path'].toString();
+                        } else {
+                          if (title == '이너웨어') targetPath = '/inner';
+                          if (title == 'SALE') targetPath = '/sale';
+                        }
+
+                        if (targetPath.startsWith('/category')) {
+                          targetPath = targetPath.replaceFirst('/category', '');
+                        }
+                        if (targetPath.isEmpty) targetPath = '/';
+
+                        controller.close();
+                        context.go(targetPath);
+                        searchContentRead.initState();
+                      },
+                      style: TextButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        overlayColor: const Color(0xFFD4CBE5).withOpacity(0.2),
+                      ),
+                      child: const Text('전체보기',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF4A6FA5))),
+                    ),
+                  ),
+                  ...items
+                      .map<Widget>((item) => buildMenuChild(
+                          ref, Map<String, dynamic>.from(item)))
+                      .toList(),
+                ],
               ),
             ),
           )

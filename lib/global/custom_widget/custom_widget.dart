@@ -28,7 +28,8 @@ import 'package:shimmer/shimmer.dart';
 // FILE: lib/global/custom_widget/custom_widget.dart 내 CustomScaffold 클래스 수정
 
 class CustomScaffold extends HookConsumerWidget {
-final List<Widget> Function(BuildContext context, ScrollController scrollController) sliverBuilder;
+  final List<Widget> Function(
+      BuildContext context, ScrollController scrollController) sliverBuilder;
   final String category;
   final bool showSearchIcon;
   final Widget? bottomNavigationBar;
@@ -609,30 +610,28 @@ class CustomWidget {
 
     List<Widget> drawerChildren = [];
 
-    // 👉 루트 대분류에는 전체보기가 안 생기고, 오직 하위 그룹(OUTER 등)이면서 첫 번째 루트가 아닐 때만 전체보기가 맨 위에 추가됨
-    if (isSubItem && !isFirstRoot) {
-      drawerChildren.add(
-        ListTile(
-          title: const Text('전체보기',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4A6FA5))),
-          dense: true,
-          onTap: () {
-            String targetPath = menu['path'] ?? '/';
-            if (targetPath.startsWith('/category')) {
-              targetPath = targetPath.replaceFirst('/category', '');
-            }
-            if (targetPath.isEmpty) targetPath = '/';
+    // ⭐️ [핵심 수정] 하위 메뉴가 있는 항목이라면 조건(isFirstRoot 등) 상관없이 무조건 '전체보기'를 최상단에 추가!
+    drawerChildren.add(
+      ListTile(
+        title: const Text('전체보기',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A6FA5))),
+        dense: true,
+        onTap: () {
+          String targetPath = menu['path'] ?? '/';
+          if (targetPath.startsWith('/category')) {
+            targetPath = targetPath.replaceFirst('/category', '');
+          }
+          if (targetPath.isEmpty) targetPath = '/';
 
-            context.go(targetPath);
-            searchContentRead.initState();
-            Navigator.pop(context);
-          },
-        ),
-      );
-    }
+          context.go(targetPath);
+          searchContentRead.initState();
+          Navigator.pop(context);
+        },
+      ),
+    );
 
     drawerChildren.addAll(
       rawChildren
@@ -946,7 +945,7 @@ class CustomWidget {
             ),
 
             const Text(
-              ' 문은미(원앤그레인)',
+              ' 원앤그레인',
               style: TextStyle(fontSize: 12),
             ),
           ],

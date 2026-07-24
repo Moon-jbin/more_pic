@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:more_pic/db/product_repository.dart';
@@ -24,7 +26,7 @@ class ProductUploadDlg extends HookConsumerWidget {
     final shippingMethodController = useTextEditingController();
 
     // ✨ 새롭게 추가: 등록 완료 후 스크롤을 맨 위로 올려줄 컨트롤러
-    final dialogScrollController = useScrollController(); 
+    final dialogScrollController = useScrollController();
 
     final productImages = useState<List<XFile>>([]);
     final isLoading = useState<bool>(false);
@@ -37,7 +39,7 @@ class ProductUploadDlg extends HookConsumerWidget {
     final selectedPath1 = useState<List<String>>([]);
 
     final isDoubleCategoryEnabled = useState<bool>(false);
-    final isSyncSubCategory = useState<bool>(false); 
+    final isSyncSubCategory = useState<bool>(false);
     final selectedPath2 = useState<List<String>>([]);
 
     final shippingType = useState<String>('국내배송');
@@ -45,13 +47,12 @@ class ProductUploadDlg extends HookConsumerWidget {
     final progressMsg = useState<String>("");
 
     useEffect(() {
-      if (isDoubleCategoryEnabled.value && 
-          isSyncSubCategory.value && 
+      if (isDoubleCategoryEnabled.value &&
+          isSyncSubCategory.value &&
           selectedPath2.value.isNotEmpty) {
-        
         final tier1 = selectedPath2.value.first;
         final syncPath = [tier1];
-        
+
         if (selectedPath1.value.length > 1) {
           syncPath.addAll(selectedPath1.value.sublist(1));
         }
@@ -63,8 +64,11 @@ class ProductUploadDlg extends HookConsumerWidget {
         }
       }
       return null;
-    }, [selectedPath1.value, isSyncSubCategory.value, isDoubleCategoryEnabled.value]);
-
+    }, [
+      selectedPath1.value,
+      isSyncSubCategory.value,
+      isDoubleCategoryEnabled.value
+    ]);
 
     List<List<Map<String, dynamic>>> getActiveDropdownLevels(
         List<String> currentPath) {
@@ -200,10 +204,18 @@ class ProductUploadDlg extends HookConsumerWidget {
         final chunkBlob = await chunkCanvas.toBlob('image/jpg', 0.35);
         final String chunkBlobUrl = html.Url.createObjectUrlFromBlob(chunkBlob);
 
-        slicedFiles.add(XFile(chunkBlobUrl,
+        final slicedChunk = XFile(chunkBlobUrl,
             mimeType: 'image/jpg',
             name:
-                'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.jpg'));
+                'chunk_${index}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+        slicedFiles.add(slicedChunk);
+
+        if (kDebugMode) {
+          final chunkBytes = await slicedChunk.readAsBytes();
+          print(
+              "✂️ [Slice 분할 완료] 조각 #${index + 1} | 크기: ${chunkBytes.lengthInBytes ~/ 1024} KB");
+        }
+
         currentY = bestCutY;
         index++;
       }
@@ -348,10 +360,11 @@ class ProductUploadDlg extends HookConsumerWidget {
           ref.invalidate(paginatedProductProvider(mappedDoubleCategory));
         }
 
-        if (context.mounted) Navigator.of(context, rootNavigator: true).pop(); // 로딩 팝업 닫기
-        
+        if (context.mounted)
+          Navigator.of(context, rootNavigator: true).pop(); // 로딩 팝업 닫기
+
         if (context.mounted) {
-          // ✨ 다이얼로그 닫기 코드(Navigator.pop) 제거! 
+          // ✨ 다이얼로그 닫기 코드(Navigator.pop) 제거!
 
           // ✨ 카테고리 정보는 그대로 두고, 글자와 이미지만 초기화
           nameController.clear();
@@ -372,11 +385,12 @@ class ProductUploadDlg extends HookConsumerWidget {
           }
 
           // 성공 메시지 띄우기
-          String successMsg = '🎉 [${finalTargetNode['title']}] 진열 완료! 바로 다음 상품을 등록하세요!';
+          String successMsg =
+              '🎉 [${finalTargetNode['title']}] 진열 완료! 바로 다음 상품을 등록하세요!';
           if (isDoubleCategoryEnabled.value) {
             successMsg += ' ([${finalDoubleTargetNode['title']}] 동시 등록 완료)';
           }
-          
+
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(successMsg),
@@ -406,6 +420,10 @@ class ProductUploadDlg extends HookConsumerWidget {
     Future<void> pickCombinedProductImage() async {
       final List<XFile>? files = await picker.pickMultiImage();
       if (files == null || files.isEmpty) return;
+
+      if (kDebugMode) {
+        print("📸 [이미지 선택 완료] 총 ${files.length}개 선택됨. 처리 시작...");
+      }
 
       progress.value = 0.0;
       progressMsg.value = "판매할 원본 본체 준비 중.";
@@ -465,6 +483,7 @@ class ProductUploadDlg extends HookConsumerWidget {
       for (var file in files) {
         fileCount++;
         final Uint8List bytes = await file.readAsBytes();
+        final int originalKb = bytes.lengthInBytes ~/ 1024;
 
         final blob = html.Blob([bytes]);
         final blobUrl = html.Url.createObjectUrlFromBlob(blob);
@@ -482,20 +501,98 @@ class ProductUploadDlg extends HookConsumerWidget {
         int imgWidth = htmlImgElement.naturalWidth;
         int imgHeight = htmlImgElement.naturalHeight;
 
+        if (kDebugMode) {
+          print(
+              "\n📄 [이미지 #${fileCount}/${files.length}] 파일명: ${file.name} | 해상도: ${imgWidth}x${imgHeight} | 원본 용량: ${originalKb} KB");
+        }
+
         if (imgHeight > 1500) {
-          List<XFile> chunks = await sliceLongImageWeb(
+          if (kDebugMode) {
+            print(
+                "✂️ [Slice 분할 대상] 세로 높이(${imgHeight}px) > 1500px ➡️ 캔버스 자르기 실행");
+          }
+          List<XFile> rawChunks = await sliceLongImageWeb(
               htmlImgElement, imgWidth, imgHeight, (percent, msg) {
             double fileBase = (fileCount - 1) / files.length;
-            double currentFilePercent = percent / files.length;
+            double currentFilePercent = (percent * 0.5) / files.length;
             updateStatus((fileBase + currentFilePercent).clamp(0.0, 1.0),
                 "[$fileCount/${files.length}] $msg");
           });
-          finalProcessedList.addAll(chunks);
+
+          // ⭐️ [신규] 잘라낸 슬라이스 조각들도 flutter_image_compress로 2차 압축!
+          int chunkIndex = 0;
+          for (var chunk in rawChunks) {
+            chunkIndex++;
+            updateStatus(
+                ((fileCount -
+                            1 +
+                            (0.5 + (chunkIndex / rawChunks.length) * 0.5)) /
+                        files.length)
+                    .clamp(0.0, 1.0),
+                "[$fileCount/${files.length}] 슬라이스 조각 #${chunkIndex} 경량화 압축 중...");
+
+            final Uint8List chunkBytes = await chunk.readAsBytes();
+            final Uint8List compressedChunkBytes =
+                await FlutterImageCompress.compressWithList(
+              chunkBytes,
+              quality: 70, // 슬라이스 조각 최적화 퀄리티
+              format: CompressFormat.jpeg,
+            );
+
+            final compressedChunk = XFile.fromData(
+              compressedChunkBytes,
+              name: chunk.name,
+              mimeType: 'image/jpeg',
+            );
+
+            finalProcessedList.add(compressedChunk);
+
+            if (kDebugMode) {
+              final int beforeKb = chunkBytes.lengthInBytes ~/ 1024;
+              final int afterKb = compressedChunkBytes.lengthInBytes ~/ 1024;
+              print(
+                  "   └ 🗜️ 조각 #${chunkIndex} 압축: ${beforeKb} KB ➡️ ${afterKb} KB");
+            }
+          }
         } else {
-          finalProcessedList.add(file);
+          updateStatus((fileCount / files.length).clamp(0.0, 1.0),
+              "[$fileCount/${files.length}] flutter_image_compress 최적화 압축 중...");
+
+          final Uint8List compressedBytes =
+              await FlutterImageCompress.compressWithList(
+            bytes,
+            minWidth: 1080,
+            minHeight: 1080,
+            quality: 75,
+            format: CompressFormat.jpeg,
+          );
+
+          final int compressedKb = compressedBytes.lengthInBytes ~/ 1024;
+          final double ratio = originalKb > 0
+              ? ((originalKb - compressedKb) / originalKb * 100)
+              : 0;
+
+          if (kDebugMode) {
+            print("🗜️ [flutter_image_compress 압축 완료]");
+            print("   - 압축 전: ${originalKb} KB");
+            print("   - 압축 후: ${compressedKb} KB");
+            print("   - 절감률: ${ratio.toStringAsFixed(1)}% 감소");
+          }
+
+          final compressedFile = XFile.fromData(
+            compressedBytes,
+            name: file.name,
+            mimeType: 'image/jpeg',
+          );
+          finalProcessedList.add(compressedFile);
         }
 
         html.Url.revokeObjectUrl(blobUrl);
+      }
+
+      if (kDebugMode) {
+        print(
+            "\n✅ [전체 이미지 처리 완료] 최종 생성된 업로드 큐 파일 수: ${finalProcessedList.length}개\n");
       }
 
       if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
@@ -523,7 +620,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                               fontWeight: FontWeight.bold,
                               color: Colors.black87)),
                       const SizedBox(height: 8),
-
                       ...List.generate(dropdownLevels1.length, (levelIndex) {
                         final itemsInLevel = dropdownLevels1[levelIndex];
                         final String? selectedVal =
@@ -556,8 +652,10 @@ class ProductUploadDlg extends HookConsumerWidget {
                                     .toList();
                                 newPath.add(val);
                                 selectedPath1.value = newPath;
-                                
-                                if (isDoubleCategoryEnabled.value && isSyncSubCategory.value && selectedPath2.value.isNotEmpty) {
+
+                                if (isDoubleCategoryEnabled.value &&
+                                    isSyncSubCategory.value &&
+                                    selectedPath2.value.isNotEmpty) {
                                   final tier1 = selectedPath2.value.first;
                                   final syncPath = [tier1];
                                   if (newPath.length > 1) {
@@ -570,7 +668,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                           ),
                         );
                       }),
-
                       const SizedBox(height: 12),
                       CheckboxListTile(
                         title: const Text('카테고리 더블 업로드 (다른 코너에도 동시 진열하기)',
@@ -585,11 +682,10 @@ class ProductUploadDlg extends HookConsumerWidget {
                         onChanged: (val) {
                           isDoubleCategoryEnabled.value = val ?? false;
                           if (!isDoubleCategoryEnabled.value) {
-                             isSyncSubCategory.value = false; 
+                            isSyncSubCategory.value = false;
                           }
                         },
                       ),
-
                       if (isDoubleCategoryEnabled.value) ...[
                         Padding(
                           padding: const EdgeInsets.only(left: 12, bottom: 8),
@@ -607,19 +703,20 @@ class ProductUploadDlg extends HookConsumerWidget {
                             visualDensity: VisualDensity.compact,
                             onChanged: (val) {
                               isSyncSubCategory.value = val ?? false;
-                              
-                              if (isSyncSubCategory.value && selectedPath2.value.isNotEmpty) {
+
+                              if (isSyncSubCategory.value &&
+                                  selectedPath2.value.isNotEmpty) {
                                 final tier1 = selectedPath2.value.first;
                                 final syncPath = [tier1];
                                 if (selectedPath1.value.length > 1) {
-                                  syncPath.addAll(selectedPath1.value.sublist(1));
+                                  syncPath
+                                      .addAll(selectedPath1.value.sublist(1));
                                 }
                                 selectedPath2.value = syncPath;
                               }
                             },
                           ),
                         ),
-
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -637,7 +734,8 @@ class ProductUploadDlg extends HookConsumerWidget {
                                       ? selectedPath2.value[levelIndex]
                                       : null;
 
-                              final bool isSyncDisabled = isSyncSubCategory.value && levelIndex > 0;
+                              final bool isSyncDisabled =
+                                  isSyncSubCategory.value && levelIndex > 0;
 
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
@@ -650,7 +748,9 @@ class ProductUploadDlg extends HookConsumerWidget {
                                         : '추가 ${levelIndex + 1}단계 하위 그룹',
                                     border: const OutlineInputBorder(),
                                     filled: isSyncDisabled,
-                                    fillColor: isSyncDisabled ? Colors.grey.shade200 : null,
+                                    fillColor: isSyncDisabled
+                                        ? Colors.grey.shade200
+                                        : null,
                                   ),
                                   value: selectedVal,
                                   items: itemsInLevel.map((node) {
@@ -659,34 +759,39 @@ class ProductUploadDlg extends HookConsumerWidget {
                                       child: Text(node['title'] as String),
                                     );
                                   }).toList(),
-                                  onChanged: isSyncDisabled ? null : (val) {
-                                    if (val != null) {
-                                      if (isSyncSubCategory.value && levelIndex == 0) {
-                                        final newPath = [val];
-                                        if (selectedPath1.value.length > 1) {
-                                          newPath.addAll(selectedPath1.value.sublist(1));
-                                        }
-                                        selectedPath2.value = newPath;
-                                      } else {
-                                        final newPath = selectedPath2.value
-                                            .take(levelIndex)
-                                            .toList();
-                                        newPath.add(val);
-                                        selectedPath2.value = newPath;
-                                      }
-                                    }
-                                  },
+                                  onChanged: isSyncDisabled
+                                      ? null
+                                      : (val) {
+                                          if (val != null) {
+                                            if (isSyncSubCategory.value &&
+                                                levelIndex == 0) {
+                                              final newPath = [val];
+                                              if (selectedPath1.value.length >
+                                                  1) {
+                                                newPath.addAll(selectedPath1
+                                                    .value
+                                                    .sublist(1));
+                                              }
+                                              selectedPath2.value = newPath;
+                                            } else {
+                                              final newPath = selectedPath2
+                                                  .value
+                                                  .take(levelIndex)
+                                                  .toList();
+                                              newPath.add(val);
+                                              selectedPath2.value = newPath;
+                                            }
+                                          }
+                                        },
                                 ),
                               );
                             }),
                           ),
                         ),
                       ],
-
                       const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: Divider()),
-
                       TextField(
                           controller: nameController,
                           decoration: const InputDecoration(
@@ -725,7 +830,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                               labelText: '상품 상세 설명 및 코디 제안',
                               alignLabelWithHint: true,
                               border: OutlineInputBorder())),
-
                       const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: Divider()),
@@ -741,7 +845,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                             fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
-
                       ElevatedButton.icon(
                         onPressed: pickCombinedProductImage,
                         icon: const Icon(Icons.cloud_upload_outlined),
@@ -755,7 +858,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                             elevation: 0),
                       ),
                       const SizedBox(height: 12),
-
                       if (productImages.value.isNotEmpty)
                         Container(
                           height: 110,
@@ -808,7 +910,6 @@ class ProductUploadDlg extends HookConsumerWidget {
                                             child: imageContainer,
                                           )
                                         : imageContainer,
-
                                     if (isFirst)
                                       Positioned(
                                         top: 12,
@@ -844,11 +945,10 @@ class ProductUploadDlg extends HookConsumerWidget {
                                         ),
                                       ),
                                     ),
-
                                     if (!isDesktopOrWeb)
                                       Positioned(
                                         bottom: 4,
-                                        right: 16, 
+                                        right: 16,
                                         child: ReorderableDragStartListener(
                                           index: index,
                                           child: Container(
@@ -877,14 +977,14 @@ class ProductUploadDlg extends HookConsumerWidget {
                             },
                           ),
                         ),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
                               onPressed: isLoading.value
                                   ? null
-                                  : () => Navigator.of(context).pop(), // 취소 버튼으로만 닫을 수 있음
+                                  : () => Navigator.of(context)
+                                      .pop(), // 취소 버튼으로만 닫을 수 있음
                               child: const Text('취소')),
                           ElevatedButton(
                             onPressed: isLoading.value ? null : submitProduct,

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:more_pic/db/product_repository.dart';
@@ -145,11 +146,59 @@ class ProductEditDlg extends HookConsumerWidget {
       return levels;
     }
 
+    // ⭐️ [신규] 수정 모드 이미지 추가 피킹 및 압축 + 디버그 로그 로직
     Future<void> pickExtraImages() async {
       final ImagePicker picker = ImagePicker();
       final List<XFile>? files = await picker.pickMultiImage();
+
       if (files != null && files.isNotEmpty) {
-        mixedImages.value = [...mixedImages.value, ...files];
+        if (kDebugMode) {
+          print("\n📸 [수정 모드 - 사진 추가] 총 ${files.length}개 선택됨. 압축 시작...");
+        }
+
+        List<XFile> compressedFiles = [];
+        int count = 0;
+
+        for (var file in files) {
+          count++;
+          final Uint8List originalBytes = await file.readAsBytes();
+          final int originalKb = originalBytes.lengthInBytes ~/ 1024;
+
+          final Uint8List compressedBytes =
+              await FlutterImageCompress.compressWithList(
+            originalBytes,
+            minWidth: 1080,
+            minHeight: 1080,
+            quality: 75,
+            format: CompressFormat.jpeg,
+          );
+
+          final int compressedKb = compressedBytes.lengthInBytes ~/ 1024;
+          final double ratio = originalKb > 0
+              ? ((originalKb - compressedKb) / originalKb * 100)
+              : 0;
+
+          if (kDebugMode) {
+            print("🗜️ [추가 이미지 #${count}/${files.length} 압축 완료]");
+            print("   - 파일명: ${file.name}");
+            print("   - 압축 전: ${originalKb} KB");
+            print("   - 압축 후: ${compressedKb} KB");
+            print("   - 절감률: ${ratio.toStringAsFixed(1)}% 감소");
+          }
+
+          compressedFiles.add(XFile.fromData(
+            compressedBytes,
+            name: file.name,
+            mimeType: 'image/jpeg',
+          ));
+        }
+
+        mixedImages.value = [...mixedImages.value, ...compressedFiles];
+
+        if (kDebugMode) {
+          print(
+              "✅ [수정 모드 - 이미지 병합 완료] 현재 전체 이미지/URL 개수: ${mixedImages.value.length}개\n");
+        }
       }
     }
 

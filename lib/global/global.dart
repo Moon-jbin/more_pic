@@ -1,58 +1,137 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:intl/intl.dart';
 import 'package:more_pic/data/new_born_clothes_data.dart';
 import 'package:more_pic/model/product_item.dart';
+import 'package:http/http.dart' as http;
+// FILE: lib/global/global.dart 최하단
 
-Future<void> migrateProductImageUrlsParallel() async {
-  final snapshot = await FirebaseFirestore.instance.collection('products').get();
-  
-  // 병렬 처리를 위해 각 문서 수정 작업을 Future 리스트로 생성
-  final List<Future<void>> updateTasks = [];
-  int updatedCount = 0;
+import 'dart:async';
+import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:http/http.dart' as http;
 
-  for (var doc in snapshot.docs) {
-    final data = doc.data();
+Future<void> compressExistingStorageImages({
+  required Function(double progress, String message) onProgress,
+}) async {
+  final firestore = FirebaseFirestore.instance;
+  final storage = FirebaseStorage.instance;
 
-    if (data.containsKey('images') && data['images'] is List) {
-      List<dynamic> oldImages = data['images'];
-      List<String> newImages = [];
-      bool needUpdate = false;
+  final snapshot = await firestore.collection('products').get();
+  final docs = snapshot.docs;
+  int totalDocs = docs.length;
+  if (totalDocs == 0) return;
 
-      for (var item in oldImages) {
-        String url = item.toString();
+  int completedDocs = 0;
 
-        if (url.contains('more-pic.firebasestorage.app')) {
-          needUpdate = true;
-
-          // %2F 뒤의 파일명 추출
-          final uri = Uri.parse(url);
-          final pathAndQuery = uri.path;
-          final fileName = pathAndQuery.split('%2F').last;
-
-          // 서울 버킷 Direct URL
-          final newUrl = 'https://storage.googleapis.com/more_pick/products/$fileName';
-          newImages.add(newUrl);
-        } else {
-          newImages.add(url);
-        }
-      }
-
-      // 변환이 필요한 문서들의 update() 비동기 작업(Future)을 배열에 수집
-      if (needUpdate) {
-        updatedCount++;
-        updateTasks.add(doc.reference.update({'images': newImages}));
-      }
-    }
+  if (kDebugMode) {
+    print("🚀 [초고속 병렬 일괄 압축 시작] 총 $totalDocs개 상품 병렬 처리진행");
   }
 
-  // 모든 비동기 개별 update 요청을 동시(병렬)에 실행하고 완료 대기
-  if (updateTasks.isNotEmpty) {
-    await Future.wait(updateTasks);
-    print('🚀 총 $updatedCount개 문서의 URL 병렬 마이그레이션 완료!');
-  } else {
-    print('ℹ️ 변경할 URL이 없습니다.');
+  // 한 번에 동시에 처리할 상품 청크 단위 (3개씩 동시 처리)
+  const int chunkSize = 3;
+
+  for (int i = 0; i < docs.length; i += chunkSize) {
+    final chunk = docs.sublist(
+        i, (i + chunkSize > docs.length) ? docs.length : i + chunkSize);
+
+    // ⚡️ 청크 내 상품들을 동시에 병렬 처리
+    await Future.wait(chunk.map((doc) async {
+      final data = doc.data();
+      final List<dynamic> oldImages = data['images'] ?? [];
+      if (oldImages.isEmpty) {
+        completedDocs++;
+        return;
+      }
+
+      List<String> newImages = List.filled(oldImages.length, '');
+      bool isDocUpdated = false;
+
+      // ⚡️ 한 상품 내의 여러 이미지들도 동시 병렬 다운로드 & 압축 & 업로드
+      await Future.wait(
+        oldImages.asMap().entries.map((entry) async {
+          int imgIndex = entry.key;
+          String imageUrl = entry.value.toString();
+
+          try {
+            final response = await http.get(Uri.parse(imageUrl));
+            if (response.statusCode != 200) {
+              newImages[imgIndex] = imageUrl;
+              return;
+            }
+
+            final Uint8List originalBytes = response.bodyBytes;
+            final int originalKb = originalBytes.lengthInBytes ~/ 1024;
+
+            // 이미 120KB 미만으로 작다면 기존 URL 유지
+            if (originalKb < 120) {
+              newImages[imgIndex] = imageUrl;
+              return;
+            }
+
+            // flutter_image_compress 75% 퀄리티 재압축
+            final Uint8List compressedBytes =
+                await FlutterImageCompress.compressWithList(
+              originalBytes,
+              minWidth: 1080,
+              minHeight: 1080,
+              quality: 75,
+              format: CompressFormat.jpeg,
+            );
+
+            final int compressedKb = compressedBytes.lengthInBytes ~/ 1024;
+
+            final ref = storage.ref().child('products').child(
+                '${DateTime.now().millisecondsSinceEpoch}_p_${doc.id}_$imgIndex.jpg');
+
+            final metadata = SettableMetadata(
+              contentType: 'image/jpeg',
+              cacheControl: 'public, max-age=31536000',
+            );
+
+            // Storage 병렬 업로드
+            final uploadTask = await ref.putData(compressedBytes, metadata);
+            final newDownloadUrl = await uploadTask.ref.getDownloadURL();
+
+            newImages[imgIndex] = newDownloadUrl;
+            isDocUpdated = true;
+
+            if (kDebugMode) {
+              print(
+                  "   ⚡️ [병렬 압축/업로드 완료] '${data['name'] ?? ''}' (#$imgIndex): $originalKb KB ➡️ $compressedKb KB");
+            }
+          } catch (e) {
+            if (kDebugMode) print("   ⚠️ 이미지 처리 실패 (기존 유지): $e");
+            newImages[imgIndex] = imageUrl;
+          }
+        }),
+      );
+
+      // Firestore 이미지 URL 배열 동시 업데이트
+      if (isDocUpdated) {
+        // 비어있는 방어용 필터링
+        final cleanNewImages =
+            newImages.where((url) => url.isNotEmpty).toList();
+        await doc.reference.update({'images': cleanNewImages});
+      }
+
+      completedDocs++;
+      double ratio = (completedDocs / totalDocs).clamp(0.0, 1.0);
+      onProgress(
+        ratio,
+        "[$completedDocs/$totalDocs] '${data['name'] ?? ''}' 등 병렬 처리 중...",
+      );
+    }));
+  }
+
+  if (kDebugMode) {
+    print("✅ [전체 이미지 초고속 병렬 압축 완료]");
   }
 }
 
