@@ -1,8 +1,9 @@
+// FILE: lib/main.dart
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:more_pic/db/product_repository.dart';
 import 'package:more_pic/firebase_options.dart';
 import 'package:more_pic/global/component/hover_menu.dart';
 import 'package:more_pic/global/component/product_card.dart';
@@ -56,8 +57,15 @@ class MorePicWebService extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scaffoldKey = useMemoized(() => GlobalKey<ScaffoldState>());
-
     const String currentCategory = 'all';
+
+    // ⭐️ 1. 기존 리버팟 페이징 상태 그대로 사용
+    final paginatedStateAsync =
+        ref.watch(paginatedProductProvider(currentCategory));
+    final items = paginatedStateAsync.value?.items ?? [];
+    final hasMore = paginatedStateAsync.value?.hasMore ?? false;
+    final isFetching =
+        paginatedStateAsync.isLoading || paginatedStateAsync.isRefreshing;
 
     final itemCountAsync =
         ref.watch(categoryItemCountProvider(currentCategory));
@@ -76,39 +84,15 @@ class MorePicWebService extends HookConsumerWidget {
     final isScrolled = useState(false);
 
     final globalSearchWatch = ref.watch(globalSearchProvider);
-    // final globalSearchRead = ref.read(globalSearchProvider.notifier);
     final searchContentWatch = ref.watch(searchContentProvider);
+    final searchContentRead = ref.read(searchContentProvider.notifier);
     final popupConfigAsync = ref.watch(popupConfigProvider);
 
     final menuAsync = ref.watch(globalMenuProvider);
     final currentMenuData = menuAsync.value ?? [];
 
     final bool mobileMode = isMobile(context);
-
-    final paginatedStateAsync =
-        ref.watch(paginatedProductProvider(currentCategory));
-    final List<ProductModel> items = paginatedStateAsync.maybeWhen(
-      data: (stateData) => stateData.items.cast<ProductModel>(),
-      orElse: () => const <ProductModel>[],
-    );
-
     final cartCount = ref.watch(cartProvider).length;
-
-    // useEffect(() {
-    //   paginatedStateAsync.whenData((stateData) {
-    //     WidgetsBinding.instance.addPostFrameCallback((_) {
-    //       if (searchContentWatch.searchContent.isNotEmpty) {
-    //         globalSearchRead.filterProducts(
-    //             query: searchContentWatch.searchContent,
-    //             targetList: stateData.items.cast<ProductModel>());
-    //       } else {
-    //         globalSearchRead
-    //             .allProductsFn(stateData.items.cast<ProductModel>());
-    //       }
-    //     });
-    //   });
-    //   return null;
-    // }, [paginatedStateAsync.value?.items, searchContentWatch.searchContent]);
 
     useEffect(() {
       void listener() {
@@ -123,23 +107,12 @@ class MorePicWebService extends HookConsumerWidget {
           } else {
             if (isScrolled.value) isScrolled.value = false;
           }
-
-          // 무한 스크롤 하단 도달 감지
-          if (scrollController.position.pixels >=
-              scrollController.position.maxScrollExtent - 200) {
-            ref
-                .read(paginatedProductProvider(currentCategory).notifier)
-                .fetchNextPage();
-          }
         }
       }
 
       scrollController.addListener(listener);
       return () => scrollController.removeListener(listener);
     }, [scrollController]);
-
-    // final double headerHeight = mobileMode ? 70 : 120;
-    // double screenWidth = MediaQuery.of(context).size.width;
 
     final double headerHeight = mobileMode ? 110 : 130;
     double screenWidth = MediaQuery.of(context).size.width;
@@ -149,7 +122,6 @@ class MorePicWebService extends HookConsumerWidget {
       horizontalPadding = (screenWidth - 1280) / 2;
     }
 
-    // PC 화면은 4열, 모바일/태블릿은 3열로 반응형 분기
     int crossAxisCount = 4;
     if (mobileMode || screenWidth < 768) {
       crossAxisCount = 3;
@@ -184,6 +156,9 @@ class MorePicWebService extends HookConsumerWidget {
       return null;
     }, [popupConfigAsync.value?['isActive']]);
 
+    final bool isSearchMode = searchContentWatch.searchContent.isNotEmpty;
+    final displayItems = isSearchMode ? globalSearchWatch : items;
+
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: Colors.white,
@@ -194,7 +169,9 @@ class MorePicWebService extends HookConsumerWidget {
         children: [
           CustomScrollView(
             controller: scrollController,
+            physics: const ClampingScrollPhysics(),
             slivers: [
+              // 관리자 툴바
               SliverToBoxAdapter(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
@@ -213,10 +190,8 @@ class MorePicWebService extends HookConsumerWidget {
                           if (isEditMode) ...[
                             IconButton(
                               onPressed: () => showProductUploadDlgFn(context),
-                              icon: const Icon(
-                                Icons.add_a_photo,
-                                color: Colors.red,
-                              ),
+                              icon: const Icon(Icons.add_a_photo,
+                                  color: Colors.red),
                               tooltip: '상품 업로드',
                             ),
                             IconButton(
@@ -249,10 +224,9 @@ class MorePicWebService extends HookConsumerWidget {
                                 adminSettingsController.toggleEditMode();
                                 ScaffoldMessenger.of(context).clearSnackBars();
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('👉 조회 모드로 전환되었습니다.'),
-                                      duration: Duration(seconds: 1)),
-                                );
+                                    const SnackBar(
+                                        content: Text('일반 조회 모드로 전환되었습니다.'),
+                                        duration: Duration(seconds: 1)));
                               },
                               icon: const Icon(Icons.check_circle_outline,
                                   color: Colors.red, size: 18),
@@ -267,10 +241,9 @@ class MorePicWebService extends HookConsumerWidget {
                                   ScaffoldMessenger.of(context)
                                       .clearSnackBars();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('🛠️ 편집 모드가 활성화되었습니다.'),
-                                        duration: Duration(seconds: 1)),
-                                  );
+                                      const SnackBar(
+                                          content: Text('운영자 편집 모드가 활성화되었습니다.'),
+                                          duration: Duration(seconds: 1)));
                                 },
                                 icon: const Icon(Icons.edit,
                                     color: Colors.orangeAccent, size: 18),
@@ -279,11 +252,10 @@ class MorePicWebService extends HookConsumerWidget {
                                         TextStyle(color: Colors.orangeAccent)),
                               )
                             else
-                              Text(
-                                '♥ 로그인 시 회원가 확인 가능 ♥',
-                                style: const TextStyle(
-                                    fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
+                              const Text('로그인시 회원가 확인 가능합니다',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold)),
                           ],
                         ],
                       ),
@@ -291,6 +263,7 @@ class MorePicWebService extends HookConsumerWidget {
                   ),
                 ),
               ),
+              // 헤더 바
               SliverPersistentHeader(
                 pinned: true,
                 delegate: SliverHeaderDelegate(
@@ -302,7 +275,6 @@ class MorePicWebService extends HookConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // 1. 상단 줄: 로고 및 아이콘
                         SizedBox(
                           height: 56,
                           child: Stack(
@@ -320,11 +292,8 @@ class MorePicWebService extends HookConsumerWidget {
                                     ),
                                   ),
                                 ),
-                              // 가운데 로고 (모바일/PC 동일)
                               CustomWidget.customLogo(context, ref,
                                   fontSize: mobileMode ? 28 : 38),
-
-                              // 우측 아이콘 (모바일일 때는 상단 줄에 배치)
                               if (mobileMode)
                                 Align(
                                   alignment: Alignment.centerRight,
@@ -341,34 +310,6 @@ class MorePicWebService extends HookConsumerWidget {
                                       ),
                                       CustomWidget.buildCartBadgeIcon(
                                           context, cartCount),
-                                      // IconButton(
-                                      //   icon: Icon(
-                                      //     isLoggedIn
-                                      //         ? Icons.logout
-                                      //         : Icons.person_outline,
-                                      //     color: Colors.black87,
-                                      //   ),
-                                      //   onPressed: () async {
-                                      //     if (isLoggedIn) {
-                                      //       await adminSettingsController
-                                      //           .logout();
-                                      //       if (context.mounted) {
-                                      //         ScaffoldMessenger.of(context)
-                                      //             .clearSnackBars();
-                                      //         ScaffoldMessenger.of(context)
-                                      //             .showSnackBar(
-                                      //           const SnackBar(
-                                      //               content:
-                                      //                   Text('로그아웃 되었습니다 👋'),
-                                      //               duration:
-                                      //                   Duration(seconds: 1)),
-                                      //         );
-                                      //       }
-                                      //     } else {
-                                      //       showAdminLoginDialog(context);
-                                      //     }
-                                      //   },
-                                      // ),
                                     ],
                                   ),
                                 ),
@@ -376,12 +317,9 @@ class MorePicWebService extends HookConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-
-                        // 2. 하단 줄: 카테고리 메뉴 바 (Drawer 대신 여기서 렌더링)
                         if (mobileMode)
                           ScrollableCategoryBar(menuData: currentMenuData)
                         else
-                          // PC는 카테고리와 아이콘을 같은 줄에 배치
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -410,23 +348,22 @@ class MorePicWebService extends HookConsumerWidget {
                                           ScaffoldMessenger.of(context)
                                               .clearSnackBars();
                                           ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                                content: Text('로그아웃 되었습니다 👋'),
-                                                duration: Duration(seconds: 1)),
-                                          );
+                                              .showSnackBar(const SnackBar(
+                                                  content:
+                                                      Text('로그아웃 되었습니다.👋'),
+                                                  duration:
+                                                      Duration(seconds: 1)));
                                         }
                                       } else {
                                         showAdminLoginDialog(context);
                                       }
                                     },
                                     icon: Icon(
-                                      isLoggedIn
-                                          ? Icons.logout
-                                          : Icons.person_outline,
-                                      color: Colors.black87,
-                                    ),
-                                    tooltip: isLoggedIn ? '로그아웃' : '로그인 / 회원가입',
+                                        isLoggedIn
+                                            ? Icons.logout
+                                            : Icons.person_outline,
+                                        color: Colors.black87),
+                                    tooltip: isLoggedIn ? '로그아웃' : '로그인/ 회원가입',
                                   )
                                 ],
                               ),
@@ -437,6 +374,7 @@ class MorePicWebService extends HookConsumerWidget {
                   ),
                 ),
               ),
+              // 제목 및 필터
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -453,14 +391,14 @@ class MorePicWebService extends HookConsumerWidget {
                       if (searchContentWatch.searchContent.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         TextButton(
-                            onPressed: () => ref
-                                .read(searchContentProvider.notifier)
-                                .initState(),
+                            onPressed: () {
+                              searchContentRead.initState();
+                              ref.invalidate(
+                                  paginatedProductProvider(currentCategory));
+                            },
                             child: const Text('전체보기 돌아가기')),
                       ],
                       const SizedBox(height: 20),
-
-                      // 🌟 메인 화면용 필터 & 정렬 위젯 부착 🌟
                       ProductFilterBar(
                         totalCount: searchContentWatch.searchContent.isNotEmpty
                             ? globalSearchWatch.length
@@ -470,47 +408,114 @@ class MorePicWebService extends HookConsumerWidget {
                   ),
                 ),
               ),
-              paginatedStateAsync.when(
-                loading: () => const SliverToBoxAdapter(
-                    child: Center(child: CircularProgressIndicator())),
-                error: (err, s) =>
-                    SliverToBoxAdapter(child: Text('Error: $err')),
-                data: (stateData) {
-                  return SliverPadding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding, vertical: 10),
-                    sliver: SliverGrid(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisSpacing: 20,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.6),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final product =
-                              searchContentWatch.searchContent.isEmpty
-                                  ? items[index]
-                                  : globalSearchWatch[index];
-                          return ProductCard(
-                              key: ValueKey(product.id),
-                              product: product,
-                              currentCategory: currentCategory);
-                        },
-                        childCount: searchContentWatch.searchContent.isEmpty
-                            ? items.length
-                            : globalSearchWatch.length,
+              // ⭐️ [수정 후] 기존 아이템이 있으면 일단 그리드를 먼저 그리고,
+// 다음 페이지를 로딩 중일 때만 맨 아래에 로딩 스피너를 덧붙입니다.
+
+// 1. 기존 데이터가 있든 없든 그리드를 뿌려줌
+              if (displayItems.isNotEmpty)
+                SliverPadding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding, vertical: 10),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: crossAxisCount == 3 ? 12 : 35,
+                      crossAxisSpacing: crossAxisCount == 3 ? 8 : 20,
+                      childAspectRatio: crossAxisCount == 3 ? 0.55 : 0.68,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        // 스크롤이 끝에 도달하기 전(끝에서 3번째) 미리 다음 페이지 감지
+                        if (!isSearchMode &&
+                            index >= displayItems.length - 3 &&
+                            hasMore &&
+                            !isFetching) {
+                          Future.microtask(() {
+                            ref
+                                .read(paginatedProductProvider(currentCategory)
+                                    .notifier)
+                                .fetchNextPage();
+                          });
+                        }
+                        return ProductCard(
+                          key: ValueKey(displayItems[index].id),
+                          product: displayItems[index],
+                          currentCategory: currentCategory,
+                        );
+                      },
+                      childCount: displayItems.length,
+                    ),
+                  ),
+                ),
+
+// 2. 맨 처음 첫 페이지를 불러오는 중일 때만 중앙 대형 로딩바 표시
+              if (displayItems.isEmpty && isFetching)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 100),
+                    child: Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF4A6FA5)),
+                    ),
+                  ),
+                ),
+
+// 3. 기존 데이터가 있는 상태에서 '다음 페이지'를 불러올 때 하단에만 소형 로딩바 표시
+              if (displayItems.isNotEmpty && isFetching)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Color(0xFF4A6FA5)),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+
+// 4. 아이템이 진짜 없을 때
+              if (displayItems.isEmpty && !isFetching)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 100),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inventory_2_outlined,
+                            size: 60, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        const Text('아직 등록된 상품이 없습니다.',
+                            style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                ),
+
+              if (isFetching)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF4A6FA5)),
+                    ),
+                  ),
+                ),
+
+              // 푸터
               SliverToBoxAdapter(
                 child: CustomWidget.customFooter(context, ref,
                     isMobile: mobileMode),
               ),
             ],
           ),
-          SlidingSearchBar(currentScreenItems: items),
+          SlidingSearchBar(currentScreenItems: displayItems),
         ],
       ),
       floatingActionButton: Column(
@@ -519,20 +524,14 @@ class MorePicWebService extends HookConsumerWidget {
         children: [
           const RecentlyViewedFloatingBar(),
           const SizedBox(height: 15),
-          // 1. 채널톡 Floating 버튼
           CustomWidget.buildChannelTalkFloatingBtn(context),
-
-          // 2. 기존 맨 위로 가기(Top) 버튼
           CustomWidget.customFloatingBtn(
-            showButton: showButton,
-            scrollController: scrollController,
-          ),
+              showButton: showButton, scrollController: scrollController),
         ],
       ),
     );
   }
 }
-// FILE: lib/main.dart 하단에 추가
 
 class _TextPopupDialog extends HookWidget {
   final String title;
@@ -547,7 +546,6 @@ class _TextPopupDialog extends HookWidget {
     void closePopup() async {
       if (isChecked.value) {
         final prefs = await SharedPreferences.getInstance();
-        // 24시간 뒤로 설정
         final hideUntil = DateTime.now()
             .add(const Duration(hours: 24))
             .millisecondsSinceEpoch;
@@ -561,17 +559,16 @@ class _TextPopupDialog extends HookWidget {
       insetPadding: const EdgeInsets.all(20),
       child: Container(
         width: 450,
-        constraints: const BoxConstraints(maxHeight: 600), // 화면 넘어가지 않게 제한
+        constraints: const BoxConstraints(maxHeight: 600),
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-          color: const Color(0xFFF9F9F9), // 사진과 유사한 은은한 회백색 배경
-          borderRadius: BorderRadius.circular(0), // 각진 디자인
+          color: const Color(0xFFF9F9F9),
+          borderRadius: BorderRadius.circular(0),
           border: Border.all(color: Colors.grey.shade300, width: 1),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 본문 영역 (스크롤 가능하게 처리)
             Flexible(
               child: SingleChildScrollView(
                 padding:
@@ -584,30 +581,27 @@ class _TextPopupDialog extends HookWidget {
                         title,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black87,
-                          letterSpacing: -0.5,
-                        ),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black87,
+                            letterSpacing: -0.5),
                       ),
                       const SizedBox(height: 30),
                     ],
                     if (content.isNotEmpty)
                       Text(
                         content,
-                        textAlign: TextAlign.center, // 가운데 정렬
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.8, // 줄간격을 넓혀서 읽기 쉽게
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF444444),
-                        ),
+                            fontSize: 13,
+                            height: 1.8,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF444444)),
                       ),
                   ],
                 ),
               ),
             ),
-            // 하단 컨트롤 바 (검정색)
             Container(
               height: 55,
               color: const Color(0xFF191919),
@@ -632,20 +626,18 @@ class _TextPopupDialog extends HookWidget {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () => isChecked.value = !isChecked.value,
-                        child: const Text(
-                          '24시간 동안 다시 열람하지 않습니다.',
-                          style: TextStyle(color: Colors.white, fontSize: 13),
-                        ),
+                        child: const Text('24시간 동안 다시 열람하지 않습니다.',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 13)),
                       ),
                     ],
                   ),
                   TextButton(
                     onPressed: closePopup,
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      minimumSize: Size.zero,
-                      foregroundColor: Colors.white,
-                    ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: Size.zero,
+                        foregroundColor: Colors.white),
                     child: const Text('닫기',
                         style: TextStyle(
                             fontSize: 14, fontWeight: FontWeight.bold)),

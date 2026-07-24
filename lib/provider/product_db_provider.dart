@@ -184,20 +184,20 @@ class PaginatedProductNotifier
         items: fetchedItems, hasMore: hasMore, lastDoc: lastDoc);
   }
 
-  Future<void> fetchNextPage() async {
+Future<void> fetchNextPage() async {
     final currentState = state.value;
-    if (currentState == null || !currentState.hasMore || state.isLoading)
+    
+    // ⭐️ 로딩 중이거나, 이미 마지막 페이지거나, 이전 데이터가 없으면 중복 실행 방지
+    if (currentState == null || !currentState.hasMore || state.isLoading || state.isRefreshing) {
       return;
+    }
 
-    state = AsyncValue<PaginationState>.loading().copyWithPrevious(state);
-
+    // ⭐️ state 전체를 AsyncLoading으로 바꾸지 않고, 기존 state.value 데이터를 유지한 채 비동기 요청
     await AsyncValue.guard(() async {
-      // 💡 다음 페이지 로드 시에는 read로 현재 필터 상태만 가져옴
       final filter = ref.read(productFilterProvider);
-
       final menuTree = await ref.read(globalMenuProvider.future);
-      Query query = _buildQuery(arg, filter, menuTree);
 
+      Query query = _buildQuery(arg, filter, menuTree);
       query = query.startAfterDocument(currentState.lastDoc!).limit(_limit);
 
       final snapshot = await query.get();

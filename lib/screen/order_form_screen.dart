@@ -65,7 +65,6 @@ class OrderFormScreen extends HookConsumerWidget {
     final formatCurrency =
         NumberFormat.currency(locale: "ko_KR", symbol: "", decimalDigits: 0);
 
-    // 🚀 정가(1.7배) 총합과 회원 적용 실총합 계산
     final originalTotalPrice = cartItems.fold<int>(
       0,
       (sum, item) => sum + ((item.price * 1.7).toInt() * item.quantity),
@@ -83,7 +82,6 @@ class OrderFormScreen extends HookConsumerWidget {
     final shippingFee = isCombinedShipping.value ? 0 : baseShippingFee;
     final finalTotalPrice = productTotalPrice + shippingFee;
 
-    // 카톡 전송용 텍스트 (완성형)
     String generateOrderText() {
       final buffer = StringBuffer();
       buffer.writeln('이름 : ${nameController.text.trim()}');
@@ -153,7 +151,7 @@ class OrderFormScreen extends HookConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '양식에 맞춘 주문서 텍스트가 복사되었습니다!\n채널톡 상담창에 붙여넣기(Ctrl+V / 긴 터치) 해주세요.',
+                  '양식에 맞춘 주문서 텍스트가 복사되었습니다.\n채널톡 상담창에 붙여넣기(Ctrl+V / 글자터치) 해주세요.',
                   style: TextStyle(height: 1.4, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
@@ -211,609 +209,616 @@ class OrderFormScreen extends HookConsumerWidget {
     return CustomScaffold(
       category: '주문서 작성',
       showSearchIcon: true,
-      bodyBuilder: (context, scrollController) {
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!isLoggedIn)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.local_offer,
-                                color: Colors.red.shade400, size: 24),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                '로그인 시 파격적인 할인가 적용이 됩니다!',
-                                style: TextStyle(
-                                  color: Colors.red.shade700,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  height: 1.4,
-                                ),
-                              ),
+      // ⭐️ 핵심: bodyBuilder 대신 sliverBuilder 사용
+      sliverBuilder: (context, scrollController) {
+        return [
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!isLoggedIn)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 24),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade200),
                             ),
-                            const SizedBox(width: 8),
-                            TextButton(
-                              style: TextButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                              ),
-                              onPressed: () {
-                                showAdminLoginDialog(context);
-                              },
-                              child: const Text('로그인',
-                                  style: TextStyle(
+                            child: Row(
+                              children: [
+                                Icon(Icons.local_offer,
+                                    color: Colors.red.shade400, size: 24),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    '로그인시 파격적인 할인가 적용이 됩니다!',
+                                    style: TextStyle(
+                                      color: Colors.red.shade700,
                                       fontSize: 13,
-                                      fontWeight: FontWeight.bold)),
-                            )
-                          ],
-                        ),
-                      ),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: const [
-                              Icon(Icons.assignment_outlined,
-                                  color: Colors.black87, size: 24),
-                              SizedBox(width: 8),
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                  ),
+                                  onPressed: () {
+                                    showAdminLoginDialog(context);
+                                  },
+                                  child: const Text('로그인',
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold)),
+                                )
+                              ],
+                            ),
+                          ),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(Icons.assignment_outlined,
+                                      color: Colors.black87, size: 24),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '주문서 작성',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
                               Text(
-                                '주문서 작성',
+                                '주문자 정보를 입력 후 주문서를 복사하여 채널톡으로 전달해 주세요.',
                                 style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5,
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '주문자 정보를 입력 후 주문서를 복사하여 채널톡으로 전달해 주세요.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade700,
+                        ),
+                        const SizedBox(height: 24),
+                        if (cartItems.isEmpty) ...[
+                          const SizedBox(height: 60),
+                          Center(
+                            child: Column(
+                              children: [
+                                Icon(Icons.remove_shopping_cart_outlined,
+                                    size: 64, color: Colors.grey.shade400),
+                                const SizedBox(height: 16),
+                                Text(
+                                  '주문서에 담긴 상품이 없습니다.',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (cartItems.isEmpty) ...[
-                      const SizedBox(height: 60),
-                      Center(
-                        child: Column(
-                          children: [
-                            Icon(Icons.remove_shopping_cart_outlined,
-                                size: 64, color: Colors.grey.shade400),
-                            const SizedBox(height: 16),
-                            Text(
-                              '주문서에 담긴 상품이 없습니다.',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      const Text(
-                        '주문자 정보',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: '이름 :',
-                          hintText: '성함을 입력해 주세요',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.person_outline),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return '이름을 입력해 주세요.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: phoneController,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          PhoneInputFormatter(),
-                        ],
-                        decoration: const InputDecoration(
-                          labelText: '핸드폰 :',
-                          hintText: '010-0000-0000',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.phone_outlined),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return '핸드폰 번호를 입력해 주세요.';
-                          }
-                          if (value.trim().length < 12) {
-                            return '올바른 전화번호를 입력해 주세요.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: addressController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: '주소 :',
-                          hintText: '배송 받으실 전체 주소를 입력해 주세요',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.location_on_outlined),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return '주소를 입력해 주세요.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 28),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                        ] else ...[
                           const Text(
-                            '주문LIST',
+                            '주문자 정보',
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold),
                           ),
-                          TextButton.icon(
-                            onPressed: () => cartNotifier.clearCart(),
-                            icon: const Icon(Icons.delete_outline,
-                                size: 18, color: Colors.grey),
-                            label: const Text('전체 비우기',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 13)),
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: nameController,
+                            decoration: const InputDecoration(
+                              labelText: '이름 :',
+                              hintText: '성함을 입력해 주세요',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return '이름을 입력해 주세요';
+                              }
+                              return null;
+                            },
                           ),
-                        ],
-                      ),
-                      Text(
-                        '[상품명/색상/사이즈/수량/금액]',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500),
-                      ),
-                      const Divider(),
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: cartItems.length,
-                        separatorBuilder: (context, index) =>
-                            const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final item = cartItems[index];
-
-                          final int itemOrigPrice = (item.price * 1.7).toInt();
-                          final int itemDisplayPrice =
-                              isLoggedIn ? item.price : itemOrigPrice;
-                          final int itemTotal =
-                              itemDisplayPrice * item.quantity;
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Row(
-                              children: [
-                                const Text('• ',
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: phoneController,
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              PhoneInputFormatter(),
+                            ],
+                            decoration: const InputDecoration(
+                              labelText: '핸드폰 :',
+                              hintText: '010-0000-0000',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.phone_outlined),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return '핸드폰 번호를 입력해 주세요';
+                              }
+                              if (value.trim().length < 12) {
+                                return '올바른 전화번호를 입력해 주세요';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: addressController,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                              labelText: '주소 :',
+                              hintText: '배송 받으실 전체 주소를 입력해 주세요',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.location_on_outlined),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return '주소를 입력해 주세요';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 28),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                '주문LIST',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => cartNotifier.clearCart(),
+                                icon: const Icon(Icons.delete_outline,
+                                    size: 18, color: Colors.grey),
+                                label: const Text('전체 비우기',
                                     style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16)),
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          '${item.name}/${item.color}/${item.size}/${item.quantity}개',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
+                                        color: Colors.grey, fontSize: 13)),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            '[상품명/색상/사이즈/수량/금액]',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500),
+                          ),
+                          const Divider(),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: cartItems.length,
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final item = cartItems[index];
 
-                                      // 🚀 리스트 내역 금액 표현 (로그인 시 취소선 + 회원가)
-                                      if (isLoggedIn) ...[
-                                        Text(
-                                          '₩ ${formatCurrency.format(itemOrigPrice * item.quantity)}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey.shade500,
-                                            decoration: TextDecoration
-                                                .lineThrough, // 취소선
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          '₩ ${formatCurrency.format(itemTotal)}',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.redAccent,
-                                          ),
-                                        ),
-                                      ] else
-                                        Text(
-                                          '₩ ${formatCurrency.format(itemTotal)}',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
+                              final int itemOrigPrice =
+                                  (item.price * 1.7).toInt();
+                              final int itemDisplayPrice =
+                                  isLoggedIn ? item.price : itemOrigPrice;
+                              final int itemTotal =
+                                  itemDisplayPrice * item.quantity;
+
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: Row(
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                          Icons.remove_circle_outline,
-                                          size: 18),
-                                      onPressed: () {
-                                        if (item.quantity > 1) {
-                                          cartNotifier.updateQuantity(
-                                              item.id, item.quantity - 1);
-                                        }
-                                      },
+                                    const Text('· ',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16)),
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              '${item.name}/${item.color}/${item.size}/${item.quantity}개',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          if (isLoggedIn) ...[
+                                            Text(
+                                              '₩ ${formatCurrency.format(itemOrigPrice * item.quantity)}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey.shade500,
+                                                decoration:
+                                                    TextDecoration.lineThrough,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              '₩ ${formatCurrency.format(itemTotal)}',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.redAccent,
+                                              ),
+                                            ),
+                                          ] else
+                                            Text(
+                                              '₩ ${formatCurrency.format(itemTotal)}',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                    Text('${item.quantity}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                    IconButton(
-                                      icon: const Icon(Icons.add_circle_outline,
-                                          size: 18),
-                                      onPressed: () {
-                                        cartNotifier.updateQuantity(
-                                            item.id, item.quantity + 1);
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.close,
-                                          size: 16, color: Colors.grey),
-                                      onPressed: () =>
-                                          cartNotifier.removeItem(item.id),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.remove_circle_outline,
+                                              size: 18),
+                                          onPressed: () {
+                                            if (item.quantity > 1) {
+                                              cartNotifier.updateQuantity(
+                                                  item.id, item.quantity - 1);
+                                            }
+                                          },
+                                        ),
+                                        Text('${item.quantity}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.add_circle_outline,
+                                              size: 18),
+                                          onPressed: () {
+                                            cartNotifier.updateQuantity(
+                                                item.id, item.quantity + 1);
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.close,
+                                              size: 16, color: Colors.grey),
+                                          onPressed: () =>
+                                              cartNotifier.removeItem(item.id),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 28),
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey.shade300),
                             ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 28),
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('상품 총 금액',
-                                    style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600)),
-
-                                // 🚀 정산 박스 금액 표시
-                                if (isLoggedIn)
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '₩ ${formatCurrency.format(originalTotalPrice)}',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey.shade500,
-                                          decoration:
-                                              TextDecoration.lineThrough,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '₩ ${formatCurrency.format(productTotalPrice)}',
-                                        style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.redAccent),
-                                      ),
-                                    ],
-                                  )
-                                else
-                                  Text(
-                                    '₩ ${formatCurrency.format(productTotalPrice)}',
-                                    style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            // 🚀 배송비 영역 (모바일 화면 잘림 방지를 위해 수직 구조로 정돈)
-                            Column(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('배송비',
+                                    const Text('상품 총 금액',
                                         style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600)),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          isCombinedShipping.value
-                                              ? '₩0'
-                                              : '₩${formatCurrency.format(shippingFee)}',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: isCombinedShipping.value
-                                                ? Colors.blueAccent
-                                                : Colors.black,
-                                          ),
-                                        ),
-                                        if (isEvent &&
-                                            shippingMessage.isNotEmpty &&
-                                            !isCombinedShipping.value)
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 2),
-                                            child: Text(
-                                              shippingMessage,
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.redAccent,
-                                              ),
+                                    if (isLoggedIn)
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '₩ ${formatCurrency.format(originalTotalPrice)}',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey.shade500,
+                                              decoration:
+                                                  TextDecoration.lineThrough,
                                             ),
                                           ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '₩ ${formatCurrency.format(productTotalPrice)}',
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.redAccent),
+                                          ),
+                                        ],
+                                      )
+                                    else
+                                      Text(
+                                        '₩${formatCurrency.format(productTotalPrice)}',
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('배송비',
+                                            style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600)),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              isCombinedShipping.value
+                                                  ? '₩0'
+                                                  : '₩${formatCurrency.format(shippingFee)}',
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: isCombinedShipping.value
+                                                    ? Colors.blueAccent
+                                                    : Colors.black,
+                                              ),
+                                            ),
+                                            if (isEvent &&
+                                                shippingMessage.isNotEmpty &&
+                                                !isCombinedShipping.value)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    top: 2),
+                                                child: Text(
+                                                  shippingMessage,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.redAccent,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
                                       ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    InkWell(
+                                      onTap: () {
+                                        isCombinedShipping.value =
+                                            !isCombinedShipping.value;
+                                      },
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: Checkbox(
+                                              value: isCombinedShipping.value,
+                                              activeColor: Colors.black,
+                                              onChanged: (val) {
+                                                isCombinedShipping.value =
+                                                    val ?? false;
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Text(
+                                            '기존건합배 (배송비 0원)',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.blueAccent,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                InkWell(
-                                  onTap: () {
-                                    isCombinedShipping.value =
-                                        !isCombinedShipping.value;
-                                  },
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: Checkbox(
-                                          value: isCombinedShipping.value,
-                                          activeColor: Colors.black,
-                                          onChanged: (val) {
-                                            isCombinedShipping.value =
-                                                val ?? false;
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        '기존건합배 (배송비 0원)',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.blueAccent,
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    '>합배송 (체크 시 기존주문건 입고 시 합쳐서 한번에 배송됩니다. ) ',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600),
                                   ),
+                                ),
+                                const Divider(height: 24),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      '배송비포함 총 입금금액',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      '₩ ${formatCurrency.format(finalTotalPrice)}',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.redAccent,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                '>합배송 (체크 시 기존주문건 입고 시 합쳐서 한번에 배송됩니다. ) ',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey.shade600),
-                              ),
+                          ),
+                          const SizedBox(height: 20),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber.shade200),
                             ),
-                            const Divider(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  '배송비포함 총 입금금액',
+                                  '입금 계좌 안내',
                                   style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  '₩ ${formatCurrency.format(finalTotalPrice)}',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.redAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.amber.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '입금 계좌 안내',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              spacing: 4, // 가로 사이 간격
-                              runSpacing: 6, // 줄바꿈 시 세로 간격
-                              children: [
-                                const Text(
-                                  '카카오뱅크 ',
-                                  style: TextStyle(
-                                    color: Color(0xFF666666),
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
                                   ),
                                 ),
-
-                                // 💡 터치 복사 영역
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(4),
-                                  onTap: () async {
-                                    await Clipboard.setData(const ClipboardData(
-                                        text: accountNumber));
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .clearSnackBars();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              '📋 계좌번호($accountNumber)가 클립보드에 복사되었습니다!'),
-                                          duration: Duration(seconds: 2),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF4A6FA5)
-                                          .withOpacity(0.08),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 4,
+                                  runSpacing: 6,
+                                  children: [
+                                    const Text(
+                                      '카카오뱅크',
+                                      style: TextStyle(
+                                        color: Color(0xFF666666),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    InkWell(
                                       borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          accountNumber,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF4A6FA5),
-                                            decoration:
-                                                TextDecoration.underline,
-                                          ),
+                                      onTap: () async {
+                                        await Clipboard.setData(
+                                            const ClipboardData(
+                                                text: accountNumber));
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  '💳 계좌번호($accountNumber)가 클립보드에 복사되었습니다.'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4A6FA5)
+                                              .withOpacity(0.08),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
-                                        SizedBox(width: 4),
-                                        Icon(Icons.copy_rounded,
-                                            size: 13, color: Color(0xFF4A6FA5)),
-                                      ],
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              accountNumber,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF4A6FA5),
+                                                decoration:
+                                                    TextDecoration.underline,
+                                              ),
+                                            ),
+                                            SizedBox(width: 4),
+                                            Icon(Icons.copy_rounded,
+                                                size: 13,
+                                                color: Color(0xFF4A6FA5)),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-
-                                const Text(
-                                  ' 문은미(원앤그레인)',
-                                  style: TextStyle(
-                                      color: Color(0xFF666666),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold),
+                                    const Text(
+                                      ' 문은미(원앤그레인)',
+                                      style: TextStyle(
+                                          color: Color(0xFF666666),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                          ),
+                          const SizedBox(height: 28),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: copyAndProcessOrder,
+                              icon: const Icon(Icons.copy, size: 20),
+                              label: const Text(
+                                '주문서 작성 완료 (복사하기)',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
-                          onPressed: copyAndProcessOrder,
-                          icon: const Icon(Icons.copy, size: 20),
-                          label: const Text(
-                            '주문서 작성 완료 (복사하기)',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-                  ],
+                          const SizedBox(height: 40),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
+          )
+        ];
       },
     );
   }

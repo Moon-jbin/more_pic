@@ -1,8 +1,9 @@
+// FILE: lib/utils/routing/router.dart
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:more_pic/main.dart';
 import 'package:more_pic/global/component/product_list_page.dart';
-import 'package:more_pic/global/custom_widget/custom_widget.dart';
 import 'package:more_pic/provider/product_db_provider.dart';
 import 'package:more_pic/screen/order_form_screen.dart';
 import 'package:more_pic/screen/product_detail_screen.dart';
@@ -18,7 +19,6 @@ CustomTransitionPage buildPageWithTransition<T>({
     child: child,
     transitionDuration: const Duration(milliseconds: 300),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      // 살짝 아래(Y: 0.05)에서 정위치(0)로 올라오는 효과
       const begin = Offset(0.0, 0.05);
       const end = Offset.zero;
       final tween = Tween(begin: begin, end: end)
@@ -60,7 +60,7 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-  // 2. 아이템 상세 페이지
+    // 2. 아이템 상세 페이지
     GoRoute(
       path: '/product/:category/:id',
       name: 'productDetail',
@@ -68,7 +68,6 @@ final GoRouter router = GoRouter(
         String category = state.params['category'] ?? '';
         String productId = state.params['id'] ?? '-1';
         
-        // 🔥 핵심: ProductCard에서 보낸 extra를 꺼냅니다!
         ProductModel? extraProduct = state.extra as ProductModel?;
 
         return buildPageWithTransition(
@@ -77,7 +76,7 @@ final GoRouter router = GoRouter(
           child: ProductDetailScreen(
             category: category, 
             productId: productId,
-            productExtra: extraProduct, // 🔥 화면으로 전달!
+            productExtra: extraProduct,
           ),
         );
       },
@@ -95,11 +94,8 @@ final GoRouter router = GoRouter(
           return buildPageWithTransition(
             context: context,
             state: state,
-            child: CustomScaffold(
-              category: 'all',
-              bodyBuilder: (ctx, sController) => ProductListPage(
-                  scrollController: sController, category: 'all'),
-            ),
+            // ⭐️ CustomScaffold 래퍼 제거!
+            child: const ProductListPage(category: 'all'),
           );
         }
 
@@ -117,11 +113,8 @@ final GoRouter router = GoRouter(
         return buildPageWithTransition(
           context: context,
           state: state,
-          child: CustomScaffold(
-            category: combinedCat,
-            bodyBuilder: (ctx, sController) => ProductListPage(
-                scrollController: sController, category: combinedCat),
-          ),
+          // ⭐️ CustomScaffold 래퍼 제거!
+          child: ProductListPage(category: combinedCat),
         );
       },
     ),

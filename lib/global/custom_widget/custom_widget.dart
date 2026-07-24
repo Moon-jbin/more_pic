@@ -28,15 +28,14 @@ import 'package:shimmer/shimmer.dart';
 // FILE: lib/global/custom_widget/custom_widget.dart 내 CustomScaffold 클래스 수정
 
 class CustomScaffold extends HookConsumerWidget {
-  final Widget Function(BuildContext context, ScrollController scrollController)
-      bodyBuilder;
+final List<Widget> Function(BuildContext context, ScrollController scrollController) sliverBuilder;
   final String category;
   final bool showSearchIcon;
   final Widget? bottomNavigationBar;
 
   const CustomScaffold({
     super.key,
-    required this.bodyBuilder,
+    required this.sliverBuilder,
     required this.category,
     this.showSearchIcon = true,
     this.bottomNavigationBar,
@@ -233,9 +232,7 @@ class CustomScaffold extends HookConsumerWidget {
                     ),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: bodyBuilder(context, scrollController),
-                ),
+                ...sliverBuilder(context, scrollController),
               ],
             ),
             SlidingSearchBar(currentScreenItems: filterProducts),

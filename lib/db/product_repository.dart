@@ -306,6 +306,82 @@ class ProductRepository {
   static const int maxItemsPerShard = 8000;
   static const String indexCollection = 'system_search_shards';
 
+  // [추가] 무한 스크롤 패키지를 위한 전용 데이터 로더
+  Future<Map<String, dynamic>> fetchPaginatedProducts({
+    required String category,
+    required List<Map<String, dynamic>> menuTree,
+    required String sortOptionLabel,
+    DocumentSnapshot? lastDoc,
+    int limit = 12,
+  }) async {
+    Query query = _db.collection('products');
+    
+    if (category != 'all') {
+      final targetCategories = _expandCategoryWithChildren(category, menuTree);
+      if (targetCategories.length == 1) {
+        query = query.where('categories', arrayContains: category);
+      } else {
+        query = query.where('categories', arrayContainsAny: targetCategories);
+      }
+    }
+    
+    if (sortOptionLabel == '낮은 가격순') {
+      query = query.orderBy('price', descending: false);
+    } else if (sortOptionLabel == '높은 가격순') {
+      query = query.orderBy('price', descending: true);
+    } else if (sortOptionLabel == '상품명순') {
+      query = query.orderBy('name', descending: false);
+    } else {
+      query = query.orderBy('createdAt', descending: true);
+    }
+    
+    if (lastDoc != null) {
+      query = query.startAfterDocument(lastDoc);
+    }
+    
+    final snapshot = await query.limit(limit).get();
+    final items = snapshot.docs.map((doc) => ProductModel.fromDocument(doc)).toList();
+    final newLastDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+    
+    return {'items': items, 'lastDoc': newLastDoc};
+  }
+
+  // [추가] 하위 카테고리 추출 유틸
+  List<String> _expandCategoryWithChildren(String targetCategory, List<Map<String, dynamic>> menuTree) {
+    Set<String> categorySet = {targetCategory};
+    String pathToCat(String path) {
+      if (path == '/') return 'newProduct';
+      if (path.isEmpty) return 'unknown';
+      final parts = path.split('/').where((p) => p.isNotEmpty).toList();
+      if (parts.isEmpty) return 'unknown';
+      String result = parts[0];
+      for (int i = 1; i < parts.length; i++) {
+        String word = parts[i];
+        final subParts = word.split('_');
+        for (var sub in subParts) {
+          if (sub.isNotEmpty) result += sub[0].toUpperCase() + sub.substring(1);
+        }
+      }
+      return result;
+    }
+
+    void searchAndCollect(List menuList, bool isMatchingTarget) {
+      for (var item in menuList) {
+        final mapItem = Map<String, dynamic>.from(item);
+        final String path = mapItem['path'] ?? '';
+        final String catKey = pathToCat(path);
+        bool isCurrentMatch = isMatchingTarget || (catKey == targetCategory);
+        if (isCurrentMatch) categorySet.add(catKey);
+        final List? children = mapItem['children'];
+        if (children != null && children.isNotEmpty) {
+          searchAndCollect(children, isCurrentMatch);
+        }
+      }
+    }
+    searchAndCollect(menuTree, false);
+    return categorySet.toList();
+  }
+
   // [기능 1. 사전 동기화 (전체 재생성)]
   Future<int> syncExistingProductsToIndex() async {
     try {
@@ -525,99 +601,101 @@ class ProductRepository {
 
     onProgress(1.0, "진열 완료!");
   }
+// FILE: lib/db/product_repository.dart
 
-  // [기능 4. 텍스트 정보 수정 - 상품명 변경 시 사전을 뒤져서 업데이트]
-  Future<void> updateProductTextInfo({
-    required String productId,
-    required String name,
-    required int price,
-    required String size,
-    required String color,
-  }) async {
-    try {
-      final docRef = _db.collection('products').doc(productId);
-      final oldSnapshot = await docRef.get();
-      final String oldName = oldSnapshot.data()?['name'] ?? '';
+// [수정 1] 텍스트 정보 수정 시 categories 업데이트 추가
+Future<void> updateProductTextInfo({
+  required String productId,
+  required String name,
+  required int price,
+  required List<String> categories, // ⭐️ 카테고리 리스트 받아오기
+  required String size,
+  required String color,
+}) async {
+  try {
+    final docRef = _db.collection('products').doc(productId);
+    final oldSnapshot = await docRef.get();
+    final String oldName = oldSnapshot.data()?['name'] ?? '';
 
-      await docRef.update({
-        'name': name,
-        'price': price,
-        'size': size,
-        'color': color,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+    await docRef.update({
+      'name': name,
+      'price': price,
+      'categories': categories, // ⭐️ Firestore에 업데이트!
+      'size': size,
+      'color': color,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
 
-      // 이름이 변경되었다면, 어느 사전에 들어있는지 찾아서 수정
-      if (oldName != name) {
-        await _updateIndexInShard(productId, oldName, name);
-      }
-    } catch (e) {
-      throw Exception('상품 정보 수정 중 서버 통신 실패: $e');
+    if (oldName != name) {
+      await _updateIndexInShard(productId, oldName, name);
     }
+  } catch (e) {
+    throw Exception('상품 정보 수정 중 서버 통신 실패: $e');
   }
+}
 
-  // [기능 5. 텍스트 + 이미지 수정]
-  Future<void> updateProductWithImages({
-    required String productId,
-    required String name,
-    required int price,
-    required String size,
-    required String color,
-    required List<dynamic> mixedImages,
-    required Function(double, String) onProgress,
-  }) async {
-    List<String> finalImageUrls = [];
-    onProgress(0.1, "데이터 분석 및 업로드 준비중..");
+// [수정 2] 텍스트 + 이미지 수정 시 categories 업데이트 추가
+Future<void> updateProductWithImages({
+  required String productId,
+  required String name,
+  required int price,
+  required List<String> categories, // ⭐️ 카테고리 리스트 받아오기
+  required String size,
+  required String color,
+  required List<dynamic> mixedImages,
+  required Function(double, String) onProgress,
+}) async {
+  List<String> finalImageUrls = [];
+  onProgress(0.1, "데이터 분석 및 업로드 준비중..");
 
-    try {
-      final docRef = _db.collection('products').doc(productId);
-      final oldSnapshot = await docRef.get();
-      final String oldName = oldSnapshot.data()?['name'] ?? '';
+  try {
+    final docRef = _db.collection('products').doc(productId);
+    final oldSnapshot = await docRef.get();
+    final String oldName = oldSnapshot.data()?['name'] ?? '';
 
-      for (int i = 0; i < mixedImages.length; i++) {
-        final item = mixedImages[i];
-        final progressRatio = 0.1 + ((i / mixedImages.length) * 0.7);
-        onProgress(
-            progressRatio, "이미지 처리 중(${i + 1}/${mixedImages.length})...");
+    for (int i = 0; i < mixedImages.length; i++) {
+      final item = mixedImages[i];
+      final progressRatio = 0.1 + ((i / mixedImages.length) * 0.7);
+      onProgress(progressRatio, "이미지 처리 중(${i + 1}/${mixedImages.length})...");
 
-        if (item is String) {
-          finalImageUrls.add(item);
-        } else if (item is XFile) {
-          final ref = FirebaseStorage.instance
-              .ref()
-              .child('products')
-              .child('${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-          final metadata = SettableMetadata(
-            contentType: 'image/jpg',
-            cacheControl: 'public, max-age=31536000',
-          );
-          final uploadTask = ref.putData(await item.readAsBytes(), metadata);
-          final snapshot = await uploadTask;
-          final downloadUrl = await snapshot.ref.getDownloadURL();
-          finalImageUrls.add(downloadUrl);
-        }
+      if (item is String) {
+        finalImageUrls.add(item);
+      } else if (item is XFile) {
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child('products')
+            .child('${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
+        final metadata = SettableMetadata(
+          contentType: 'image/jpg',
+          cacheControl: 'public, max-age=31536000',
+        );
+        final uploadTask = ref.putData(await item.readAsBytes(), metadata);
+        final snapshot = await uploadTask;
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        finalImageUrls.add(downloadUrl);
       }
-
-      await docRef.update({
-        'name': name,
-        'price': price,
-        'size': size,
-        'color': color,
-        'images': finalImageUrls,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      if (oldName != name) {
-         await _updateIndexInShard(productId, oldName, name);
-      }
-
-      onProgress(1.0, "수정 완료!");
-    } catch (e) {
-      onProgress(0.0, "이미지 처리 중 에러 발생: $e");
-      rethrow;
     }
-  }
 
+    await docRef.update({
+      'name': name,
+      'price': price,
+      'categories': categories, // ⭐️ Firestore에 업데이트!
+      'size': size,
+      'color': color,
+      'images': finalImageUrls,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    if (oldName != name) {
+      await _updateIndexInShard(productId, oldName, name);
+    }
+
+    onProgress(1.0, "수정 완료!");
+  } catch (e) {
+    onProgress(0.0, "이미지 처리 중 에러 발생: $e");
+    rethrow;
+  }
+}
   // [기능 6. 상품 삭제 시 사전에서 제거]
   Future<void> removeProductFromSearchIndex(
       String productId, String productName) async {
