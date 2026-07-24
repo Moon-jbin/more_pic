@@ -113,7 +113,7 @@ class OrderFormScreen extends HookConsumerWidget {
       buffer.writeln('배송비포함 총 입금금액');
       buffer.writeln('₩ ${formatCurrency.format(finalTotalPrice)}');
       buffer.writeln('………………………………');
-      buffer.write('예금주)3333377919709 카카오뱅크 문은미');
+      buffer.write('예금주)3333377919709 카카오뱅크 원앤그레인');
 
       return buffer.toString();
     }
@@ -775,7 +775,7 @@ class OrderFormScreen extends HookConsumerWidget {
                                       ),
                                     ),
                                     const Text(
-                                      ' 문은미(원앤그레인)',
+                                      ' 원앤그레인',
                                       style: TextStyle(
                                           color: Color(0xFF666666),
                                           fontSize: 13,
